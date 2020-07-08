@@ -1,0 +1,3 @@
+[submodule "libs/libwsclient"]
+	path = libs/libwsclient
+	url = git@github.com:morrowind/libwsclient.git
