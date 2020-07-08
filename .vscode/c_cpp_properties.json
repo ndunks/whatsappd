@@ -5,10 +5,11 @@
             "includePath": [
                 "${workspaceFolder}/libs/libwsclient/"
             ],
-            "defines": [],
+            "defines": ["_GNU_SOURCE"],
             "compilerPath": "/usr/bin/clang-3.8",
             "cStandard": "c11",
             "cppStandard": "c++17",
+            "compilerArgs": ["-Wall"],
             "intelliSenseMode": "clang-x64"
         }
     ],
