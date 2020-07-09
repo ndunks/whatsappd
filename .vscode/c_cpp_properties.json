@@ -3,7 +3,7 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/libs/libwsclient/",
+                "${workspaceFolder}/lib",
                 "${workspaceFolder}/src"
             ],
             "defines": ["_GNU_SOURCE","TEST=\"dummy\""],
