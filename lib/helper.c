@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "base64.h"
 #include "helper.h"
 
 char *helper_random_bytes(size_t size)
@@ -32,7 +33,7 @@ static size_t write_config_buf(char *str, char *buf)
 
 static size_t read_config_buf(char **str, char *buf)
 {
-    size_t size = (u_int8_t) buf[0];
+    size_t size = (u_int8_t)buf[0];
 
     if (size > 255)
         die("read config str to large");
@@ -128,4 +129,18 @@ int helper_config_read(Config *cfg, const char *file)
     size += read_config_buf(&cfg->aesKey, buf + size);
     size += read_config_buf(&cfg->macKey, buf + size);
     return 0;
+}
+
+void helper_config_init_default(Config *cfg)
+{
+    char *buf, buf_b64[256];
+
+    buf = helper_random_bytes(32);
+    base64_encode(buf, 32, buf_b64, 256);
+    free(buf);
+    cfg->client_id = malloc(strlen(buf_b64));
+    strcpy(cfg->client_id, buf_b64);
+    // Keys
+    cfg->keys.secret = helper_random_bytes(32);
+
 }

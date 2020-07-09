@@ -17,7 +17,7 @@ static int test_random_bytes()
     return 0;
 }
 
-static int test_config()
+static int test_config_default()
 {
     Config cfg1;
     info("Config size %lu byes", sizeof(Config));
@@ -36,14 +36,22 @@ static int test_config()
     TRUTHY(cfg1.serverSecret == NULL);
     TRUTHY(cfg1.aesKey == NULL);
     TRUTHY(cfg1.macKey == NULL);
-    
+    helper_config_init_default(&cfg1);
+    FALSY(cfg1.client_id == NULL);
+    info("client-id (%lu) %s",strlen(cfg1.client_id), cfg1.client_id);
+    TRUTHY(strlen(cfg1.client_id) > 0);
+
+    FALSY(cfg1.keys.secret == NULL);
+    FALSY(cfg1.keys.private == NULL);
+    FALSY(cfg1.keys.public == NULL);
+
     return 0;
 }
 
 int test_main()
 {
 
-    return test_random_bytes() || test_config();
+    return test_random_bytes() || test_config_default();
 }
 
 int test_setup()
