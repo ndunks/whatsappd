@@ -5,11 +5,8 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
 
 #include <base64.h>
-#include <sha1.h>
 
 #include "whatsappd.h"
 #include "wasocket.h"
