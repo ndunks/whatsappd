@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/libs/libwsclient/"
+                "${workspaceFolder}/libs/libwsclient/",
+                "${workspaceFolder}/include/*"
             ],
             "defines": ["_GNU_SOURCE"],
             "compilerPath": "/usr/bin/clang-3.8",

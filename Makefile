@@ -5,7 +5,7 @@ BUILD_BIN    := build/whatsappd
 BUILD_LIB    := build/libs.a
 LIB_OBJECTS  :=
 MKDIRS       := build
-CFLAGS       := -Wall -D_GNU_SOURCE
+CFLAGS       := -Wall -D_GNU_SOURCE -I$(PWD)/include
 
 .DEFAULT_GOAL := all
 
