@@ -19,13 +19,13 @@ test: $(LIB_OBJECTS) $(OBJECTS_NO_MAIN) $(TEST_BINS)
 test-watch:
 	nodemon --delay 0.5 \
 		-w libs -w src -w test \
-		-e .c,.h,.mk -V \
+		-e .c,.h,.mk \
 		-x "make --no-print-directory test || false"
 
 $(TEST_BINS): build/test_%: test/test.c build/test/test_%.o $(OBJECTS_NO_MAIN) $(BUILD_LIB)
-	$(CC) $(CFLAGS) $(TEST_CFLAGS) -Isrc $(LDFLAGS) -o $@ $^
+	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -Isrc $(LDFLAGS) -o $@ $^
 
 $(TEST_OBJECTS): build/test/test_%.o: test/test_%.c
-	$(CC) $(CFLAGS) $(TEST_CFLAGS) -Isrc -c -o $@ $<
+	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -Isrc -c -o $@ $<
 
 .PHONY: test test-watch
