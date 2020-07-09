@@ -1,15 +1,25 @@
-TEST_SOURCES := $(wildcard test/test_*.c)
-TEST_BINS    := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
+TEST_SOURCES    := $(wildcard test/*.c)
+TEST_OBJECTS    := $(patsubst %.c, build/%.o, $(TEST_SOURCES))
+TEST_BINS       := $(filter-out build/test, $(patsubst build/test/%.o, build/%, $(TEST_OBJECTS)))
+MKDIRS          += build/test
+OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
+
 
 test: $(TEST_BINS)
-	for test_bin in $(TEST_BINS); do \
+	@for test_bin in $(TEST_BINS); do \
 		./$$test_bin ;\
 	done
 
 test-watch:
-	nodemon --delay 0.5 -i build -i .git -i tmp -e .c,.h -V -x "make test || false"
+	nodemon --delay 0.5 \
+		-w libs -w src -w test \
+		-e .c,.h,.mk -V \
+		-x "make --no-print-directory test || false"
 
-$(TEST_BINS): build/test_%: test/test_%.c
-	$(CC) $(CFLAGS) -Isrc "-DTEST=\"$*\"" -o $@ $< test/test.c
+$(TEST_BINS): build/test_%: build/test/test_%.o build/test/test.o $(OBJECTS_NO_MAIN)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+
+$(TEST_OBJECTS): build/test/%.o: test/%.c
+	$(CC) $(CFLAGS) -Isrc "-DTEST=\"$*\"" -c -o $@ $<
 
 .PHONY: test test-watch

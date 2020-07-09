@@ -2,7 +2,6 @@
 
 int main(int argc, char const *argv[])
 {
-    char *test_error;
     info("Running test: %s", TEST);
 
     if (test_setup())
@@ -11,12 +10,12 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    test_error = test_main();
+    test_main();
 
-    if (test_error)
-    {
-        err("Failed:\n%s", test_error);
-    }
+    if (ret_val == 0)
+        ok("** OK **");
+    else
+        err("** Failed **");
 
     if (test_cleanup())
     {
@@ -24,5 +23,5 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    return test_error != 0;
+    return ret_val;
 }

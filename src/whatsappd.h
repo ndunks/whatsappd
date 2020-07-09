@@ -1,4 +1,5 @@
 #pragma once
+
 #include <stdio.h>
 
 #define COL_RED "\x1b[31m"
@@ -13,4 +14,6 @@
 #define warn(fmt, ...) debug(COL_YELL fmt COL_NORM, ##__VA_ARGS__)
 #define err(fmt, ...) debug(COL_RED fmt COL_NORM, ##__VA_ARGS__)
 
-const char *whatsapp_ws_url = "wss://web.whatsapp.com/ws";
+// ----- wasocket ------ //
+const char *whatsapp_ws_url;
+int wasocket_connect();
