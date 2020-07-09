@@ -1,4 +1,3 @@
-#include <malloc.h>
 #include <wasocket.h>
 
 #include "test.h"
@@ -7,19 +6,19 @@ static char *buf;
 
 int test_connect()
 {
-    ASSERT(wasocket_connect());
+    ZERO(wasocket_connect());
     return 0;
 }
 
 int test_disconnect()
 {
-    ASSERT(wasocket_disconnect());
+    ZERO(wasocket_disconnect());
     return 0;
 }
 
 int test_main()
 {
-    return test_connect() || test_disconnect() ;
+    return test_connect() || test_disconnect();
 }
 
 int test_setup()

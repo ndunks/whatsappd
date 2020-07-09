@@ -7,8 +7,8 @@
 #include <string.h>
 
 #include <base64.h>
+#include <helper.h>
 
-#include "whatsappd.h"
 #include "wasocket.h"
 
 static int ws_fd;
