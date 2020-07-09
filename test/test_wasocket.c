@@ -1,4 +1,6 @@
 #include <malloc.h>
+#include <wasocket.h>
+
 #include "test.h"
 
 static char *buf;
@@ -9,13 +11,15 @@ int test_connect()
     return 0;
 }
 
-void test_main()
+int test_disconnect()
 {
-    printf("YES RUNNING %s\n", TEST);
+    ASSERT(wasocket_disconnect());
+    return 0;
+}
 
-    if (test_connect())
-        return;
-
+int test_main()
+{
+    return test_connect() || test_disconnect() ;
 }
 
 int test_setup()

@@ -13,7 +13,9 @@
 #define ok(fmt, ...) debug(COL_GREEN fmt COL_NORM, ##__VA_ARGS__)
 #define warn(fmt, ...) debug(COL_YELL fmt COL_NORM, ##__VA_ARGS__)
 #define err(fmt, ...) debug(COL_RED fmt COL_NORM, ##__VA_ARGS__)
-
-// ----- wasocket ------ //
-const char *whatsapp_ws_url;
-int wasocket_connect();
+#define die(msg)          \
+    do                    \
+    {                     \
+        printf(msg "\n"); \
+        exit(1);          \
+    } while (0)

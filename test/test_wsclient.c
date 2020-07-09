@@ -19,7 +19,7 @@ static int onopen(wsclient_t *client, wsclient_test_t *wstest)
 {
     printf("onopen()\n");
     wstest->is_conn = true;
-    client->send_text(client,"1594275999.--0,[\"admin\",\"init\",[2,2025,6],[\"Linux\",\"Chrome\",\"x86_64\"],\"M8j29DnY1i5rZGTPS0mFKw==\",true]");
+    client->send_text(client, "1594275999.--0,[\"admin\",\"init\",[2,2025,6],[\"Linux\",\"Chrome\",\"x86_64\"],\"M8j29DnY1i5rZGTPS0mFKw==\",true]");
     return 0;
 }
 
@@ -27,10 +27,11 @@ static int onmessage(wsclient_t *client, wsclient_message_t *msg, wsclient_test_
 {
     printf("onmessage(opcode:%04x, len:%zu)\n", msg->opcode, msg->payload_len);
     printf("\t");
-    for (size_t i = 0; i < msg->payload_len; i++)
-    {
-        printf("%02x ", msg->payload[i]);
-    }
+    fprintf(stdout, msg->payload, msg->payload_len);
+    // for (size_t i = 0; i < msg->payload_len; i++)
+    // {
+    //     printf("%02x ", msg->payload[i]);
+    // }
     printf("\n");
     wstest->recv_msg.opcode = msg->opcode;
     wstest->recv_msg.payload_len = msg->payload_len;
