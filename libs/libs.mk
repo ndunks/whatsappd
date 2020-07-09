@@ -1,4 +1,4 @@
-LDFLAGS         += -lssl -lcrypto -lpthread
+LDFLAGS         += -lssl -lcrypto -lpthread -lm
 CFLAGS          += -Ilibs/libwsclient
 MKDIRS          += build/libs/libwsclient
 LIBWSCLIENT_OBJ := $(patsubst %.c, build/%.o, $(wildcard libs/libwsclient/*.c))
