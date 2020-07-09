@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <string.h>
 
 #include "whatsappd.h"
 #include "wasocket.h"
@@ -18,7 +19,7 @@ static int wasocket_init()
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo("web.whatsapp.com", 443, &hints, &hostinfo) != 0)
+    if (getaddrinfo("web.whatsapp.com", "443", &hints, &hostinfo) != 0)
         die("Can't resolve host!");
 
     for (ptr = hostinfo; ptr != NULL; ptr = ptr->ai_next)
@@ -50,6 +51,5 @@ int wasocket_connect()
 
 int wasocket_disconnect()
 {
-    close(ws_fd);
-    return 1;
+    return close(ws_fd);
 }
