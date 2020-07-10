@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <string.h>
 
-#include <helper.h>
+#include <util/helper.h>
 
 #define EQUAL(expression, val)                       \
     do                                               \
