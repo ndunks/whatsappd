@@ -48,10 +48,11 @@ static int wasocket_init()
     // Connected with TLS_CHACHA20_POLY1305_SHA256 encryption.
     // cert: /C=US/ST=California/L=Menlo Park/O=Facebook, Inc./CN=*.whatsapp.net
     // from: /C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert SHA2 High Assurance Server CA
-
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     SSL_library_init();
-    OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
+#endif
+    OpenSSL_add_all_algorithms();
 
     ssl_ctx = SSL_CTX_new(SSLv23_client_method());
     if (ssl_ctx == NULL)
