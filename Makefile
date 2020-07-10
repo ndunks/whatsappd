@@ -30,7 +30,16 @@ watch:
 	nodemon --delay 0.5 -w Makefile -w src -e .c,.h,.mk -x "make run || false"
 
 clean:
-	@test -d build && rm -rf build
+	@test -d build && rm -rf build/*
 
-.PHONY: all run watch clean
+buildfs:
+ifeq (,$(shell grep $(PWD)/build /proc/mounts))
+	@echo "Make build as tempfs"
+	@test -d build && rm -rf build/* || true
+	sudo mount -t tmpfs none ./build
+else
+	@echo "Already mounted"
+endif
+
+.PHONY: all run watch clean buildfs
 
