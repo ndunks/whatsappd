@@ -4,6 +4,7 @@
         "**/.git/subtree-cache/**": true,
         "**/node_modules/**": true,
         "**/build/": true,
-        "**/tmp/": true
+        "**/tmp/": true,
+        "**/lib/openssl*": true
     }
 }

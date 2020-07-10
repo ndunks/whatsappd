@@ -3,15 +3,17 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/lib",
+                "${workspaceFolder}/lib/util",
+                "${workspaceFolder}/lib/openssl-1.1.1g/include",
+                "${workspaceFolder}/build/lib/openssl/include",
                 "${workspaceFolder}/src"
             ],
             "defines": ["_GNU_SOURCE","TEST=\"dummy\""],
-            "compilerPath": "/usr/bin/clang-3.8",
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "compilerArgs": ["-Wall"],
-            "intelliSenseMode": "clang-x64"
+            "intelliSenseMode": "gcc-x64"
         }
     ],
     "version": 4
