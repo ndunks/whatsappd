@@ -16,7 +16,7 @@ openssl: lib/openssl-1.1.1g
 
 ifeq (,$(wildcard build/lib/openssl/Makefile))
 	cd build/lib/openssl && $(PWD)/lib/openssl-1.1.1g/config \
-	-static no-tests no-engine no-ui-console \
+	no-tests no-engine no-ui-console \
 	--prefix $(PWD)/build/lib/openssl
 
 endif

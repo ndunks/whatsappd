@@ -23,7 +23,7 @@ test-watch:
 		-x "make --no-print-directory test || false"
 
 $(TEST_BINS): build/test_%: test/test.c build/test/test_%.o $(OBJECTS_NO_MAIN) $(BUILD_LIB)
-	@$(CC) $(CFLAGS) $(TEST_CFLAGS) $(LDFLAGS) -o $@ $^
+	@$(CC) $(CFLAGS) $(TEST_CFLAGS)  -o $@ $^ $(LDFLAGS)
 
 $(TEST_OBJECTS): build/test/test_%.o: test/test_%.c
 	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -c -o $@ $<
