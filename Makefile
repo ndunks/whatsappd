@@ -3,18 +3,19 @@ SOURCES      := $(wildcard src/*.c)
 OBJECTS      := $(patsubst src/%.c, build/%.o, $(SOURCES))
 BUILD_BIN    := build/whatsappd
 MKDIRS       := build
-CFLAGS       := -Wall -D_GNU_SOURCE -std=c11 -Ilib
-LDFLAGS      := -lssl -lcrypto -lpthread
+CFLAGS       += -Wall -D_GNU_SOURCE -std=c11
+LDFLAGS      += -l:libssl.a -l:libcrypto.a -lpthread -ldl -lc
 
 .DEFAULT_GOAL := all
 
 include lib/lib.mk
 
+
 ifneq (,$(findstring test,$(MAKECMDGOALS)))
     include test/test.mk
 endif
+$(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))
 
-$(shell test -d build || mkdir -p $(MKDIRS))
 
 all: $(BUILD_BIN)
 
@@ -22,6 +23,7 @@ run: all
 	./$(BUILD_BIN)
 
 $(BUILD_BIN): $(OBJECTS) $(BUILD_LIB)
+#	$(LD) $^ -o $@ $(LDFLAGS)
 
 $(OBJECTS) : build/%.o : src/%.c
 	$(CC) -c $(CFLAGS) $< -o $@

@@ -6,8 +6,8 @@
 #include <netdb.h>
 #include <string.h>
 
-#include <util/base64.h>
-#include <util/helper.h>
+#include <base64.h>
+#include <helper.h>
 
 #include "wasocket.h"
 
