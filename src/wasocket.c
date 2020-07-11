@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-
+#include <arpa/inet.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/error.h>
@@ -21,7 +21,7 @@ static mbedtls_entropy_context entropy;
 static mbedtls_ctr_drbg_context ctr_drbg;
 static mbedtls_ssl_context ssl;
 static mbedtls_ssl_config conf;
-
+static int ret;
 static int wasocket_ssl_init()
 {
     mbedtls_ctr_drbg_init(&ctr_drbg);
@@ -46,7 +46,6 @@ static int wasocket_init()
 {
     struct addrinfo hints, *hostinfo, *ptr;
     const unsigned char *pers = "wasocket";
-    int ret;
 
     wasocket_ssl_init();
 
@@ -67,6 +66,7 @@ static int wasocket_init()
     }
 
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
 
     if (mbedtls_ssl_setup(&ssl, &conf) != 0)
     {
@@ -79,7 +79,7 @@ static int wasocket_init()
      */
     memset(&hints, 0, sizeof(hints));
 
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo("web.whatsapp.com", "443", &hints, &hostinfo) != 0)
@@ -103,15 +103,16 @@ static int wasocket_init()
         goto exit;
     }
 
-    info("Net Connected");
+    info("Connected to %s", inet_ntoa(((struct sockaddr_in *)ptr->ai_addr)->sin_addr));
 
-    freeaddrinfo(hostinfo);
     mbedtls_ssl_set_bio(&ssl, &ws_net, mbedtls_net_send, mbedtls_net_recv, NULL);
+    freeaddrinfo(hostinfo);
 
-    if (mbedtls_ssl_handshake(&ssl) == 0)
+    if ((ret = mbedtls_ssl_handshake(&ssl)) == 0)
     {
         return 0;
     }
+    err("SSL Handshake fail 0x%04x", (unsigned int)-ret);
     ret = ssl_handshake_failed;
 
     // SSL INIT
@@ -169,7 +170,11 @@ static int wasocket_handshake()
 
 int wasocket_connect()
 {
-    return wasocket_init() || wasocket_handshake();
+    if (wasocket_init() || wasocket_handshake())
+    {
+        return ret;
+    }
+    return 0;
 }
 
 int wasocket_disconnect()
