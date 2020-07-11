@@ -39,7 +39,7 @@ static int test_config_default()
     TRUTHY(cfg1.macKey == NULL);
     helper_config_init_default(&cfg1);
     FALSY(cfg1.client_id == NULL);
-    info("client-id (%lu) %s",strlen(cfg1.client_id), cfg1.client_id);
+    info("client-id (%lu) %s", strlen(cfg1.client_id), cfg1.client_id);
     TRUTHY(strlen(cfg1.client_id) > 0);
 
     FALSY(cfg1.keys.secret == NULL);
@@ -49,10 +49,24 @@ static int test_config_default()
     return 0;
 }
 
+static int test_base64()
+{
+    const char *str = "Hello World", *str_b64 = "SGVsbG8gV29ybGQ=";
+    char buf[255];
+    helper_base64_encode(buf, 255, str, strlen(str));
+    info("b64: %s", buf);
+    ZERO(strcmp(buf, str_b64));
+
+    helper_base64_decode(buf, 255, str_b64, strlen(str_b64));
+    info("str: %s", buf);
+    ZERO(strcmp(buf, str));
+    return 0;
+}
+
 int test_main()
 {
 
-    //return test_random_bytes() || test_config_default();
+    //return test_base64() || test_random_bytes() || test_config_default();
     return test_config_default();
 }
 

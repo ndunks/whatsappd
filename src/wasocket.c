@@ -1,7 +1,6 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <malloc.h>
-#include <mbedtls/base64.h>
 #include <helper.h>
 #include <ssl.h>
 
@@ -9,23 +8,24 @@
 
 static int wasocket_handshake()
 {
-    char buf[1024], *nonce, websocket_key[256];
-    size_t size, w_size;
+    char buf[1024], *nonce, ws_key[256];
+    size_t size;
+
     nonce = helper_random_bytes(16);
-    mbedtls_base64_encode((unsigned char *)websocket_key,
-                          sizeof(websocket_key),
-                          &w_size,
-                          (const unsigned char *)nonce,
-                          16);
+
+    helper_base64_encode(ws_key, sizeof(ws_key), nonce, 16);
+
     free(nonce);
+
     size = sprintf(buf, "GET /ws HTTP/1.1\r\n"
                         "Host: web.whatsapp.com\r\n"
                         "Origin: https://web.whatsapp.com\r\n"
                         "Upgrade: websocket\r\n"
                         "Connection: Upgrade\r\n"
+                        "User-Agent: ndunks-whatsappd/1.0\r\n"
                         "Sec-WebSocket-Key: %s\r\n"
                         "Sec-WebSocket-Version: 13\r\n\r\n",
-                   websocket_key);
+                   ws_key);
 
     ssl_write(buf, size);
 

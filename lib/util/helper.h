@@ -30,6 +30,8 @@ typedef struct
     char *macKey;
 } Config;
 
+size_t helper_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
+size_t helper_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len);
 char *helper_random_bytes(size_t size);
 int helper_config_write(Config *cfg, const char *file);
 int helper_config_read(Config *cfg, const char *file);
