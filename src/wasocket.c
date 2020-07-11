@@ -45,7 +45,7 @@ static int wasocket_ssl_deinit()
 static int wasocket_init()
 {
     struct addrinfo hints, *hostinfo, *ptr;
-    const unsigned char *pers = "wasocket";
+    const uint8_t *pers = "wasocket";
 
     wasocket_ssl_init();
 
@@ -108,8 +108,12 @@ static int wasocket_init()
     mbedtls_ssl_set_bio(&ssl, &ws_net, mbedtls_net_send, mbedtls_net_recv, NULL);
     freeaddrinfo(hostinfo);
 
+    //Cipher: TLSv1.1/TLS-RSA-WITH-AES-128-CBC-SHA
     if ((ret = mbedtls_ssl_handshake(&ssl)) == 0)
     {
+        accent("Cipher: %s/%s",
+               mbedtls_ssl_get_version(&ssl),
+               mbedtls_ssl_get_ciphersuite(&ssl));
         return 0;
     }
     err("SSL Handshake fail 0x%04x", (unsigned int)-ret);
@@ -133,13 +137,13 @@ int wasocket_write(char *buf, size_t size)
 
 static int wasocket_handshake()
 {
-    unsigned char buff[1024], nonce[16], websocket_key[256];
+    uint8_t buff[1024], nonce[16], websocket_key[256];
     int i;
     size_t size;
 
     for (i = 0; i < sizeof(nonce); i++)
     {
-        nonce[i] = (unsigned char)(rand() & 0xff);
+        nonce[i] = (uint8_t)(rand() & 0xff);
     }
     base64_encode(nonce, sizeof(nonce), websocket_key, sizeof(websocket_key));
 

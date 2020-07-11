@@ -15,6 +15,7 @@
 #define ok(fmt, ...) debug(COL_GREEN fmt COL_NORM, ##__VA_ARGS__)
 #define warn(fmt, ...) debug(COL_YELL fmt COL_NORM, ##__VA_ARGS__)
 #define err(fmt, ...) debug(COL_RED fmt COL_NORM, ##__VA_ARGS__)
+#define accent(fmt, ...) debug(COL_MAG fmt COL_NORM, ##__VA_ARGS__)
 #define die(msg)          \
     do                    \
     {                     \
