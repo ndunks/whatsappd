@@ -1,15 +1,14 @@
 #pragma once
 #include <malloc.h>
 #include <string.h>
-
 #include <helper.h>
 
 #define EQUAL(expression, val)                       \
     do                                               \
         if ((ret_val = (expression)) != val)         \
         {                                            \
-            warn(#expression " return %d", ret_val); \
-            return ret_val;                          \
+            warn(#expression " but is %d", ret_val); \
+            return 1;                                \
         }                                            \
         else                                         \
             ret_val = 0;                             \

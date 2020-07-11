@@ -10,12 +10,10 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    test_main();
-
-    if (ret_val == 0)
-        ok("** OK **");
-    else
+    if (test_main() != 0)
         err("** Failed **");
+    else
+        ok("** OK **");
 
     if (test_cleanup())
     {
