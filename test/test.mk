@@ -11,7 +11,7 @@ TEST_BINS       := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
 OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
 MKDIRS          += build/test
 
-test: $(TEST_BINS)
+test: build_lib $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \
 		./$$test_bin ;\
 	done
@@ -23,7 +23,7 @@ test-watch:
 		-x "make --no-print-directory test || false"
 
 $(TEST_BINS): build/test_%: test/test.c build/test/test_%.o $(OBJECTS_NO_MAIN) $(BUILD_LIB)
-	@$(CC) $(CFLAGS) $(TEST_CFLAGS)  -o $@ $^ $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(TEST_OBJECTS): build/test/test_%.o: test/test_%.c
 	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -c -o $@ $<

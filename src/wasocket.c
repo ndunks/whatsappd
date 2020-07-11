@@ -1,24 +1,82 @@
 #include <netinet/in.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
+
+#include <mbedtls/net_sockets.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/error.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/debug.h>
 
 #include <base64.h>
 #include <helper.h>
 
 #include "wasocket.h"
 
-static int ws_fd;
-static SSL_CTX *ssl_ctx;
-static SSL *ssl;
+static mbedtls_net_context ws_net;
+static mbedtls_entropy_context entropy;
+static mbedtls_ctr_drbg_context ctr_drbg;
+static mbedtls_ssl_context ssl;
+static mbedtls_ssl_config conf;
+
+static int wasocket_ssl_init()
+{
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    mbedtls_net_init(&ws_net);
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+    mbedtls_entropy_init(&entropy);
+    return exit_ok;
+}
+
+static int wasocket_ssl_deinit()
+{
+    mbedtls_net_free(&ws_net);
+    mbedtls_ssl_free(&ssl);
+    mbedtls_ssl_config_free(&conf);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    mbedtls_entropy_free(&entropy);
+    return 0;
+}
 
 static int wasocket_init()
 {
     struct addrinfo hints, *hostinfo, *ptr;
+    const unsigned char *pers = "wasocket";
+    int ret;
 
+    wasocket_ssl_init();
+
+    if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                              pers, strlen(pers)) != 0)
+    {
+        ret = ctr_drbg_seed_failed;
+        goto exit;
+    }
+
+    if (mbedtls_ssl_config_defaults(&conf,
+                                    MBEDTLS_SSL_IS_CLIENT,
+                                    MBEDTLS_SSL_TRANSPORT_STREAM,
+                                    MBEDTLS_SSL_PRESET_DEFAULT) != 0)
+    {
+        ret = ssl_config_defaults_failed;
+        goto exit;
+    }
+
+    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+
+    if (mbedtls_ssl_setup(&ssl, &conf) != 0)
+    {
+        ret = ssl_setup_failed;
+        goto exit;
+    }
+
+    /*
+     * 2. Resolve address
+     */
     memset(&hints, 0, sizeof(hints));
 
     hints.ai_family = AF_UNSPEC;
@@ -26,64 +84,58 @@ static int wasocket_init()
 
     if (getaddrinfo("web.whatsapp.com", "443", &hints, &hostinfo) != 0)
         die("Can't resolve host!");
-
     for (ptr = hostinfo; ptr != NULL; ptr = ptr->ai_next)
     {
-        if ((ws_fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) == -1)
+        if ((ws_net.fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) == -1)
         {
             continue;
         }
-        if (connect(ws_fd, ptr->ai_addr, ptr->ai_addrlen) == -1)
+        if (connect(ws_net.fd, ptr->ai_addr, ptr->ai_addrlen) == -1)
         {
-            close(ws_fd);
+            close(ws_net.fd);
             continue;
         }
         break;
     }
+    if (ptr == NULL)
+    {
+        ret = hostname_failed;
+        goto exit;
+    }
+
+    info("Net Connected");
 
     freeaddrinfo(hostinfo);
-    if (ptr == NULL)
-        return 1;
+    mbedtls_ssl_set_bio(&ssl, &ws_net, mbedtls_net_send, mbedtls_net_recv, NULL);
+
+    if (mbedtls_ssl_handshake(&ssl) == 0)
+    {
+        return 0;
+    }
+    ret = ssl_handshake_failed;
+
     // SSL INIT
     // Connected with TLS_CHACHA20_POLY1305_SHA256 encryption.
     // cert: /C=US/ST=California/L=Menlo Park/O=Facebook, Inc./CN=*.whatsapp.net
     // from: /C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert SHA2 High Assurance Server CA
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    SSL_library_init();
-    SSL_load_error_strings();
-#endif
-    OpenSSL_add_all_algorithms();
-
-    ssl_ctx = SSL_CTX_new(SSLv23_client_method());
-    if (ssl_ctx == NULL)
-    {
-        ERR_print_errors_fp(stderr);
-        return 2;
-    }
-    ssl = SSL_new(ssl_ctx);
-    SSL_set_fd(ssl, ws_fd);
-    if (SSL_connect(ssl) == -1)
-    {
-        ERR_print_errors_fp(stderr);
-        return 3;
-    }
-    info("SSL: %s", SSL_get_cipher(ssl));
-
-    return 0;
+    //mbedtls_ssl_close_notify( &ssl );
+exit:
+    wasocket_ssl_deinit();
+    return ret;
 }
 
 int wasocket_write(char *buf, size_t size)
 {
     info(">>\n%s", buf);
-    return SSL_write(ssl, buf, size);
+    return mbedtls_ssl_write(&ssl, buf, size);
 }
 
 static int wasocket_handshake()
 {
-    char buff[1024], nonce[16], websocket_key[256];
+    unsigned char buff[1024], nonce[16], websocket_key[256];
     int i;
     size_t size;
-    srand(time(NULL));
+
     for (i = 0; i < sizeof(nonce); i++)
     {
         nonce[i] = (unsigned char)(rand() & 0xff);
@@ -105,7 +157,7 @@ static int wasocket_handshake()
 
     do
     {
-        i = SSL_read(ssl, buff + size, sizeof(buff) - 1 - size);
+        i = mbedtls_ssl_read(&ssl, buff + size, sizeof(buff) - 1 - size);
         size += i;
     } while (size < 4 && i > 0);
     buff[size] = 0;
@@ -122,8 +174,9 @@ int wasocket_connect()
 
 int wasocket_disconnect()
 {
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-    SSL_CTX_free(ssl_ctx);
-    return close(ws_fd);
+    wasocket_ssl_deinit();
+    // SSL_shutdown(ssl);
+    // SSL_free(ssl);
+    // SSL_CTX_free(ssl_ctx);
+    return 0;
 }

@@ -12,9 +12,10 @@ include lib/lib.mk
 
 ifneq (,$(findstring test,$(MAKECMDGOALS)))
     include test/test.mk
-    LDFLAGS += -lmbedssl -lmbedcrypto -lpthread
+    LDFLAGS += -lmbedtls -lmbedcrypto -lpthread
+	export LD_LIBRARY_PATH := build/lib/mbedtls/library;
 else
-    LDFLAGS += -l:libmbedssl.a -l:libmbedcrypto.a -lpthread
+    LDFLAGS += -l:libmbedtls.a -l:libmbedcrypto.a -lpthread
 endif
 
 $(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))
@@ -25,7 +26,7 @@ all: $(BUILD_BIN)
 run: all
 	./$(BUILD_BIN)
 
-$(BUILD_BIN): $(OBJECTS) $(BUILD_LIB)
+$(BUILD_BIN): $(OBJECTS) build_lib
 	$(CC) $^ -o $@ $(LDFLAGS)
 
 $(OBJECTS) : build/%.o : src/%.c

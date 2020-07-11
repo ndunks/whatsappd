@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <openssl/evp.h>
 #include "base64.h"
 #include "helper.h"
 
@@ -135,9 +134,6 @@ int helper_config_read(Config *cfg, const char *file)
 void helper_config_init_default(Config *cfg)
 {
     char *buf, buf_b64[256];
-    EVP_PKEY_CTX *pctx;
-	EVP_PKEY *client;
-
     buf = helper_random_bytes(32);
     base64_encode(buf, 32, buf_b64, 256);
     free(buf);
@@ -145,17 +141,5 @@ void helper_config_init_default(Config *cfg)
     strcpy(cfg->client_id, buf_b64);
     // Keys
     cfg->keys.secret = helper_random_bytes(32);
-    pctx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
-
-	if (!pctx)
-		return;
-
-	if (EVP_PKEY_keygen_init(pctx) != 1)
-		return;
-
-	if (EVP_PKEY_keygen(pctx, &client) != 1)
-		return;
-
-	EVP_PKEY_CTX_free(pctx);
 
 }
