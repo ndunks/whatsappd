@@ -4,8 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/lib/util",
-                "${workspaceFolder}/lib/openssl-1.1.1g/include",
-                "${workspaceFolder}/build/lib/openssl/include",
+                "${workspaceFolder}/lib/mbedtls/include",
                 "${workspaceFolder}/src"
             ],
             "defines": ["_GNU_SOURCE","TEST=\"dummy\""],

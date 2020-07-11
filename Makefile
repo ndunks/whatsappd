@@ -12,9 +12,9 @@ include lib/lib.mk
 
 ifneq (,$(findstring test,$(MAKECMDGOALS)))
     include test/test.mk
-    LDFLAGS += -lssl -lcrypto -lpthread
+    LDFLAGS += -lmbedssl -lmbedcrypto -lpthread
 else
-    LDFLAGS += -l:libssl.a -l:libcrypto.a -lpthread -ldl -lc
+    LDFLAGS += -l:libmbedssl.a -l:libmbedcrypto.a -lpthread
 endif
 
 $(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))

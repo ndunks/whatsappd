@@ -5,6 +5,6 @@
         "**/node_modules/**": true,
         "**/build/": true,
         "**/tmp/": true,
-        "**/lib/openssl*": true
+        "**/lib/mbedtls": true
     }
 }
