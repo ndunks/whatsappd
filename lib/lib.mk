@@ -12,10 +12,10 @@ build_lib: mbedtls $(BUILD_LIB)
 
 $(BUILD_LIB): $(LIB_OBJECTS)
 	$(info Creating $@)
-	$(AR) cr $@ $?
+	@$(AR) cr $@ $?
 
 $(LIB_OBJECTS): build/lib/util/%.o: lib/util/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 mbedtls: lib/mbedtls build/lib/mbedtls/Makefile $(MBEDTLS_LIB)
 
