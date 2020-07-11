@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "base64.h"
 #include "helper.h"
 
 char *helper_random_bytes(size_t size)
@@ -135,7 +134,7 @@ void helper_config_init_default(Config *cfg)
 {
     char *buf, buf_b64[256];
     buf = helper_random_bytes(32);
-    base64_encode(buf, 32, buf_b64, 256);
+    //base64_encode(buf, 32, buf_b64, 256);
     free(buf);
     cfg->client_id = malloc(strlen(buf_b64));
     strcpy(cfg->client_id, buf_b64);

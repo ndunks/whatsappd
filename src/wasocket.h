@@ -13,18 +13,6 @@ enum WS_OPCODE {
      /** Pong Frame */
      PONG = 10,
 };
-enum exit_codes
-{
-    exit_ok = 0,
-    ctr_drbg_seed_failed,
-    ssl_config_defaults_failed,
-    ssl_setup_failed,
-    hostname_failed,
-    socket_failed,
-    connect_failed,
-    x509_crt_parse_failed,
-    ssl_handshake_failed,
-    ssl_write_failed,
-};
+
 int wasocket_connect();
 int wasocket_disconnect();
