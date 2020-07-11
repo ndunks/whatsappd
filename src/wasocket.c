@@ -9,7 +9,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-#include <mbedtls/debug.h>
+#include <mbedtls/base64.h>
 
 #include <base64.h>
 #include <helper.h>
@@ -45,7 +45,7 @@ static int wasocket_ssl_deinit()
 static int wasocket_init()
 {
     struct addrinfo hints, *hostinfo, *ptr;
-    const uint8_t *pers = "wasocket";
+    const char *pers = "wasocket";
 
     wasocket_ssl_init();
 
@@ -83,7 +83,11 @@ static int wasocket_init()
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo("web.whatsapp.com", "443", &hints, &hostinfo) != 0)
-        die("Can't resolve host!");
+    {
+        err("Can't resolve host!");
+        ret = hostname_failed;
+        goto exit;
+    }
     for (ptr = hostinfo; ptr != NULL; ptr = ptr->ai_next)
     {
         if ((ws_net.fd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol)) == -1)
@@ -132,42 +136,42 @@ exit:
 int wasocket_write(char *buf, size_t size)
 {
     info(">>\n%s", buf);
-    return mbedtls_ssl_write(&ssl, buf, size);
+    return mbedtls_ssl_write(&ssl, (const u_char *)buf, size);
 }
 
 static int wasocket_handshake()
 {
-    uint8_t buff[1024], nonce[16], websocket_key[256];
+    char buf[1024], nonce[16], websocket_key[256];
     int i;
-    size_t size;
+    size_t size, w_size;
+    mbedtls_ctr_drbg_random(conf.p_rng, (u_char *)nonce, 16);
+    mbedtls_base64_encode((u_char *)websocket_key,
+                          sizeof(websocket_key),
+                          &w_size,
+                          (const u_char *)nonce,
+                          sizeof(nonce));
 
-    for (i = 0; i < sizeof(nonce); i++)
-    {
-        nonce[i] = (uint8_t)(rand() & 0xff);
-    }
-    base64_encode(nonce, sizeof(nonce), websocket_key, sizeof(websocket_key));
-
-    size = sprintf(buff, "GET /ws HTTP/1.1\r\n"
-                         "Host: web.whatsapp.com\r\n"
-                         "Origin: https://web.whatsapp.com\r\n"
-                         "Upgrade: websocket\r\n"
-                         "Connection: Upgrade\r\n"
-                         "Sec-WebSocket-Key: %s\r\n"
-                         "Sec-WebSocket-Version: 13\r\n\r\n",
+    size = sprintf(buf, "GET /ws HTTP/1.1\r\n"
+                        "Host: web.whatsapp.com\r\n"
+                        "Origin: https://web.whatsapp.com\r\n"
+                        "Upgrade: websocket\r\n"
+                        "Connection: Upgrade\r\n"
+                        "Sec-WebSocket-Key: %s\r\n"
+                        "Sec-WebSocket-Version: 13\r\n\r\n",
                    websocket_key);
 
-    wasocket_write(buff, size);
+    wasocket_write(buf, size);
     size = 0;
     i = 0;
 
     do
     {
-        i = mbedtls_ssl_read(&ssl, buff + size, sizeof(buff) - 1 - size);
+        i = mbedtls_ssl_read(&ssl, (const u_char *)buf + size, sizeof(buf) - 1 - size);
         size += i;
     } while (size < 4 && i > 0);
-    buff[size] = 0;
+    buf[size] = 0;
 
-    printf("recevied handshake result = \n%s\n", buff);
+    ok("<<\n%s", buf);
 
     return 0;
 }
