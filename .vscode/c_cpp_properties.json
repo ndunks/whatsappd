@@ -7,7 +7,7 @@
                 "${workspaceFolder}/lib/mbedtls/include",
                 "${workspaceFolder}/src"
             ],
-            "defines": ["_GNU_SOURCE","TEST=\"dummy\""],
+            "defines": ["_GNU_SOURCE","TEST=\"dummy\"","MBEDTLS_CONFIG_FILE=<config.h>"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17",
