@@ -130,6 +130,7 @@ int helper_config_read(Config *cfg, const char *file)
     size += read_config_buf(&cfg->macKey, buf + size);
     return 0;
 }
+
 /* Own key pair */
 void helper_config_init_default(Config *cfg)
 {

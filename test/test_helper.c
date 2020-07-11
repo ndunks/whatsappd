@@ -51,7 +51,8 @@ static int test_config_default()
 int test_main()
 {
 
-    return test_random_bytes() || test_config_default();
+    //return test_random_bytes() || test_config_default();
+    return test_config_default();
 }
 
 int test_setup()

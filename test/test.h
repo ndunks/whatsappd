@@ -10,8 +10,6 @@
             warn(#expression " but is %d", ret_val); \
             return 1;                                \
         }                                            \
-        else                                         \
-            ret_val = 0;                             \
     while (0)
 
 #define ZERO(expression) EQUAL(expression, 0)
