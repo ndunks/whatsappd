@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdint.h>
+#include <malloc.h>
 #include <mbedtls/base64.h>
 #include <helper.h>
 #include <ssl.h>
@@ -9,7 +10,6 @@
 static int wasocket_handshake()
 {
     char buf[1024], *nonce, websocket_key[256];
-    int i;
     size_t size, w_size;
     nonce = helper_random_bytes(16);
     mbedtls_base64_encode((unsigned char *)websocket_key,
