@@ -1,7 +1,7 @@
 #pragma once
 #include <malloc.h>
 #include <string.h>
-#include <helper.h>
+#include <color.h>
 
 #define EQUAL(expression, val)                       \
     do                                               \

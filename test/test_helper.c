@@ -1,3 +1,4 @@
+#include <helper.h>
 #include "test.h"
 
 static int test_random_bytes()

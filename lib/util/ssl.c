@@ -10,7 +10,7 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 
-#include "helper.h"
+#include "color.h"
 #include "ssl.h"
 
 static mbedtls_net_context ws_net;

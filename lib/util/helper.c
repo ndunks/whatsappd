@@ -1,7 +1,9 @@
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <mbedtls/base64.h>
+
+#include "color.h"
 #include "helper.h"
 
 char *helper_random_bytes(size_t size)
