@@ -8,17 +8,16 @@
 
 static int wasocket_handshake()
 {
-    char buf[1024], nonce[16], websocket_key[256];
+    char buf[1024], *nonce, websocket_key[256];
     int i;
     size_t size, w_size;
-
-    ssl_random(nonce, 16);
+    nonce = helper_random_bytes(16);
     mbedtls_base64_encode((unsigned char *)websocket_key,
                           sizeof(websocket_key),
                           &w_size,
                           (const unsigned char *)nonce,
-                          sizeof(nonce));
-
+                          16);
+    free(nonce);
     size = sprintf(buf, "GET /ws HTTP/1.1\r\n"
                         "Host: web.whatsapp.com\r\n"
                         "Origin: https://web.whatsapp.com\r\n"

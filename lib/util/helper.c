@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "helper.h"
 
 char *helper_random_bytes(size_t size)
 {
     char *bytes = malloc(size);
-
+    srand(time(0));
     while (size--)
     {
         bytes[size] = rand();
@@ -140,5 +141,4 @@ void helper_config_init_default(Config *cfg)
     strcpy(cfg->client_id, buf_b64);
     // Keys
     cfg->keys.secret = helper_random_bytes(32);
-
 }
