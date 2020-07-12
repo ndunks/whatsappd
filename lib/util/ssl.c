@@ -66,7 +66,7 @@ void ssl_disconnect()
 int ssl_connect(const char *host, const char *port)
 {
     struct addrinfo hints, *hostinfo = NULL, *ptr = NULL;
-    char *pers = "wasocket";
+    char *pers = "wasocket", err_buff[255];
     int ret;
 
     ssl_init();
@@ -137,13 +137,13 @@ int ssl_connect(const char *host, const char *port)
     //Cipher: TLSv1.1/TLS-RSA-WITH-AES-128-CBC-SHA
     if ((ret = mbedtls_ssl_handshake(&ssl)) == 0)
     {
-        // accent("Cipher: %s/%s",
-        //        mbedtls_ssl_get_version(&ssl),
-        //        mbedtls_ssl_get_ciphersuite(&ssl));
+        accent("Cipher: %s/%s",
+               mbedtls_ssl_get_version(&ssl),
+               mbedtls_ssl_get_ciphersuite(&ssl));
         return 0;
     }
-
-    err("SSL Handshake fail 0x%04x", (unsigned int)-ret);
+    mbedtls_strerror( ret, err_buff, 255 );
+    err("SSL Handshake fail 0x%04x %s", (unsigned int)-ret, err_buff);
 
 exit:
     ssl_deinit();
