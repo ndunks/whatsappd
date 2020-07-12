@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <mbedtls/base64.h>
+#include <mbedtls/ecdh.h>
 
 #include "color.h"
 #include "helper.h"
@@ -166,10 +167,11 @@ int helper_config_read(Config *cfg, const char *file)
 /* Own key pair */
 void helper_config_init_default(Config *cfg)
 {
-    char *buf, buf_b64[256];
+    char *buf, buf_b64[128];
     buf = helper_random_bytes(32);
-    //base64_encode(buf, 32, buf_b64, 256);
+    helper_base64_encode(buf_b64, 128, buf, 32);
     free(buf);
+
     cfg->client_id = malloc(strlen(buf_b64));
     strcpy(cfg->client_id, buf_b64);
     // Keys
