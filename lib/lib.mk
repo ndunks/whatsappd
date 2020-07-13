@@ -24,6 +24,7 @@ $(MBEDTLS_LIB): lib/util/config.h
 		--always-make \
 		CFLAGS="$(MBEDTLS_CFLAGS)" \
 		-C build/lib/mbedtls
+	cd build/lib/mbedtls/library && ls -alh  *.a | cut -d ' ' -f5-
 
 build/lib/mbedtls/Makefile: lib/util/config.h
 ifneq (,$(wildcard build/lib/mbedtls))
