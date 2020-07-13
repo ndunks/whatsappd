@@ -28,7 +28,7 @@ static void ssl_init()
     mbedtls_entropy_init(&entropy);
 }
 
-static void ssl_deinit()
+static void ssl_free()
 {
     mbedtls_net_free(&ws_net);
     mbedtls_ssl_free(&ssl);
@@ -60,7 +60,7 @@ int ssl_read(char *buf, size_t size)
 void ssl_disconnect()
 {
     mbedtls_ssl_close_notify(&ssl);
-    ssl_deinit();
+    ssl_free();
 }
 
 int ssl_connect(const char *host, const char *port)
@@ -146,6 +146,6 @@ int ssl_connect(const char *host, const char *port)
     err("SSL Handshake fail 0x%04x %s", (unsigned int)-ret, err_buff);
 
 exit:
-    ssl_deinit();
+    ssl_free();
     return ret;
 }
