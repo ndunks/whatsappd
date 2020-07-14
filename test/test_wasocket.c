@@ -4,31 +4,28 @@
 
 static char *buf;
 
-int test_connect()
+int test_connection()
 {
     ZERO(wasocket_connect());
-    return 0;
-}
-
-int test_disconnect()
-{
     ZERO(wasocket_disconnect());
     return 0;
 }
 
 int test_main()
 {
-    return test_connect() || test_disconnect();
+    return test_connection();
 }
 
 int test_setup()
 {
     buf = malloc(255);
+    ZERO(crypto_init());
     return 0;
 }
 
 int test_cleanup()
 {
     free(buf);
+    ZERO(crypto_free());
     return 0;
 }

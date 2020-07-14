@@ -1,5 +1,6 @@
 #include <mbedtls/error.h>
 #include <crypto.h>
+#include <cfg.h>
 #include "test.h"
 
 int test_random()
@@ -80,14 +81,21 @@ int test_keys()
     return 0;
 }
 
+int test_parse_server_keys(){
+    return 0;
+}
+
 int test_main()
 {
 
-    return test_keys() || test_random();
+    //return test_keys() || test_random();
+    return test_parse_server_keys();
 }
 
 int test_setup()
 {
+    CFG cfg;
+    //cfg.client_id = base;
     return crypto_init();
 }
 
