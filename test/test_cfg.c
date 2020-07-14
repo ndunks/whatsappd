@@ -5,6 +5,7 @@
 #include <helper.h>
 #include <mbedtls/base64.h>
 
+#include "data_auth.h"
 #include "test.h"
 
 #define COMPARE_CFG                                                    \
@@ -83,16 +84,16 @@ int test_real_values()
 {
     // Working config from WaJs .auth file
     const char
-        *clientId = "5TPN1PAqE1xAubOU6pf87Q==",
-        *keys_secret = "uewWdPmaNsOOXI/zZoSKprXvZ6mgi/KfWCBnWB6cxnk=",
-        *keys_private = "uOwWdPmaNsOOXI/zZoSKprXvZ6mgi/KfWCBnWB6cxnk=",
-        *keys_public = "WSFfqJagGZiSBXVBR2RgaOQc0Qhp530z3pDRjhwN2hQ=",
-        *serverSecret = "mzpO/Ue00iOHP+HF+Cqq9tBjL6ecYuKy8aPrAefIoHI6Lf2Nqf4ggb5iv5dMxzXNj+ctY/bkEpMAeJEWbPDiOBB8iEKU0kQ/DQpdNd0p8G+kW5I92u5Vye/CgqnYl8di/6ZRJiMQp87SjuPDYkSghUxBpOtPbuLGsL2iiqLF/3iM3gY1JU7RDQuWcmZQkt1C",
-        *aesKey = "/RN1S3CZHT7FJnx7yI+Z8FDEkUBenv2W2XD3lGZqL4c=",
-        *macKey = "8o1GyJN9XgjnsKAOfUqJdjO71/7wLKZVK+Th9fk3X0w=",
-        *tokens_client = "7sujfCM4+5dyDbGefsbRV1qcHPRDXevYdpTYmFdc4Zg=",
-        *tokens_server = "1@on5QYjmA9bxWFoCDXucNCfQxS7QUDfSWuOrSaK5rvwOn/tP0AW1CpXy/RzZPoWpSK1EPPrZfCGC9ng==",
-        *tokens_browser = "1@H8GC1RsE0bduCJjaIyZmNT96j2RdAAXEJ7e0l2QUwxQrrVDlghGJdiSU3731iFW+1PVX4+hQ627mazZu3vPHSfkC765o/wqicsMWG7zZ2Jf/4pnkSHuR/264qACPz6NlNmXMxLacwxwYX5/ct4YZKA==";
+        *clientId = DATA_AUTH_CLIENT_ID,
+        *keys_secret = DATA_AUTH_KEYS_SECRET,
+        *keys_private = DATA_AUTH_KEYS_PRIVATE,
+        *keys_public = DATA_AUTH_KEYS_PUBLIC,
+        *serverSecret = DATA_AUTH_SERVER_SECRET,
+        *aesKey = DATA_AUTH_AESKEY,
+        *macKey = DATA_AUTH_MACKEY,
+        *tokens_client = DATA_AUTH_TOKENS_CLIENT,
+        *tokens_server = DATA_AUTH_TOKENS_SERVER,
+        *tokens_browser = DATA_AUTH_TOKENS_BROWSER;
 
     memset(cfg1, 0, sizeof(CFG));
     memset(cfg2, 0, sizeof(CFG));
