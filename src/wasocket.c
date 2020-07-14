@@ -12,7 +12,7 @@ static int wasocket_handshake()
     char buf[1024], nonce[16], ws_key[256];
     size_t size;
     crypto_random(nonce, 16);
-    helper_base64_encode(ws_key, sizeof(ws_key), nonce, 16);
+    crypto_base64_encode(ws_key, 256, nonce, 16);
 
     free(nonce);
 

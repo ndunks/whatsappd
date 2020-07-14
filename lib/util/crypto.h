@@ -21,8 +21,11 @@ typedef struct crypto_keys
 int crypto_init();
 int crypto_free();
 int crypto_random(char *buf, size_t len);
-int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
+size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
+size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len);
+
 crypto_keys *crypto_gen_keys();
+int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
 void crypto_free_keys(crypto_keys *ctx);
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);

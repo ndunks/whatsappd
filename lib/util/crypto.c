@@ -79,6 +79,37 @@ void crypto_free_keys(crypto_keys *ctx)
     free(ctx);
 }
 
+size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len)
+{
+    size_t written;
+
+    mbedtls_base64_encode(
+        (unsigned char *)dst,
+        dst_len - 1,
+        &written,
+        (const unsigned char *)src,
+        src_len);
+    dst[written] = 0;
+
+    return written;
+}
+
+size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len)
+{
+    size_t written;
+
+    mbedtls_base64_decode(
+        (unsigned char *)dst,
+        dst_len - 1,
+        &written,
+        (const unsigned char *)src,
+        src_len);
+    dst[written] = 0;
+
+    return written;
+}
+
+
 int crypto_init()
 {
     char pers[] = "whatsappd";
