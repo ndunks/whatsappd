@@ -11,7 +11,7 @@ OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
 
 test: build_lib $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \
-		./$$test_bin ;\
+		./$$test_bin || exit 1;\
 	done || true
 
 test-watch:
