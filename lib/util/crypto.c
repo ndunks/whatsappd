@@ -1,6 +1,6 @@
 #include <malloc.h>
+#include <string.h>
 #include <mbedtls/base64.h>
-#include <cfg.h>
 
 #include "color.h"
 #include "crypto.h"
@@ -35,10 +35,7 @@ void crypto_dump_point(mbedtls_ecp_point *P, const char *name)
 
 crypto_keys *crypto_gen_keys()
 {
-    crypto_keys *ctx = calloc(sizeof(crypto_keys), 1);
-    mbedtls_mpi_init(&ctx->d);
-    mbedtls_mpi_init(&ctx->z);
-    mbedtls_ecp_point_init(&ctx->Q);
+    crypto_keys *ctx = crypto_keys_init(NULL, NULL);
 
     // file://./../mbedtls/tests/suites/test_suite_ecdh.function
 
@@ -49,7 +46,7 @@ crypto_keys *crypto_gen_keys()
                                 crypto_p_rng) != 0)
     {
         err("Crypto: Fail gen public keys");
-        free(ctx);
+        crypto_keys_free(ctx);
         return NULL;
     };
     return ctx;
@@ -70,13 +67,52 @@ int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)
                                        crypto_p_rng);
 }
 
-void crypto_free_keys(crypto_keys *ctx)
+crypto_keys *crypto_keys_init(const char *private_key, const char *public_key)
+{
+    crypto_keys *ctx = calloc(sizeof(crypto_keys), 1);
+    mbedtls_mpi_init(&ctx->d);
+    mbedtls_mpi_init(&ctx->z);
+    mbedtls_ecp_point_init(&ctx->Q);
+
+    if (private_key != NULL)
+    {
+        if (mbedtls_mpi_read_binary_le(
+                &ctx->d,
+                (const unsigned char *)private_key,
+                CFG_KEY_LEN) != 0)
+        {
+            err("Fail load private key");
+            goto fail;
+        }
+    }
+
+    if (public_key != NULL)
+    {
+        if (mbedtls_ecp_point_read_binary(
+                grp,
+                &ctx->Q,
+                (const unsigned char *)public_key,
+                CFG_KEY_LEN) != 0)
+        {
+            err("Fail load public key");
+            goto fail;
+        }
+    }
+    return ctx;
+
+fail:
+    crypto_keys_free(ctx);
+    return NULL;
+}
+
+void crypto_keys_free(crypto_keys *ctx)
 {
     mbedtls_mpi_free(&ctx->d);
     mbedtls_mpi_free(&ctx->z);
     mbedtls_ecp_point_free(&ctx->Q);
     free(ctx);
 }
+
 /** return positif int when OK **/
 size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len)
 {
@@ -97,6 +133,7 @@ size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t s
 
     return written;
 }
+
 /** return positif int when OK **/
 size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len)
 {
@@ -114,6 +151,51 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
         return ret;
 
     return written;
+}
+
+int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
+{
+    char tmp[32];
+    size_t size;
+    crypto_keys *my_keys = crypto_keys_init(cfg->keys.private, cfg->keys.public);
+    mbedtls_ecp_point server_public;
+    mbedtls_ecp_point_init(&server_public);
+
+    if (CFG_SERVER_SECRET_LEN != crypto_base64_decode(
+                                     cfg->serverSecret,
+                                     CFG_SERVER_SECRET_LEN,
+                                     base64,
+                                     base64_len))
+    {
+        err("Fail crypto_parse_server_keys");
+        goto fail;
+    }
+
+    if (mbedtls_ecp_point_read_binary(
+            grp,
+            &server_public,
+            cfg->serverSecret,
+            CFG_KEY_LEN) != 0)
+    {
+        err("Fail load server public key");
+        goto fail;
+    }
+
+    if (crypto_compute_shared(my_keys, &server_public) != 0)
+    {
+        err("Fail computing shared");
+        goto fail;
+    }
+
+    CRYPTO_DUMP_MPI(my_keys->d);
+    CRYPTO_DUMP_POINT(my_keys->Q);
+    CRYPTO_DUMP_MPI(my_keys->z);
+    CRYPTO_DUMP_POINT(server_public);
+    return 0;
+
+fail:
+    crypto_keys_free(my_keys);
+    return 1;
 }
 
 int crypto_init()

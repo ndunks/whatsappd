@@ -3,6 +3,8 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 
+#include "cfg.h"
+
 #define CRYPTO_DUMP_MPI(var) crypto_dump_mpi(&var, #var)
 #define CRYPTO_DUMP_POINT(var) crypto_dump_point(&var, #var)
 
@@ -27,9 +29,12 @@ int crypto_random(char *buf, size_t len);
 size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
 size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len);
 
+int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg);
 crypto_keys *crypto_gen_keys();
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
-void crypto_free_keys(crypto_keys *ctx);
+
+crypto_keys *crypto_keys_init(const char *private_key, const char *public_key);
+void crypto_keys_free(crypto_keys *ctx);
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);
 void crypto_dump_point(mbedtls_ecp_point *P, const char *name);
