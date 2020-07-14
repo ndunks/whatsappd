@@ -27,11 +27,10 @@ void crypto_dump_point(mbedtls_ecp_point *P, const char *name)
 {
     unsigned char buf[1024];
     size_t size = 0;
-    warn("todo: crypto_dump_point SegV fix");
-    return;
     // MBEDTLS_ECDH_VARIANT_MBEDTLS_2_0
     mbedtls_ecp_point_write_binary(grp, P, MBEDTLS_ECP_PF_UNCOMPRESSED,
                                    &size, buf, 1024);
+
     info("%s (%lu bytes):", name, size);
     hexdump(buf, size);
 }
@@ -42,21 +41,9 @@ crypto_keys *crypto_gen_keys()
     mbedtls_mpi_init(&ctx->d);
     mbedtls_mpi_init(&ctx->z);
     mbedtls_ecp_point_init(&ctx->Q);
-    // if (mbedtls_ecdh_setup(ctx, MBEDTLS_ECP_DP_CURVE25519) != 0)
-    // {
-    //     err("Crypto: Fail gen keys");
-    //     free(ctx);
-    //     return NULL;
-    // }
-    // if (mbedtls_ecp_gen_privkey(grp,
-    //                             &ctx->d,
-    //                             mbedtls_ctr_drbg_random,
-    //                             ctr_drbg) != 0)
-    // {
-    //     err("Crypto: Fail gen private keys");
-    //     free(ctx);
-    //     return NULL;
-    // };
+
+    // file://./../mbedtls/tests/suites/test_suite_ecdh.function
+
     if (mbedtls_ecdh_gen_public(grp,
                                 &ctx->d,
                                 &ctx->Q,
@@ -72,12 +59,12 @@ crypto_keys *crypto_gen_keys()
 
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)
 {
-    return mbedtls_ecdh_compute_shared(&grp,
+    return mbedtls_ecdh_compute_shared(grp,
                                        &ctx->z,
                                        theirPublic,
                                        &ctx->d,
                                        mbedtls_ctr_drbg_random,
-                                       &ctr_drbg);
+                                       ctr_drbg);
 }
 
 void crypto_free_keys(crypto_keys *ctx)
@@ -92,6 +79,7 @@ int crypto_init()
 {
     char pers[] = "whatsappd";
     grp = malloc(sizeof(mbedtls_ecp_group));
+
     mbedtls_ecp_group_init(grp);
 
     if (mbedtls_ecp_group_load(grp, MBEDTLS_ECP_DP_CURVE25519) != 0)

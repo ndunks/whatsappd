@@ -10,6 +10,9 @@ int test_keys()
     TRUTHY(&(aliceKeys->Q) != NULL);
     TRUTHY(&(bobKeys->d) != NULL);
     TRUTHY(&(bobKeys->Q) != NULL);
+    
+    FALSY(mbedtls_ecp_is_zero(&bobKeys->Q));
+    FALSY(mbedtls_ecp_is_zero(&aliceKeys->Q));
 
     CRYPTO_DUMP_MPI(aliceKeys->d);
     CRYPTO_DUMP_POINT(aliceKeys->Q);
@@ -23,9 +26,18 @@ int test_keys()
         err("Crypto: %s", buf);
         return ret_val;
     }
+    ret_val = crypto_compute_shared(bobKeys, &aliceKeys->Q);
+    if (ret_val != 0)
+    {
+        mbedtls_strerror(ret_val, buf, 1024);
+        err("Crypto: %s", buf);
+        return ret_val;
+    }
+    
 
     CRYPTO_DUMP_MPI(aliceKeys->z);
     CRYPTO_DUMP_MPI(bobKeys->z);
+    ZERO(mbedtls_mpi_cmp_mpi(&aliceKeys->z, &bobKeys->z));
 
     crypto_free_keys(aliceKeys);
     crypto_free_keys(bobKeys);
