@@ -2,7 +2,7 @@
 
 int main(int argc, char const *argv[])
 {
-    info("Running test: %s", TEST);
+    info("** Testing: %s **", TEST);
 
     if (test_setup())
     {
