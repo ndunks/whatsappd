@@ -12,7 +12,7 @@ OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
 test: build_lib $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \
 		./$$test_bin ;\
-	done
+	done || true
 
 test-watch:
 	nodemon --delay 0.5 \
