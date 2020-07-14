@@ -95,6 +95,7 @@ int test_main()
 int test_setup()
 {
     CFG cfg;
+    // Working config from WaJs .auth file
     //cfg.client_id = base;
     return crypto_init();
 }

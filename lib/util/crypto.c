@@ -1,4 +1,5 @@
 #include <malloc.h>
+#include <mbedtls/base64.h>
 #include <cfg.h>
 
 #include "color.h"
