@@ -5,8 +5,6 @@
 #include "crypto.h"
 
 static mbedtls_ecp_group *grp;
-static mbedtls_ctr_drbg_context *ctr_drbg;
-static mbedtls_entropy_context *entropy;
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
 {
@@ -47,7 +45,7 @@ crypto_keys *crypto_gen_keys()
                                 &ctx->d,
                                 &ctx->Q,
                                 mbedtls_ctr_drbg_random,
-                                ctr_drbg) != 0)
+                                crypto_p_rng) != 0)
     {
         err("Crypto: Fail gen public keys");
         free(ctx);
@@ -58,7 +56,7 @@ crypto_keys *crypto_gen_keys()
 
 int crypto_random(char *buf, size_t len)
 {
-    return mbedtls_ctr_drbg_random(ctr_drbg, (unsigned char *)buf, len);
+    return mbedtls_ctr_drbg_random(crypto_p_rng, (unsigned char *)buf, len);
 }
 
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)
@@ -68,7 +66,7 @@ int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)
                                        theirPublic,
                                        &ctx->d,
                                        mbedtls_ctr_drbg_random,
-                                       ctr_drbg);
+                                       crypto_p_rng);
 }
 
 void crypto_free_keys(crypto_keys *ctx)
@@ -109,7 +107,6 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
     return written;
 }
 
-
 int crypto_init()
 {
     char pers[] = "whatsappd";
@@ -124,13 +121,15 @@ int crypto_init()
         return 1;
     }
 
-    ctr_drbg = malloc(sizeof(mbedtls_ctr_drbg_context));
-    entropy = malloc(sizeof(mbedtls_entropy_context));
+    crypto_p_rng = malloc(sizeof(mbedtls_ctr_drbg_context));
+    crypto_entropy = malloc(sizeof(mbedtls_entropy_context));
 
-    mbedtls_ctr_drbg_init(ctr_drbg);
-    mbedtls_entropy_init(entropy);
+    mbedtls_ctr_drbg_init(crypto_p_rng);
+    mbedtls_entropy_init(crypto_entropy);
 
-    if (mbedtls_ctr_drbg_seed(ctr_drbg, mbedtls_entropy_func, entropy,
+    if (mbedtls_ctr_drbg_seed(crypto_p_rng,
+                              mbedtls_entropy_func,
+                              crypto_entropy,
                               (const unsigned char *)pers,
                               sizeof pers) != 0)
     {
@@ -145,10 +144,10 @@ int crypto_init()
 int crypto_free()
 {
     mbedtls_ecp_group_free(grp);
-    mbedtls_ctr_drbg_free(ctr_drbg);
-    mbedtls_entropy_free(entropy);
+    mbedtls_ctr_drbg_free(crypto_p_rng);
+    mbedtls_entropy_free(crypto_entropy);
     free(grp);
-    free(ctr_drbg);
-    free(entropy);
+    free(crypto_p_rng);
+    free(crypto_entropy);
     return 0;
 }

@@ -1,4 +1,7 @@
 #pragma once
+#include <crypto.h>
+#include <ssl.h>
+
 enum WS_OPCODE {
      /** Continuation Frame */
      CONTINUATION = 0,

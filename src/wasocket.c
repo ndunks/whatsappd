@@ -1,9 +1,7 @@
 #include <unistd.h>
-#include <stdint.h>
 #include <malloc.h>
 #include <helper.h>
-#include <crypto.h>
-#include <ssl.h>
+#include <color.h>
 
 #include "wasocket.h"
 
@@ -11,10 +9,10 @@ static int wasocket_handshake()
 {
     char buf[1024], nonce[16], ws_key[256];
     size_t size;
+    hexdump(nonce, 16);
     crypto_random(nonce, 16);
+    hexdump(nonce, 16);
     crypto_base64_encode(ws_key, 256, nonce, 16);
-
-    free(nonce);
 
     size = sprintf(buf, "GET /ws HTTP/1.1\r\n"
                         "Host: web.whatsapp.com\r\n"
@@ -38,9 +36,7 @@ int wasocket_connect()
     if (ssl_connect("web.whatsapp.com", "443"))
         return 1;
 
-    wasocket_handshake();
-
-    return 0;
+    return wasocket_handshake();
 }
 
 int wasocket_disconnect()

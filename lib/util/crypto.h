@@ -6,6 +6,9 @@
 #define CRYPTO_DUMP_MPI(var) crypto_dump_mpi(&var, #var)
 #define CRYPTO_DUMP_POINT(var) crypto_dump_point(&var, #var)
 
+mbedtls_ctr_drbg_context *crypto_p_rng;
+mbedtls_entropy_context *crypto_entropy;
+
 typedef struct crypto_keys
 {
     /* The private key. */

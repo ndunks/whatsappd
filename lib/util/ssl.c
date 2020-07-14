@@ -7,25 +7,19 @@
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/error.h>
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
 
 #include "color.h"
 #include "ssl.h"
 
 static mbedtls_net_context ws_net;
-static mbedtls_entropy_context entropy;
-static mbedtls_ctr_drbg_context ctr_drbg;
 static mbedtls_ssl_config conf;
 mbedtls_ssl_context ssl;
 
 static void ssl_init()
 {
-    mbedtls_ctr_drbg_init(&ctr_drbg);
     mbedtls_net_init(&ws_net);
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
-    mbedtls_entropy_init(&entropy);
 }
 
 static void ssl_free()
@@ -33,13 +27,6 @@ static void ssl_free()
     mbedtls_net_free(&ws_net);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
-}
-
-int ssl_random(char *buf, size_t len)
-{
-    return mbedtls_ctr_drbg_random(conf.p_rng, (u_char *)buf, len);
 }
 
 int ssl_write(const char *buf, size_t size)
@@ -71,13 +58,6 @@ int ssl_connect(const char *host, const char *port)
 
     ssl_init();
 
-    if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                              (const u_char *)pers, strlen(pers)) != 0)
-    {
-        err("ctr_drbg_seed failed");
-        goto exit;
-    }
-
     if (mbedtls_ssl_config_defaults(&conf,
                                     MBEDTLS_SSL_IS_CLIENT,
                                     MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -87,7 +67,7 @@ int ssl_connect(const char *host, const char *port)
         goto exit;
     }
 
-    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, crypto_p_rng);
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
 
     if (mbedtls_ssl_setup(&ssl, &conf) != 0)
