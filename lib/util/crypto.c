@@ -76,33 +76,41 @@ void crypto_free_keys(crypto_keys *ctx)
     mbedtls_ecp_point_free(&ctx->Q);
     free(ctx);
 }
-
+/** return positif int when OK **/
 size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len)
 {
     size_t written;
+    int ret;
 
-    mbedtls_base64_encode(
+    ret = mbedtls_base64_encode(
         (unsigned char *)dst,
         dst_len - 1,
         &written,
         (const unsigned char *)src,
         src_len);
+
+    if (ret != 0)
+        return ret;
+
     dst[written] = 0;
 
     return written;
 }
-
+/** return positif int when OK **/
 size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len)
 {
     size_t written;
+    int ret;
 
-    mbedtls_base64_decode(
+    ret = mbedtls_base64_decode(
         (unsigned char *)dst,
-        dst_len - 1,
+        dst_len,
         &written,
         (const unsigned char *)src,
         src_len);
-    dst[written] = 0;
+
+    if (ret != 0)
+        return ret;
 
     return written;
 }
