@@ -6,6 +6,13 @@
 
 #include "test.h"
 
+void simple_random_bytes(char *bytes, size_t size)
+{
+    srand(time(0) + size + rand());
+    while (size--)
+        bytes[size] = rand();
+}
+
 int test_main()
 {
     CFG cfg, *cfg2;
@@ -16,7 +23,7 @@ int test_main()
 
     cfg.cfg_file_version = 0x99;
 
-    helper_random_bytes(16, cfg.client_id);
+    simple_random_bytes(cfg.client_id, 16);
     ZERO(cfg_save(&cfg));
     ZERO(cfg_load(cfg2));
 
@@ -25,12 +32,12 @@ int test_main()
 
     memset(cfg2, 0, sizeof(CFG));
 
-    helper_random_bytes(32, cfg.keys.private);
-    helper_random_bytes(32, cfg.keys.public);
-    helper_random_bytes(32, cfg.keys.secret);
-    helper_random_bytes(144, cfg.serverSecret);
-    helper_random_bytes(32, cfg.aesKey);
-    helper_random_bytes(32, cfg.macKey);
+    simple_random_bytes(cfg.keys.private, 32);
+    simple_random_bytes(cfg.keys.public, 32);
+    simple_random_bytes(cfg.keys.secret, 32);
+    simple_random_bytes(cfg.serverSecret, 144);
+    simple_random_bytes(cfg.aesKey, 32);
+    simple_random_bytes(cfg.macKey, 32);
 
     strcpy(cfg.tokens.client, "%#^$#%^$#&$^#&$*#&$#)(*");
     strcpy(cfg.tokens.server, "636tgyf7ryfhr7ryhf7rufhrg8rgrgj8rgj");

@@ -2,6 +2,43 @@
 #include <crypto.h>
 #include "test.h"
 
+int test_random()
+{
+    char buf[10], *rand1 = malloc(32), *null = calloc(32, 1);
+    memset(buf, 0x0, 10);
+    info("rand: buf");
+    hexdump(buf, 10);
+    crypto_random(buf, 10);
+    info("rand: buf");
+    hexdump(buf, 10);
+    TRUTHY(memcmp(buf, null, 10) != 0);
+
+    memset(rand1, 0, 10);
+    crypto_random(rand1, 10);
+    ZERO(rand1 == NULL);
+    info("rand: rand1");
+    hexdump(rand1, 10);
+    TRUTHY(memcmp(rand1, null, 10) != 0);
+
+    memset(rand1, 0, 16);
+    crypto_random(rand1, 16);
+    ZERO(rand1 == NULL);
+    info("rand: rand1");
+    hexdump(rand1, 16);
+    TRUTHY(memcmp(rand1, null, 16) != 0);
+
+    memset(rand1, 0, 32);
+    crypto_random(rand1, 32);
+    ZERO(rand1 == NULL);
+    info("rand: rand1");
+    hexdump(rand1, 32);
+    TRUTHY(memcmp(rand1, null, 32) != 0);
+
+    free(rand1);
+    free(null);
+    return 0;
+}
+
 int test_keys()
 {
     char buf[1024];
@@ -10,7 +47,7 @@ int test_keys()
     TRUTHY(&(aliceKeys->Q) != NULL);
     TRUTHY(&(bobKeys->d) != NULL);
     TRUTHY(&(bobKeys->Q) != NULL);
-    
+
     FALSY(mbedtls_ecp_is_zero(&bobKeys->Q));
     FALSY(mbedtls_ecp_is_zero(&aliceKeys->Q));
 
@@ -33,7 +70,6 @@ int test_keys()
         err("Crypto: %s", buf);
         return ret_val;
     }
-    
 
     CRYPTO_DUMP_MPI(aliceKeys->z);
     CRYPTO_DUMP_MPI(bobKeys->z);
@@ -47,7 +83,7 @@ int test_keys()
 int test_main()
 {
 
-    return test_keys();
+    return test_keys() || test_random();
 }
 
 int test_setup()

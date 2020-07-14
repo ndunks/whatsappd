@@ -1,11 +1,9 @@
 #include <malloc.h>
+#include <cfg.h>
 
 #include "color.h"
 #include "crypto.h"
 
-// static enum { crypto_state_free,
-//               crypto_state_intialized
-// } crypto_state = crypto_state_free;
 static mbedtls_ecp_group *grp;
 static mbedtls_ctr_drbg_context *ctr_drbg;
 static mbedtls_entropy_context *entropy;
@@ -23,6 +21,7 @@ void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
     info("%s (%lu bytes):", name, size);
     hexdump(buf, size);
 }
+
 void crypto_dump_point(mbedtls_ecp_point *P, const char *name)
 {
     unsigned char buf[1024];
@@ -55,6 +54,11 @@ crypto_keys *crypto_gen_keys()
         return NULL;
     };
     return ctx;
+}
+
+int crypto_random(char *buf, size_t len)
+{
+    return mbedtls_ctr_drbg_random(ctr_drbg, (unsigned char *)buf, len);
 }
 
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)

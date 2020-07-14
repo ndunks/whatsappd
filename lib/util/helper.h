@@ -10,4 +10,3 @@
 
 size_t helper_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
 size_t helper_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len);
-char *helper_random_bytes(size_t size, char *bytes);

@@ -37,19 +37,6 @@ size_t helper_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
     return written;
 }
 
-char *helper_random_bytes(size_t size, char *bytes)
-{
-    if (bytes == NULL)
-        bytes = malloc(size);
-
-    srand(time(0) + size + rand());
-    while (size--)
-    {
-        bytes[size] = rand();
-    }
-    return bytes;
-}
-
 static size_t write_config_buf(char *str, char *buf)
 {
     size_t size = strlen(str);

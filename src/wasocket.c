@@ -2,17 +2,16 @@
 #include <stdint.h>
 #include <malloc.h>
 #include <helper.h>
+#include <crypto.h>
 #include <ssl.h>
 
 #include "wasocket.h"
 
 static int wasocket_handshake()
 {
-    char buf[1024], *nonce, ws_key[256];
+    char buf[1024], nonce[16], ws_key[256];
     size_t size;
-
-    nonce = helper_random_bytes(16);
-
+    crypto_random(nonce, 16);
     helper_base64_encode(ws_key, sizeof(ws_key), nonce, 16);
 
     free(nonce);

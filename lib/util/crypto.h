@@ -18,10 +18,12 @@ typedef struct crypto_keys
     mbedtls_mpi z;
 } crypto_keys;
 
-void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);
-void crypto_dump_point(mbedtls_ecp_point *P, const char *name);
 int crypto_init();
 int crypto_free();
+int crypto_random(char *buf, size_t len);
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
 crypto_keys *crypto_gen_keys();
 void crypto_free_keys(crypto_keys *ctx);
+
+void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);
+void crypto_dump_point(mbedtls_ecp_point *P, const char *name);

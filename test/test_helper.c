@@ -1,30 +1,6 @@
 #include <helper.h>
 #include "test.h"
 
-static int test_random_bytes()
-{
-    char buf[10];
-    memset(buf, 0x0, 10);
-    hexdump(buf, 10);
-    helper_random_bytes(10, buf);
-    hexdump(buf, 10);
-    TRUTHY(memcmp(buf, "\x00\x00\x00\x00\x00\x00\x00\x00\x00", 10) != 0);
-
-    char *rand1 = helper_random_bytes(10, NULL);
-    ZERO(rand1 == NULL);
-    free(rand1);
-
-    rand1 = helper_random_bytes(16, NULL);
-    ZERO(rand1 == NULL);
-    free(rand1);
-
-    rand1 = helper_random_bytes(32, NULL);
-    ZERO(rand1 == NULL);
-    free(rand1);
-
-    return 0;
-}
-
 static int test_base64()
 {
     const char *str = "Hello World", *str_b64 = "SGVsbG8gV29ybGQ=";
@@ -46,7 +22,7 @@ static int test_base64()
 int test_main()
 {
 
-    return test_base64() || test_random_bytes();
+    return test_base64();
 }
 
 int test_setup()
