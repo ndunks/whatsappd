@@ -1,14 +1,44 @@
 #include <stdio.h>
-#include <crypto.h>
-#include "test.h"
+#include <mbedtls/ecdh.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
 
+#include "test.h"
+#define DUMP_MPI(var) dump_mpi(&var, #var)
+#define DUMP_POINT(var) dump_point(&var, #var)
+
+mbedtls_ecp_group grp;
+mbedtls_ctr_drbg_context ctr_drbg;
+mbedtls_entropy_context entropy;
+mbedtls_ecp_point qA, qB;
+mbedtls_mpi dA, dB, zA, zB;
+void dump_mpi(mbedtls_mpi *mpi, const char *name)
+{
+    unsigned char buf[1024];
+    size_t size = mpi->n * sizeof(mbedtls_mpi_uint);
+
+    if (mbedtls_mpi_write_binary_le(mpi, buf, 1024) != 0)
+    {
+        err("mbedtls_mpi_write_binary");
+        return;
+    }
+    info("%s (%lu bytes):", name, size);
+    hexdump(buf, size);
+}
+
+void dump_point(mbedtls_ecp_point *P, const char *name)
+{
+    unsigned char buf[1024];
+    size_t size = 0;
+    mbedtls_ecp_point_write_binary(&grp, P, MBEDTLS_ECP_PF_UNCOMPRESSED,
+                                   &size, buf, 1024);
+
+    info("%s (%lu bytes):", name, size);
+    hexdump(buf, size);
+}
 int test_main()
 {
-    mbedtls_ecp_group grp;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_entropy_context entropy;
-    mbedtls_ecp_point qA, qB;
-    mbedtls_mpi dA, dB, zA, zB;
+
     const char pers[] = "ecdh";
     int ret;
 
@@ -39,7 +69,6 @@ int test_main()
                                  mbedtls_ctr_drbg_random,
                                  &ctr_drbg));
 
-
     ZERO(mbedtls_ecdh_compute_shared(&grp, &zA, &qB, &dA,
                                      mbedtls_ctr_drbg_random,
                                      &ctr_drbg));
@@ -47,12 +76,12 @@ int test_main()
     ZERO(mbedtls_ecdh_compute_shared(&grp, &zB, &qA, &dB,
                                      mbedtls_ctr_drbg_random,
                                      &ctr_drbg));
-    CRYPTO_DUMP_MPI(dA);
-    CRYPTO_DUMP_MPI(dB);
-    CRYPTO_DUMP_MPI(zA);
-    CRYPTO_DUMP_MPI(zB);
-    CRYPTO_DUMP_POINT(qA);
-    CRYPTO_DUMP_POINT(qB);
+    DUMP_MPI(dA);
+    DUMP_MPI(dB);
+    DUMP_MPI(zA);
+    DUMP_MPI(zB);
+    DUMP_POINT(qA);
+    DUMP_POINT(qB);
     ZERO(mbedtls_mpi_cmp_mpi(&zA, &zB));
 
 exit:
