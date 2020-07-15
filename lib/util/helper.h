@@ -1,5 +1,6 @@
 #pragma once
 #include <stdlib.h>
+#include "color.h"
 
 #define die(msg)          \
     do                    \

@@ -32,5 +32,5 @@
         err(#expression " but is %d", CATCH_RET); \
         goto CATCH;                               \
     }
-
-int CATCH_RET;
+// in helper.c
+extern int CATCH_RET;
