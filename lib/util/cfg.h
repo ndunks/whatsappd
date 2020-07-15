@@ -44,3 +44,5 @@ const char *cfg_file_get();
 
 int cfg_load(CFG *cfg);
 int cfg_save(CFG *cfg);
+
+int cfg_has_credentials(CFG *cfg);

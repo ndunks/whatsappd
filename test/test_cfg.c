@@ -121,17 +121,30 @@ int test_real_values()
 
     cfg1->cfg_file_version = 1;
 
+    FALSY(cfg_has_credentials(cfg1));
+    FALSY(cfg_has_credentials(cfg2));
+
     ZERO(base64_decode(cfg1->client_id, 16, clientId, strlen(clientId)));
+    FALSY(cfg_has_credentials(cfg1));
     ZERO(base64_decode(cfg1->keys.private, 32, keys_private, strlen(keys_private)));
+    FALSY(cfg_has_credentials(cfg1));
     ZERO(base64_decode(cfg1->keys.public, 32, keys_public, strlen(keys_public)));
+    FALSY(cfg_has_credentials(cfg1));
     ZERO(base64_decode(cfg1->serverSecret, 144, serverSecret, strlen(serverSecret)));
+    FALSY(cfg_has_credentials(cfg1));
 
     strcpy(cfg1->tokens.client, tokens_client);
+    FALSY(cfg_has_credentials(cfg1));
     strcpy(cfg1->tokens.server, tokens_server);
+    FALSY(cfg_has_credentials(cfg1));
     strcpy(cfg1->tokens.browser, tokens_browser);
+    TRUTHY(cfg_has_credentials(cfg1));
 
     ZERO(cfg_save(cfg1));
     ZERO(cfg_load(cfg2));
+
+    TRUTHY(cfg_has_credentials(cfg1));
+    TRUTHY(cfg_has_credentials(cfg2));
 
     COMPARE_CFG;
 

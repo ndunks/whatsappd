@@ -115,3 +115,17 @@ int cfg_save(CFG *cfg)
     close(file);
     return 0;
 }
+
+int cfg_has_credentials(CFG *cfg)
+{
+    char null[255] = {0};
+
+    return (
+        cfg->tokens.browser[0] &&
+        cfg->tokens.client[0] &&
+        cfg->tokens.server[0] &&
+        memcmp(null, cfg->client_id, CFG_CLIENT_ID_LEN) &&
+        memcmp(null, cfg->serverSecret, CFG_SERVER_SECRET_LEN) &&
+        memcmp(null, cfg->keys.private, CFG_KEY_LEN) &&
+        memcmp(null, cfg->keys.public, CFG_KEY_LEN));
+}

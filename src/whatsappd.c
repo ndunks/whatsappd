@@ -2,9 +2,12 @@
 
 int whatsappd_init(const char const *config_path)
 {
-    CFG *cfg = NULL;
-    int ret = cfg_file(config_path);
+    CFG cfg;
+    int ret;
 
+    memset(&cfg, 0, sizeof(CFG));
+
+    ret = cfg_file(config_path);
     if (ret < 0)
     {
         err("Cannot Read/Write %s", cfg_file_get());
@@ -12,32 +15,31 @@ int whatsappd_init(const char const *config_path)
     }
 
     TRY(crypto_init());
-    TRY(wasocket_connect());
 
     if (ret == 1)
     {
         // Load config & crypto
-        cfg = calloc(sizeof(CFG), 1);
-        TRY(cfg_load(cfg));
-        ret = crypto_parse_server_keys(cfg->serverSecret, cfg);
+        //cfg = calloc(sizeof(CFG), 1);
+        TRY(cfg_load(&cfg));
+        ret = crypto_parse_server_keys(cfg.serverSecret, &cfg);
         if (ret)
         {
             err("Fail while parsing config: %s", config_path);
             goto CATCH;
         }
     }
-    else
-    {
-        // init new connection
+
+    TRY(wasocket_connect());
+
+    if( cfg_has_credentials(&cfg) ){
+        // login takeover
+    }else{
+        // new Login
     }
 
     ret = 0;
 
 CATCH:
-
-    if (cfg != NULL)
-        free(cfg);
-
     return ret;
 }
 
