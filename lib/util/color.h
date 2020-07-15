@@ -24,3 +24,12 @@
         }                                           \
         printf("\n");                               \
     } while (0)
+
+#define TRY(expression)                           \
+    if ((catch_ret = (expression)) != 0)          \
+    {                                             \
+        err(#expression " but is %d", catch_ret); \
+        goto catch;                               \
+    }
+
+int catch_ret;
