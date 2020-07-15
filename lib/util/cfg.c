@@ -11,7 +11,7 @@ int cfg_load(CFG *cfg)
 {
     int file;
     if (cfg_config_file == NULL)
-        cfg_config_file = &CFG_DEFAULT_CONFIG_FILE;
+        cfg_config_file = CFG_DEFAULT_CONFIG_FILE;
 
     file = open(cfg_config_file, O_RDONLY);
     ssize_t size = sizeof(CFG);
@@ -37,7 +37,7 @@ int cfg_save(CFG *cfg)
 {
     int file;
     if (cfg_config_file == NULL)
-        cfg_config_file = &CFG_DEFAULT_CONFIG_FILE;
+        cfg_config_file = CFG_DEFAULT_CONFIG_FILE;
 
     file = open(cfg_config_file, O_WRONLY | O_CREAT);
     ssize_t size = sizeof(CFG);
