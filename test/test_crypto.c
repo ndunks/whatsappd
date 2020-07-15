@@ -126,8 +126,7 @@ int test_parse_server_keys()
 int test_main()
 {
 
-    //return test_keys() || test_random();
-    return test_parse_server_keys();
+    return test_keys() || test_random() || test_parse_server_keys();
 }
 
 int test_setup()
