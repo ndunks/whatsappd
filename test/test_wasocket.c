@@ -2,8 +2,6 @@
 
 #include "test.h"
 
-static char *buf;
-
 int test_connection()
 {
     ZERO(wasocket_connect());
@@ -18,14 +16,12 @@ int test_main()
 
 int test_setup()
 {
-    buf = malloc(255);
     ZERO(crypto_init());
     return 0;
 }
 
 int test_cleanup()
 {
-    free(buf);
-    ZERO(crypto_free());
+    crypto_free();
     return 0;
 }

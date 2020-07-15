@@ -120,5 +120,6 @@ int test_setup()
 
 int test_cleanup()
 {
-    return crypto_free();
+    crypto_free();
+    return 0;
 }
