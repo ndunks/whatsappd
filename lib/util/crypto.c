@@ -1,6 +1,10 @@
 #include <malloc.h>
 #include <string.h>
 #include <mbedtls/base64.h>
+#include <mbedtls/md.h>
+#include <mbedtls/hkdf.h>
+#include <mbedtls/sha256.h>
+#include "mbedtls/aes.h"
 
 #include "color.h"
 #include "crypto.h"
@@ -155,10 +159,10 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
 
 int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
 {
-    char tmp[32];
-    size_t size;
     crypto_keys *my_keys = crypto_keys_init(cfg->keys.private, cfg->keys.public);
     mbedtls_ecp_point server_public;
+    const mbedtls_md_info_t *md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+
     mbedtls_ecp_point_init(&server_public);
 
     if (CFG_SERVER_SECRET_LEN != crypto_base64_decode(
@@ -168,34 +172,79 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
                                      base64_len))
     {
         err("Fail crypto_parse_server_keys");
-        goto fail;
+        goto catch;
     }
 
-    if (mbedtls_ecp_point_read_binary(
-            grp,
-            &server_public,
-            cfg->serverSecret,
-            CFG_KEY_LEN) != 0)
+    TRY(mbedtls_ecp_point_read_binary(
+        grp,
+        &server_public,
+        (unsigned char *)cfg->serverSecret,
+        CFG_KEY_LEN))
+
+    // Shared key
+    TRY(crypto_compute_shared(my_keys, &server_public));
+
+    unsigned char key[32],
+        shared_secret[32],
+        shared_secret_hmac[32],
+        validate_secret[144 - 32],
+        shared_secret_expanded[80],
+        aes_encrypted[144 - 64],
+        iv[16],
+        decrypted[80] = {0};
+
+    mbedtls_aes_context aes_ctx;
+
+    // Expand HKDF
+    TRY(mbedtls_mpi_write_binary_le(&my_keys->z, shared_secret, 32));
+    TRY(mbedtls_md_hmac(md_sha256, NULL, 0, shared_secret, 32, key));
+    TRY(mbedtls_hkdf_expand(
+        md_sha256, key, 32, NULL, 0,
+        shared_secret_expanded, 80));
+
+    // Validating our key
+    memcpy(validate_secret, cfg->serverSecret, 32);
+    memcpy(validate_secret + 32, cfg->serverSecret + 64, 144 - 64);
+    TRY(mbedtls_md_hmac(
+        md_sha256,
+        shared_secret_expanded + 32,
+        32,
+        validate_secret,
+        144 - 32,
+        shared_secret_hmac));
+
+    if (memcmp(shared_secret_hmac, cfg->serverSecret + 32, 32) != 0)
     {
-        err("Fail load server public key");
-        goto fail;
+        catch_ret = 1;
+        err("Key validation fail");
+        goto catch;
     }
 
-    if (crypto_compute_shared(my_keys, &server_public) != 0)
-    {
-        err("Fail computing shared");
-        goto fail;
-    }
+    //Decrypt main keys
+    memcpy(iv, shared_secret_expanded + 64, 16);
+    memcpy(aes_encrypted, cfg->serverSecret + 64, 144 - 64);
 
-    CRYPTO_DUMP_MPI(my_keys->d);
-    CRYPTO_DUMP_POINT(my_keys->Q);
-    CRYPTO_DUMP_MPI(my_keys->z);
-    CRYPTO_DUMP_POINT(server_public);
-    return 0;
+    mbedtls_aes_init(&aes_ctx);
 
-fail:
-    crypto_keys_free(my_keys);
-    return 1;
+    TRY(mbedtls_aes_setkey_dec(&aes_ctx, shared_secret_expanded, 32 * 8));
+
+    TRY(mbedtls_aes_crypt_cbc(
+        &aes_ctx,
+        MBEDTLS_AES_DECRYPT,
+        144 - 64,
+        iv,
+        aes_encrypted,
+        decrypted));
+
+    mbedtls_aes_free(&aes_ctx);
+
+    memcpy(cfg->aesKey, decrypted, 32);
+    memcpy(cfg->macKey, decrypted + 32, 32);
+
+    catch_ret = 0;
+
+    catch : crypto_keys_free(my_keys);
+    return catch_ret;
 }
 
 int crypto_init()
