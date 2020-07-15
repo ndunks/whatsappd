@@ -4,6 +4,9 @@
 #include <cfg.h>
 #include <helper.h>
 #include <mbedtls/base64.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <stdlib.h>
 
 #include "data_auth.h"
 #include "test.h"
@@ -47,8 +50,32 @@ void simple_random_bytes(char *bytes, size_t size)
         bytes[size] = rand();
 }
 
+int test_config_file()
+{
+    char buf[255] = {0}, *homedir;
+
+    EQUAL(cfg_file("/sbin/asdfg"), -1);
+    EQUAL(cfg_file("/etc/passwd"), -1);
+    ZERO(cfg_file("/tmp/nothing.cfg"));
+    ZERO(strcmp("/tmp/nothing.cfg", cfg_file_get()));
+    // Default is in home
+    ZERO(cfg_file(NULL));
+    if ((homedir = getenv("HOME")) == NULL)
+    {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    strcat(buf, homedir);
+    strcat(buf, "/.whatsappd.cfg");
+
+    ZERO(strcmp(buf, cfg_file_get()));
+
+    return 0;
+}
+
 int test_random_values()
 {
+    TRUTHY(cfg_file("tmp/whatsappd.cfg") >= 0);
+    info("CFGFILE: %s", cfg_file_get());
 
     cfg1->cfg_file_version = 0x99;
 
@@ -95,6 +122,9 @@ int test_real_values()
         *tokens_server = DATA_AUTH_TOKENS_SERVER,
         *tokens_browser = DATA_AUTH_TOKENS_BROWSER;
 
+    TRUTHY(cfg_file("tmp/whatsappd.cfg") >= 0);
+    info("CFGFILE: %s", cfg_file_get());
+
     memset(cfg1, 0, sizeof(CFG));
     memset(cfg2, 0, sizeof(CFG));
 
@@ -123,16 +153,11 @@ int test_real_values()
 int test_main()
 {
 
-    return test_random_values() || test_real_values();
+    return test_config_file() || test_random_values() || test_real_values();
 }
 
 int test_setup()
 {
-    char buf[255];
-    cfg_config_file = "tmp/whatsappd.cfg";
-    getcwd(buf, 255);
-    info("CFGFILE: %s/%s", buf, cfg_config_file);
-
     cfg1 = calloc(sizeof(CFG), 1);
     cfg2 = calloc(sizeof(CFG), 1);
     info("cfg size: %lu", sizeof(CFG));

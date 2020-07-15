@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef CFG_DEFAULT_CONFIG_FILE
-#define CFG_DEFAULT_CONFIG_FILE "/etc/whatsappd.cfg"
-#endif
 #define CFG_SERVER_SECRET_LEN 144u
 #define CFG_CLIENT_ID_LEN 16u
 #define CFG_KEY_LEN 32u
@@ -31,7 +28,17 @@ typedef struct __attribute__((packed))
     char macKey[CFG_KEY_LEN];
 } CFG;
 
-char *cfg_config_file;
+/**
+ * Set config file location and check RW access.
+ * NULL for default = ~/.whatsappd.cfg.
+ * 
+ * return:
+ *  0< Error
+ *  0  success but not exist
+ *  1  success and file exist
+ */
+int cfg_file(const char *file_path);
+const char * cfg_file_get();
 
 int cfg_load(CFG *cfg);
 int cfg_save(CFG *cfg);
