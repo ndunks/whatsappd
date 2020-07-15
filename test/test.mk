@@ -5,9 +5,9 @@ else
 endif
 
 TEST            ?= $*
-TEST_CFLAGS      = -Isrc "-DTEST=\"$(TEST)\""
+CFLAGS          += -Isrc "-DTEST=\"$(TEST)\""
 TEST_BINS       := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
-OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
+#OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
 
 test: build_lib $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \
@@ -20,7 +20,7 @@ test-watch:
 		-e .c,.h,.mk \
 		-x "make --no-print-directory test || false"
 
-$(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS_NO_MAIN) $(BUILD_LIB)
+$(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS) $(BUILD_LIB)
 	$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: test test-watch
