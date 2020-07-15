@@ -275,7 +275,7 @@ int crypto_init()
     return 0;
 }
 
-int crypto_free()
+void crypto_free()
 {
     mbedtls_ecp_group_free(grp);
     mbedtls_ctr_drbg_free(crypto_p_rng);
@@ -283,5 +283,4 @@ int crypto_free()
     free(grp);
     free(crypto_p_rng);
     free(crypto_entropy);
-    return 0;
 }

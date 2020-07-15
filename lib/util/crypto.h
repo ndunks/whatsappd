@@ -24,7 +24,7 @@ typedef struct crypto_keys
 } crypto_keys;
 
 int crypto_init();
-int crypto_free();
+void crypto_free();
 int crypto_random(char *buf, size_t len);
 
 size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
