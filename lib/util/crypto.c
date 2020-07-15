@@ -9,6 +9,10 @@
 #include "color.h"
 #include "crypto.h"
 
+mbedtls_ctr_drbg_context *crypto_p_rng;
+mbedtls_entropy_context *crypto_entropy;
+aes_keys crypto_aes_keys;
+
 static mbedtls_ecp_group *grp;
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
@@ -150,34 +154,8 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
     return written;
 }
 
-int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
+int crypto_parse_server_keys(const char const server_secret[144], CFG *cfg)
 {
-    crypto_keys *my_keys = crypto_keys_init(cfg->keys.private, cfg->keys.public);
-    mbedtls_ecp_point server_public;
-    const mbedtls_md_info_t *md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-
-    mbedtls_ecp_point_init(&server_public);
-
-    if (CFG_SERVER_SECRET_LEN != crypto_base64_decode(
-                                     cfg->serverSecret,
-                                     CFG_SERVER_SECRET_LEN,
-                                     base64,
-                                     base64_len))
-    {
-        err("Fail crypto_parse_server_keys");
-        CATCH_RET = 1;
-        goto CATCH;
-    }
-
-    TRY(mbedtls_ecp_point_read_binary(
-        grp,
-        &server_public,
-        (unsigned char *)cfg->serverSecret,
-        CFG_KEY_LEN))
-
-    // Shared key
-    TRY(crypto_compute_shared(my_keys, &server_public));
-
     unsigned char key[32],
         shared_secret[32],
         shared_secret_hmac[32],
@@ -186,6 +164,20 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
         *aes_encrypted,
         *iv,
         decrypted[80] = {0};
+    crypto_keys *my_keys = crypto_keys_init(cfg->keys.private, cfg->keys.public);
+    mbedtls_ecp_point server_public;
+    const mbedtls_md_info_t *md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+
+    mbedtls_ecp_point_init(&server_public);
+
+    TRY(mbedtls_ecp_point_read_binary(
+        grp,
+        &server_public,
+        (unsigned char *)server_secret,
+        CFG_KEY_LEN));
+
+    // Shared key
+    TRY(crypto_compute_shared(my_keys, &server_public));
 
     mbedtls_aes_context aes_ctx;
 
@@ -195,8 +187,8 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
     TRY(mbedtls_hkdf_expand(md_sha256, key, 32, NULL, 0, expanded, 80));
 
     // Validating our key
-    memcpy(validate_secret, cfg->serverSecret, 32);
-    memcpy(validate_secret + 32, cfg->serverSecret + 64, 144 - 64);
+    memcpy(validate_secret, server_secret, 32);
+    memcpy(validate_secret + 32, server_secret + 64, 144 - 64);
     TRY(mbedtls_md_hmac(
         md_sha256,
         expanded + 32,
@@ -205,7 +197,7 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
         144 - 32,
         shared_secret_hmac));
 
-    if (memcmp(shared_secret_hmac, cfg->serverSecret + 32, 32) != 0)
+    if (memcmp(shared_secret_hmac, server_secret + 32, 32) != 0)
     {
         CATCH_RET = 1;
         err("Key validation fail");
@@ -213,8 +205,8 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
     }
 
     // Decrypt main keys
-    iv = (uint8_t *)&expanded[64];                     // used 16 byte
-    aes_encrypted = (uint8_t *)&cfg->serverSecret[64]; // used len 144 - 64
+    iv = (uint8_t *)&expanded[64];                 // used 16 byte
+    aes_encrypted = (uint8_t *)&server_secret[64]; // used len 144 - 64
 
     mbedtls_aes_init(&aes_ctx);
 
@@ -226,12 +218,18 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
         iv,
         aes_encrypted,
         decrypted));
-
     mbedtls_aes_free(&aes_ctx);
+    // store it
+    if (*server_secret != *cfg->serverSecret)
+    {
+        memcpy(cfg->serverSecret, server_secret, CFG_SERVER_SECRET_LEN);
+        info("server_secret saved to CFG");
+    }
 
     // Fill the result
-    memcpy(cfg->aesKey, decrypted, 32);
-    memcpy(cfg->macKey, decrypted + 32, 32);
+    memcpy(crypto_aes_keys.enc, decrypted, 32);
+    memcpy(crypto_aes_keys.mac, decrypted + 32, 32);
+    info("Gained aes & mac key");
 
     CATCH_RET = 0;
 
@@ -261,18 +259,17 @@ int crypto_init()
     mbedtls_ctr_drbg_init(crypto_p_rng);
     mbedtls_entropy_init(crypto_entropy);
 
-    if (mbedtls_ctr_drbg_seed(crypto_p_rng,
+    TRY(mbedtls_ctr_drbg_seed(crypto_p_rng,
                               mbedtls_entropy_func,
                               crypto_entropy,
                               (const unsigned char *)pers,
-                              sizeof pers) != 0)
-    {
-        crypto_free();
-        err("Crypto: Fail seed entropy)");
-        return 1;
-    }
+                              sizeof pers));
 
     return 0;
+
+CATCH:
+    crypto_free();
+    return 1;
 }
 
 void crypto_free()

@@ -84,6 +84,13 @@ int cfg_load(CFG *cfg)
     };
 
     close(file);
+
+    if (cfg->cfg_file_version != 1)
+    {
+        err("Unsupported config file version");
+        return 1;
+    }
+
     return 0;
 }
 

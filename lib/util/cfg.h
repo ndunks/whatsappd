@@ -12,7 +12,9 @@ typedef struct __attribute__((packed))
     /** Our key, auto generated */
     struct __attribute__((packed))
     {
-        char secret[CFG_KEY_LEN], private[CFG_KEY_LEN], public[CFG_KEY_LEN];
+        char /* secret[CFG_KEY_LEN],  */
+            private[CFG_KEY_LEN],
+            public[CFG_KEY_LEN];
     } keys;
     /** Tokens from server, to relogin session */
     struct __attribute__((packed))
@@ -23,9 +25,9 @@ typedef struct __attribute__((packed))
     /** Secret from server contains encrypted aesKey and macKey generated on crypto_parse_server_keys */
     char serverSecret[CFG_SERVER_SECRET_LEN];
     /** Encrypt decrypt AES */
-    char aesKey[CFG_KEY_LEN];
-    /** HMAC based key to sign/verify */
-    char macKey[CFG_KEY_LEN];
+    // char aesKey[CFG_KEY_LEN];
+    // /** HMAC based key to sign/verify */
+    // char macKey[CFG_KEY_LEN];
 } CFG;
 
 /**
@@ -38,7 +40,7 @@ typedef struct __attribute__((packed))
  *  1  success and file exist
  */
 int cfg_file(const char *file_path);
-const char * cfg_file_get();
+const char *cfg_file_get();
 
 int cfg_load(CFG *cfg);
 int cfg_save(CFG *cfg);
