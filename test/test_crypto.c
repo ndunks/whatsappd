@@ -93,7 +93,9 @@ int test_parse_server_keys()
         *keys_public = DATA_AUTH_KEYS_PUBLIC,
         *serverSecret = DATA_AUTH_SERVER_SECRET,
         *aesKey = DATA_AUTH_AESKEY,
-        *macKey = DATA_AUTH_MACKEY;
+        *macKey = DATA_AUTH_MACKEY,
+        aesKeyByte[32],
+        macKeyByte[32];
     // *tokens_client = DATA_AUTH_TOKENS_CLIENT,
     // *tokens_server = DATA_AUTH_TOKENS_SERVER,
     // *tokens_browser = DATA_AUTH_TOKENS_BROWSER;
@@ -111,6 +113,12 @@ int test_parse_server_keys()
     TRUTHY(memcmp(cfg.serverSecret, null, CFG_SERVER_SECRET_LEN) != 0);
     TRUTHY(memcmp(cfg.aesKey, null, CFG_KEY_LEN) != 0);
     TRUTHY(memcmp(cfg.macKey, null, CFG_KEY_LEN) != 0);
+
+    EQUAL(crypto_base64_decode(aesKeyByte, CFG_KEY_LEN, aesKey, strlen(aesKey)), CFG_KEY_LEN);
+    EQUAL(crypto_base64_decode(macKeyByte, CFG_KEY_LEN, macKey, strlen(macKey)), CFG_KEY_LEN);
+
+    ZERO(memcmp(cfg.aesKey, aesKeyByte, CFG_KEY_LEN));
+    ZERO(memcmp(cfg.macKey, macKeyByte, CFG_KEY_LEN));
 
     return 0;
 }
