@@ -37,6 +37,7 @@ void crypto_dump_point(mbedtls_ecp_point *P, const char *name)
     hexdump(buf, size);
 }
 
+/* Generate private and public keys */
 crypto_keys *crypto_gen_keys()
 {
     crypto_keys *ctx = crypto_keys_init(NULL, NULL);
@@ -80,31 +81,23 @@ crypto_keys *crypto_keys_init(const char *private_key, const char *public_key)
 
     if (private_key != NULL)
     {
-        if (mbedtls_mpi_read_binary_le(
-                &ctx->d,
-                (const unsigned char *)private_key,
-                CFG_KEY_LEN) != 0)
-        {
-            err("Fail load private key");
-            goto fail;
-        }
+        TRY(mbedtls_mpi_read_binary_le(
+            &ctx->d,
+            (const unsigned char *)private_key,
+            CFG_KEY_LEN));
     }
 
     if (public_key != NULL)
     {
-        if (mbedtls_ecp_point_read_binary(
-                grp,
-                &ctx->Q,
-                (const unsigned char *)public_key,
-                CFG_KEY_LEN) != 0)
-        {
-            err("Fail load public key");
-            goto fail;
-        }
+        TRY(mbedtls_ecp_point_read_binary(
+            grp,
+            &ctx->Q,
+            (const unsigned char *)public_key,
+            CFG_KEY_LEN));
     }
-    return ctx;
 
-fail:
+    return ctx;
+CATCH:
     crypto_keys_free(ctx);
     return NULL;
 }
@@ -172,7 +165,8 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
                                      base64_len))
     {
         err("Fail crypto_parse_server_keys");
-        goto catch;
+        CATCH_RET = 1;
+        goto CATCH;
     }
 
     TRY(mbedtls_ecp_point_read_binary(
@@ -188,9 +182,9 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
         shared_secret[32],
         shared_secret_hmac[32],
         validate_secret[144 - 32],
-        shared_secret_expanded[80],
-        aes_encrypted[144 - 64],
-        iv[16],
+        expanded[80],
+        *aes_encrypted,
+        *iv,
         decrypted[80] = {0};
 
     mbedtls_aes_context aes_ctx;
@@ -198,16 +192,14 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
     // Expand HKDF
     TRY(mbedtls_mpi_write_binary_le(&my_keys->z, shared_secret, 32));
     TRY(mbedtls_md_hmac(md_sha256, NULL, 0, shared_secret, 32, key));
-    TRY(mbedtls_hkdf_expand(
-        md_sha256, key, 32, NULL, 0,
-        shared_secret_expanded, 80));
+    TRY(mbedtls_hkdf_expand(md_sha256, key, 32, NULL, 0, expanded, 80));
 
     // Validating our key
     memcpy(validate_secret, cfg->serverSecret, 32);
     memcpy(validate_secret + 32, cfg->serverSecret + 64, 144 - 64);
     TRY(mbedtls_md_hmac(
         md_sha256,
-        shared_secret_expanded + 32,
+        expanded + 32,
         32,
         validate_secret,
         144 - 32,
@@ -215,19 +207,18 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
 
     if (memcmp(shared_secret_hmac, cfg->serverSecret + 32, 32) != 0)
     {
-        catch_ret = 1;
+        CATCH_RET = 1;
         err("Key validation fail");
-        goto catch;
+        goto CATCH;
     }
 
-    //Decrypt main keys
-    memcpy(iv, shared_secret_expanded + 64, 16);
-    memcpy(aes_encrypted, cfg->serverSecret + 64, 144 - 64);
+    // Decrypt main keys
+    iv = (uint8_t *)&expanded[64];                     // used 16 byte
+    aes_encrypted = (uint8_t *)&cfg->serverSecret[64]; // used len 144 - 64
 
     mbedtls_aes_init(&aes_ctx);
 
-    TRY(mbedtls_aes_setkey_dec(&aes_ctx, shared_secret_expanded, 32 * 8));
-
+    TRY(mbedtls_aes_setkey_dec(&aes_ctx, expanded, 32 * 8));
     TRY(mbedtls_aes_crypt_cbc(
         &aes_ctx,
         MBEDTLS_AES_DECRYPT,
@@ -238,13 +229,16 @@ int crypto_parse_server_keys(const char *base64, size_t base64_len, CFG *cfg)
 
     mbedtls_aes_free(&aes_ctx);
 
+    // Fill the result
     memcpy(cfg->aesKey, decrypted, 32);
     memcpy(cfg->macKey, decrypted + 32, 32);
 
-    catch_ret = 0;
+    CATCH_RET = 0;
 
-    catch : crypto_keys_free(my_keys);
-    return catch_ret;
+CATCH:
+    crypto_keys_free(my_keys);
+    mbedtls_ecp_point_free(&server_public);
+    return CATCH_RET;
 }
 
 int crypto_init()

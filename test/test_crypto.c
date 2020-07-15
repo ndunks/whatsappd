@@ -11,28 +11,13 @@ int test_random()
     memset(buf, 0x0, 10);
     info("rand: buf");
     hexdump(buf, 10);
-    crypto_random(buf, 10);
+    ZERO(crypto_random(buf, 10));
     info("rand: buf");
     hexdump(buf, 10);
     TRUTHY(memcmp(buf, null, 10) != 0);
 
-    memset(rand1, 0, 10);
-    crypto_random(rand1, 10);
-    ZERO(rand1 == NULL);
-    info("rand: rand1");
-    hexdump(rand1, 10);
-    TRUTHY(memcmp(rand1, null, 10) != 0);
-
-    memset(rand1, 0, 16);
-    crypto_random(rand1, 16);
-    ZERO(rand1 == NULL);
-    info("rand: rand1");
-    hexdump(rand1, 16);
-    TRUTHY(memcmp(rand1, null, 16) != 0);
-
     memset(rand1, 0, 32);
-    crypto_random(rand1, 32);
-    ZERO(rand1 == NULL);
+    ZERO(crypto_random(rand1, 32));
     info("rand: rand1");
     hexdump(rand1, 32);
     TRUTHY(memcmp(rand1, null, 32) != 0);
@@ -74,8 +59,7 @@ int test_keys()
         return ret_val;
     }
 
-    CRYPTO_DUMP_MPI(aliceKeys->z);
-    CRYPTO_DUMP_MPI(bobKeys->z);
+    // Shared secret must be equal
     ZERO(mbedtls_mpi_cmp_mpi(&aliceKeys->z, &bobKeys->z));
 
     crypto_keys_free(aliceKeys);

@@ -15,6 +15,7 @@
 #define warn(fmt, ...) debug(COL_YELL fmt COL_NORM, ##__VA_ARGS__)
 #define err(fmt, ...) debug(COL_RED fmt COL_NORM, ##__VA_ARGS__)
 #define accent(fmt, ...) debug(COL_MAG fmt COL_NORM, ##__VA_ARGS__)
+
 #define hexdump(buf, size)                          \
     do                                              \
     {                                               \
@@ -26,10 +27,10 @@
     } while (0)
 
 #define TRY(expression)                           \
-    if ((catch_ret = (expression)) != 0)          \
+    if ((CATCH_RET = (expression)) != 0)          \
     {                                             \
-        err(#expression " but is %d", catch_ret); \
-        goto catch;                               \
+        err(#expression " but is %d", CATCH_RET); \
+        goto CATCH;                               \
     }
 
-int catch_ret;
+int CATCH_RET;
