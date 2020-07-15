@@ -2,7 +2,9 @@
 int ret_val;
 int main(int argc, char const *argv[])
 {
-    info("** Testing: %s **", TEST);
+    char test_name[] = TEST;
+
+    info("** TEST: %s **", test_name);
 
     if (test_setup())
     {
@@ -10,10 +12,15 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    if ((ret_val = test_main()) != 0)
-        err("** Failed: %d **", ret_val);
-    else
-        ok("** OK **");
+    if ((ret_val = test_main()) != 0){
+        err("** TEST: %s FAIL %d **", test_name, ret_val);
+        err("-------------------------\n");
+    }
+    else{
+
+        ok("** TEST: %s OK **", test_name);
+        ok("-------------------------\n");
+    }
 
     if (test_cleanup())
     {

@@ -39,11 +39,6 @@ int test_keys()
     FALSY(mbedtls_ecp_is_zero(&bobKeys->Q));
     FALSY(mbedtls_ecp_is_zero(&aliceKeys->Q));
 
-    CRYPTO_DUMP_MPI(aliceKeys->d);
-    CRYPTO_DUMP_POINT(aliceKeys->Q);
-    CRYPTO_DUMP_MPI(bobKeys->d);
-    CRYPTO_DUMP_POINT(bobKeys->Q);
-
     ret_val = crypto_compute_shared(aliceKeys, &bobKeys->Q);
     if (ret_val != 0)
     {
@@ -78,11 +73,9 @@ int test_parse_server_keys()
         *serverSecret = DATA_AUTH_SERVER_SECRET,
         *aesKey = DATA_AUTH_AESKEY,
         *macKey = DATA_AUTH_MACKEY,
+        server_secret_bytes[144],
         aesKeyByte[32],
         macKeyByte[32];
-    // *tokens_client = DATA_AUTH_TOKENS_CLIENT,
-    // *tokens_server = DATA_AUTH_TOKENS_SERVER,
-    // *tokens_browser = DATA_AUTH_TOKENS_BROWSER;
 
     memset(&cfg, 0, sizeof(CFG));
     memset(null, 0, 160);
@@ -90,19 +83,17 @@ int test_parse_server_keys()
     EQUAL(crypto_base64_decode(cfg.client_id, CFG_CLIENT_ID_LEN, clientId, strlen(clientId)), CFG_CLIENT_ID_LEN);
     EQUAL(crypto_base64_decode(cfg.keys.private, CFG_KEY_LEN, keys_private, strlen(keys_private)), CFG_KEY_LEN);
     EQUAL(crypto_base64_decode(cfg.keys.public, CFG_KEY_LEN, keys_public, strlen(keys_public)), CFG_KEY_LEN);
-    EQUAL(crypto_base64_decode(cfg.keys.secret, CFG_KEY_LEN, keys_secret, strlen(keys_secret)), CFG_KEY_LEN);
+    EQUAL(crypto_base64_decode(server_secret_bytes, CFG_SERVER_SECRET_LEN, serverSecret, strlen(serverSecret)), CFG_SERVER_SECRET_LEN);
 
-    ZERO(crypto_parse_server_keys(serverSecret, strlen(serverSecret), &cfg));
+    ZERO(crypto_parse_server_keys(server_secret_bytes, &cfg));
 
     TRUTHY(memcmp(cfg.serverSecret, null, CFG_SERVER_SECRET_LEN) != 0);
-    TRUTHY(memcmp(cfg.aesKey, null, CFG_KEY_LEN) != 0);
-    TRUTHY(memcmp(cfg.macKey, null, CFG_KEY_LEN) != 0);
 
     EQUAL(crypto_base64_decode(aesKeyByte, CFG_KEY_LEN, aesKey, strlen(aesKey)), CFG_KEY_LEN);
     EQUAL(crypto_base64_decode(macKeyByte, CFG_KEY_LEN, macKey, strlen(macKey)), CFG_KEY_LEN);
 
-    ZERO(memcmp(cfg.aesKey, aesKeyByte, CFG_KEY_LEN));
-    ZERO(memcmp(cfg.macKey, macKeyByte, CFG_KEY_LEN));
+    ZERO(memcmp(crypto_aes_keys.enc, aesKeyByte, CFG_KEY_LEN));
+    ZERO(memcmp(crypto_aes_keys.mac, macKeyByte, CFG_KEY_LEN));
 
     return 0;
 }

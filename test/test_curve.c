@@ -76,12 +76,6 @@ int test_main()
     ZERO(mbedtls_ecdh_compute_shared(&grp, &zB, &qA, &dB,
                                      mbedtls_ctr_drbg_random,
                                      &ctr_drbg));
-    DUMP_MPI(dA);
-    DUMP_MPI(dB);
-    DUMP_MPI(zA);
-    DUMP_MPI(zB);
-    DUMP_POINT(qA);
-    DUMP_POINT(qB);
     ZERO(mbedtls_mpi_cmp_mpi(&zA, &zB));
 
 exit:
