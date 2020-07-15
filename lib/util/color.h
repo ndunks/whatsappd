@@ -29,7 +29,7 @@
 #define TRY(expression)                           \
     if ((CATCH_RET = (expression)) != 0)          \
     {                                             \
-        err(#expression " but is %d", CATCH_RET); \
+        err(#expression ": RET %d", CATCH_RET); \
         goto CATCH;                               \
     }
 // in helper.c

@@ -16,8 +16,7 @@
 #define FALSY(expression) EQUAL(expression, 0)
 #define TRUTHY(expression) EQUAL(expression, 1)
 
-int ret_val;
-
+extern int ret_val;
 extern int test_setup();
 extern int test_main();
 extern int test_cleanup();

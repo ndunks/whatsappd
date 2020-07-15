@@ -1,5 +1,5 @@
 #include "test.h"
-
+int ret_val;
 int main(int argc, char const *argv[])
 {
     info("** Testing: %s **", TEST);
@@ -10,8 +10,8 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    if (test_main() != 0)
-        err("** Failed **");
+    if ((ret_val = test_main()) != 0)
+        err("** Failed: %d **", ret_val);
     else
         ok("** OK **");
 
