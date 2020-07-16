@@ -125,15 +125,22 @@ int wasocket_connect(const char *host)
     if (wasocket_data == NULL || wasocket_out == NULL)
     {
         err("wasocket: Fail alloc data buffer");
-        return 1;
+        CATCH_RET = 1;
+        goto CATCH;
     }
+
     if (host == NULL)
         host = "web.whatsapp.com";
 
-    if (ssl_connect(host, "443"))
-        return 1;
+    TRY(ssl_connect(host, "443"));
+    TRY(wasocket_handshake());
 
-    return wasocket_handshake();
+    return 0;
+
+CATCH:
+    free(wasocket_data);
+    free(wasocket_out);
+    return CATCH_RET;
 }
 
 int wasocket_disconnect()
