@@ -91,7 +91,7 @@ static void wasocket_send_shutdown()
     }
 }
 
-static int wasocket_handshake()
+static int wasocket_handshake(const char *host)
 {
     char nonce[16], ws_key[256];
 
@@ -99,14 +99,14 @@ static int wasocket_handshake()
     crypto_base64_encode(ws_key, 256, nonce, 16);
 
     wasocket_len = sprintf(wasocket_data, "GET /ws HTTP/1.1\r\n"
-                                          "Host: web.whatsapp.com\r\n"
-                                          "Origin: https://web.whatsapp.com\r\n"
+                                          "Host: %s\r\n"
+                                          "Origin: https://%s\r\n"
                                           "Upgrade: websocket\r\n"
                                           "Connection: Upgrade\r\n"
                                           "User-Agent: ndunks-whatsappd/1.0\r\n"
                                           "Sec-WebSocket-Key: %s\r\n"
                                           "Sec-WebSocket-Version: 13\r\n\r\n",
-                           ws_key);
+                           host, host, ws_key);
 
     ssl_write(wasocket_data, wasocket_len);
 
@@ -133,7 +133,7 @@ int wasocket_connect(const char *host)
         host = "web.whatsapp.com";
 
     TRY(ssl_connect(host, "443"));
-    TRY(wasocket_handshake());
+    TRY(wasocket_handshake(host));
 
     return 0;
 
