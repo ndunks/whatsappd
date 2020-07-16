@@ -19,5 +19,5 @@ enum WS_OPCODE
 };
 
 uint32_t wasocket_mask();
-int wasocket_connect(const char *host);
+int wasocket_connect(const char *host, const char *port, const char *path);
 int wasocket_disconnect();

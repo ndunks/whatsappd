@@ -91,14 +91,14 @@ static void wasocket_send_shutdown()
     }
 }
 
-static int wasocket_handshake(const char *host)
+static int wasocket_handshake(const char *host, const char *path)
 {
     char nonce[16], ws_key[256];
 
     crypto_random(nonce, 16);
     crypto_base64_encode(ws_key, 256, nonce, 16);
 
-    wasocket_len = sprintf(wasocket_data, "GET /ws HTTP/1.1\r\n"
+    wasocket_len = sprintf(wasocket_data, "GET %s HTTP/1.1\r\n"
                                           "Host: %s\r\n"
                                           "Origin: https://%s\r\n"
                                           "Upgrade: websocket\r\n"
@@ -106,7 +106,7 @@ static int wasocket_handshake(const char *host)
                                           "User-Agent: ndunks-whatsappd/1.0\r\n"
                                           "Sec-WebSocket-Key: %s\r\n"
                                           "Sec-WebSocket-Version: 13\r\n\r\n",
-                           host, host, ws_key);
+                           path, host, host, ws_key);
 
     ssl_write(wasocket_data, wasocket_len);
 
@@ -115,7 +115,7 @@ static int wasocket_handshake(const char *host)
     return 0;
 }
 
-int wasocket_connect(const char *host)
+int wasocket_connect(const char *host, const char *port, const char *path)
 {
     wasocket_alloc = 1024 * 4;
     wasocket_out_alloc = 1024 * 4;
@@ -132,8 +132,14 @@ int wasocket_connect(const char *host)
     if (host == NULL)
         host = "web.whatsapp.com";
 
-    TRY(ssl_connect(host, "443"));
-    TRY(wasocket_handshake(host));
+    if (path == NULL)
+        path = "/ws";
+
+    if (port == NULL)
+        port = "443";
+
+    TRY(ssl_connect(host, port));
+    TRY(wasocket_handshake(host, path));
 
     return 0;
 

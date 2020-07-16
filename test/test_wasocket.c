@@ -3,21 +3,23 @@
 #include "test.h"
 int test_mask()
 {
-    uint32_t a, b, c, d;
+    uint32_t a, b, c;
     TRUTHY(a = wasocket_mask());
     TRUTHY(b = wasocket_mask());
     TRUTHY(c = wasocket_mask());
-    TRUTHY(d = wasocket_mask());
-    hexdump(((char *)&a), 4);
-    hexdump(((char *)&b), 4);
-    hexdump(((char *)&c), 4);
-    hexdump(((char *)&d), 4);
+    FALSY(a == b);
+    FALSY(a == c);
+    FALSY(b == c);
+    // hexdump(((char *)&a), 4);
+    // hexdump(((char *)&b), 4);
+    // hexdump(((char *)&c), 4);
     return 0;
 }
 
 int test_connection()
 {
-    ZERO(wasocket_connect());
+    ZERO(wasocket_connect("echo.websocket.org", NULL, "/"));
+    //ZERO(wasocket_connect(NULL));
     ZERO(wasocket_disconnect());
     return 0;
 }
