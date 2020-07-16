@@ -63,7 +63,6 @@ static void ssl_free()
 
 int ssl_write(const char *buf, size_t size)
 {
-    info(">>\n%s", buf);
     return mbedtls_ssl_write(&ssl, (const u_char *)buf, size);
 }
 
@@ -72,7 +71,6 @@ int ssl_read(char *buf, size_t size)
     int read;
     read = mbedtls_ssl_read(&ssl, (u_char *)buf, size - 1);
     buf[read] = 0;
-    accent("<<\n%s", buf);
     return read;
 }
 

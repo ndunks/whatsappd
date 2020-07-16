@@ -30,7 +30,7 @@ int whatsappd_init(const char const *config_path)
         }
     }
 
-    TRY(wasocket_connect(NULL, NULL, NULL));
+    TRY(wss_connect(NULL, NULL, NULL));
 
     if (cfg_has_credentials(&cfg))
     {
@@ -52,7 +52,7 @@ CATCH:
 
 void whatsappd_free()
 {
-    wasocket_disconnect();
+    wss_disconnect();
     crypto_free();
 }
 
@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
     // todo: arg parser
     TRY(whatsappd_init(NULL))
 
-    //TRY(wasocket_connect());
+    //TRY(wss_connect());
 
 CATCH:
     whatsappd_free();
