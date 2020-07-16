@@ -4,18 +4,19 @@
 
 enum WS_OPCODE {
      /** Continuation Frame */
-     CONTINUATION = 0,
+     WS_OPCODE_CONTINUATION = 0,
      /** Text Frame */
-     TEXT = 1,
+     WS_OPCODE_TEXT = 1,
      /** Binary Frame */
-     BINARY = 2,
+     WS_OPCODE_BINARY = 2,
      /** Connection Close Frame */
-     CONNECTION = 8,
+     WS_OPCODE_CONNECTION = 8,
      /** Ping Frame */
-     PING = 9,
+     WS_OPCODE_PING = 9,
      /** Pong Frame */
-     PONG = 10,
+     WS_OPCODE_PONG = 10,
 };
 
+uint32_t wasocket_mask();
 int wasocket_connect();
 int wasocket_disconnect();
