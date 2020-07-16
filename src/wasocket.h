@@ -2,7 +2,8 @@
 #include <crypto.h>
 #include <ssl.h>
 
-enum WS_OPCODE {
+enum WS_OPCODE
+{
      /** Continuation Frame */
      WS_OPCODE_CONTINUATION = 0,
      /** Text Frame */
@@ -18,5 +19,5 @@ enum WS_OPCODE {
 };
 
 uint32_t wasocket_mask();
-int wasocket_connect();
+int wasocket_connect(const char *host);
 int wasocket_disconnect();

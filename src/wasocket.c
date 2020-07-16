@@ -115,7 +115,7 @@ static int wasocket_handshake()
     return 0;
 }
 
-int wasocket_connect()
+int wasocket_connect(const char *host)
 {
     wasocket_alloc = 1024 * 4;
     wasocket_out_alloc = 1024 * 4;
@@ -127,8 +127,10 @@ int wasocket_connect()
         err("wasocket: Fail alloc data buffer");
         return 1;
     }
+    if (host == NULL)
+        host = "web.whatsapp.com";
 
-    if (ssl_connect("web.whatsapp.com", "443"))
+    if (ssl_connect(host, "443"))
         return 1;
 
     return wasocket_handshake();

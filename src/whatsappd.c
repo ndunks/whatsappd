@@ -30,7 +30,7 @@ int whatsappd_init(const char const *config_path)
         }
     }
 
-    TRY(wasocket_connect());
+    TRY(wasocket_connect(NULL));
 
     if (cfg_has_credentials(&cfg))
     {
