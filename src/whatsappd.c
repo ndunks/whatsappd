@@ -1,5 +1,8 @@
 #include "whatsappd.h"
 
+/**
+ * Should handle untill account logged in
+ */
 int whatsappd_init(const char const *config_path)
 {
     CFG cfg;
@@ -18,8 +21,6 @@ int whatsappd_init(const char const *config_path)
 
     if (ret == 1)
     {
-        // Load config & crypto
-        //cfg = calloc(sizeof(CFG), 1);
         TRY(cfg_load(&cfg));
         ret = crypto_parse_server_keys(cfg.serverSecret, &cfg);
         if (ret)
@@ -31,10 +32,16 @@ int whatsappd_init(const char const *config_path)
 
     TRY(wasocket_connect());
 
-    if( cfg_has_credentials(&cfg) ){
+    if (cfg_has_credentials(&cfg))
+    {
         // login takeover
-    }else{
+        ret = 1;
+        err("Unimplemented");
+    }
+    else
+    {
         // new Login
+        TRY(session_new(&cfg));
     }
 
     ret = 0;
@@ -45,6 +52,7 @@ CATCH:
 
 void whatsappd_free()
 {
+    wasocket_disconnect();
     crypto_free();
 }
 
@@ -53,19 +61,13 @@ void whatsappd_free()
 int main(int argc, char const *argv[])
 {
     // todo: arg parser
-    if (whatsappd_init(NULL))
-    {
-        err("whatsappd_init Fail");
-        return 1;
-    }
+    TRY(whatsappd_init(NULL))
 
     //TRY(wasocket_connect());
 
-    return 0;
-
 CATCH:
     whatsappd_free();
-    return 1;
+    return CATCH_RET;
 }
 
 #endif
