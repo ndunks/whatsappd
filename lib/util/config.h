@@ -150,7 +150,9 @@
 #define MBEDTLS_CIPHER_C
 //#define MBEDTLS_CMAC_C
 #define MBEDTLS_CTR_DRBG_C
-//#define MBEDTLS_DEBUG_C
+#ifdef TEST
+#define MBEDTLS_DEBUG_C
+#endif
 //#define MBEDTLS_DES_C
 //#define MBEDTLS_DHM_C
 #define MBEDTLS_ECDH_C

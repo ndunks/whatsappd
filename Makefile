@@ -14,6 +14,7 @@ ifneq (,$(findstring test,$(MAKECMDGOALS)))
     include test/test.mk
     LDFLAGS += -lmbedtls -lmbedcrypto -lpthread
 	export LD_LIBRARY_PATH := build/lib/mbedtls/library;
+	MBEDTLS_CFLAGS += -DTEST
 else
     LDFLAGS += -l:libmbedtls.a -l:libmbedcrypto.a -lpthread
 endif

@@ -1,7 +1,7 @@
 MKDIRS         += tmp build/lib/mbedtls build/lib/util
 LIB_OBJECTS    := $(patsubst %.c, build/%.o, $(wildcard lib/util/*.c))
 BUILD_LIB      := build/lib/util.a
-CFLAGS         += -Ilib/util -Ilib/mbedtls/include
+CFLAGS         += -Ilib/util -Ilib/mbedtls/include -DMBEDTLS_CONFIG_FILE='<config.h>'
 LDFLAGS        += -Lbuild/lib/mbedtls/library
 
 MBEDTLS_LIB    := build/lib/mbedtls/library/libmbedtls.a
