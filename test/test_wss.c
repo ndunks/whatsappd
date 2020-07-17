@@ -20,7 +20,8 @@ int test_connection()
 {
     char *msg = "HELLO WORLD EXAMPLES";
     int msg_len = strlen(msg);
-    ZERO(wss_connect("echo.websocket.org", NULL, "/"));
+    //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
+    ZERO(wss_connect("localhost", "8433", "/"));
 
     EQUAL(wss_send_text(msg, msg_len), msg_len);
     wss_read();

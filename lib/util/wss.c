@@ -2,16 +2,39 @@
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 #include <helper.h>
 #include <color.h>
 
-#include "wasocket.h"
+#include "wss.h"
 
-static char *wss_data, *wss_out;
-static size_t wss_len = 0,
-              wss_alloc = 0,
-              wss_out_len = 0,
-              wss_out_alloc = 0;
+#define WSS_FRAGMENT_MAX 100
+
+struct WSS
+{
+    char *tx, *rx;
+    size_t rx_len, rx_size, rx_idx,
+        tx_len, tx_size, tx_idx;
+} wss;
+
+struct PAYLOAD
+{
+    char *data;
+    uint64_t size;
+};
+
+struct FRAME
+{
+    uint8_t fin,   //  1 bit
+        rsv1,      //  1 bit
+        rsv2,      //  1 bit
+        rsv3,      //  1 bit
+        opcode,    //  4 bits
+        masked;    //  1 bit
+    uint32_t mask; // 32 bits
+    uint8_t payload_len;
+    struct PAYLOAD payloads[WSS_FRAGMENT_MAX];
+} frame;
 
 uint32_t wss_mask()
 {
@@ -24,119 +47,201 @@ uint32_t wss_mask()
     return mask;
 }
 
+static void wss_need_tx(size_t len)
+{
+    while ((wss.tx_len + len) > wss.tx_size)
+    {
+        wss.tx_size += 1024 * 4;
+        wss.tx = realloc(wss.tx, wss.tx_size);
+        if (wss.tx == NULL)
+            die("wss: Fail realloc tx");
+        warn("wss: realloc tx %lu", wss.tx_size);
+    }
+}
+
+static void wss_need_rx(size_t len)
+{
+    while ((wss.rx_len + len) > wss.rx_size)
+    {
+        wss.rx_size += 1024 * 4;
+        wss.rx = realloc(wss.rx, wss.rx_size);
+        if (wss.rx == NULL)
+            die("wss: Fail realloc rx");
+        warn("wss: realloc rx %lu", wss.tx_size);
+    }
+}
+
 static void wss_write(uint8_t *data, size_t len, uint8_t *mask)
 {
     size_t i;
-    if ((wss_out_len + len) > wss_out_alloc)
-    {
-        wss_out_alloc += 1024;
-        wss_out = realloc(wss_out, wss_out_alloc);
-        if (wss_out == NULL)
-            die("wasocket: Fail realloc out buffer");
 
-        warn("wasocket: realloc out buffer %lu", wss_out_alloc);
-    }
+    wss_need_tx(len);
+
     for (i = 0; i < len; i++)
     {
-        wss_out[wss_out_len + i] = (data[i] ^ mask[i % 4]) & 0xff;
+        wss.tx[wss.tx_len + i] = (data[i] ^ mask[i % 4]) & 0xff;
     }
-    //memcpy(&wss_out[wss_out_len], data, len);
-    wss_out_len += len;
+    wss.tx_len += len;
 }
 
 static void wss_write_int(uint8_t *data, uint8_t len)
 {
+    wss_need_tx(len);
+
     for (int i = 0; i < len; i++)
     {
         //reversed
-        wss_out[wss_out_len++] = data[len - (1 + i)];
+        wss.tx[wss.tx_len++] = data[len - (1 + i)];
+    }
+}
+
+static void wss_read_int(uint8_t *dst, size_t offset, uint8_t len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        //reversed
+        dst[len - (1 + i)] = wss.rx[offset + i];
     }
 }
 
 static int wss_send()
 {
-    warn(">> %lu bytes", wss_out_len);
-    hexdump(wss_out, wss_out_len);
-    //write(stderr, wss_out, wss_out_len);
-    return ssl_write(wss_out, wss_out_len);
+    size_t sent, total = 0;
+    warn(">> %lu bytes", wss.tx_len);
+    hexdump(wss.tx, wss.tx_len);
+
+    do
+    {
+        sent = ssl_write(&wss.tx[total], wss.tx_len - total);
+        total += sent;
+    } while (total < wss.tx_len && sent > 0);
+
+    return total;
 }
 
 /* All control frames MUST have a payload length of 125 bytes or less
  * and MUST NOT be fragmented. */
-static int wss_handle_control_frame()
-{
-    return 0;
-}
+// static int wss_handle_control_frame()
+// {
+//     return 0;
+// }
 
+// https://tools.ietf.org/html/rfc6455#page-31
 static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t mask)
 {
 
-    // reset size
-    wss_out_len = 0;
-    // https://tools.ietf.org/html/rfc6455#page-31 fin = 1
-    wss_out[wss_out_len++] = 0b1000 << 4 | (op_code & 0b1111);
+    wss.tx_len = 0;
+    wss.tx[wss.tx_len++] = op_code | (1 << 7);
+
+    // resize if not enough
+    while ((wss.tx_size - 16) < payload_len)
+    {
+        wss.tx_size += 1024 * 4;
+        warn("Realloc tx buffer %lu", wss.tx_size);
+        wss.tx = realloc(wss.tx, wss.tx_size);
+        if (wss.tx == NULL)
+            die("Fail realloc tx buffer");
+    }
 
     if (payload_len <= 0x7d)
     {
         // 7 bit len
-        wss_out[wss_out_len++] = payload_len | (1 << 7);
+        wss.tx[wss.tx_len++] = payload_len | (1 << 7);
     }
-    else if (payload_len <= 0xffff)
+    else if (payload_len <= 0xffffu)
     {
         payload_len &= 0xffff;
-        wss_out[wss_out_len++] = 0x7E | (1 << 7);
+        wss.tx[wss.tx_len++] = 0x7E | (1 << 7);
         wss_write_int((uint8_t *)&payload_len, 2);
         // hexdump(((char *)&payload_len), 2);
-        // hexdump(wss_out, wss_out_len);
+        // hexdump(wss.tx, wss.tx_len);
     }
     else
     {
         payload_len &= 0xffffffffffffffffLL;
-        wss_out[wss_out_len++] = 0x7F | (1 << 7);
+        wss.tx[wss.tx_len++] = 0x7F | (1 << 7);
         wss_write_int((uint8_t *)&payload_len, 8);
         // hexdump(((char *)&payload_len), 8);
-        // hexdump(wss_out, wss_out_len);
+        // hexdump(wss.tx, wss.tx_len);
     }
-
+    info("Frame payload size %lu", payload_len);
     // Masking
     wss_write_int((uint8_t *)&mask, 4);
-    return wss_out_len;
+    return wss.tx_len;
 }
 
 static int wss_handshake(const char *host, const char *path)
 {
-    char nonce[16], ws_key[256];
+    char nonce[16], ws_key[256], *cptr;
+    int size, total = 0, http_code;
 
     crypto_random(nonce, 16);
     crypto_base64_encode(ws_key, 256, nonce, 16);
 
-    wss_len = sprintf(wss_data, "GET %s HTTP/1.1\r\n"
-                                          "Host: %s\r\n"
-                                          "Origin: https://%s\r\n"
-                                          "Upgrade: websocket\r\n"
-                                          "Connection: Upgrade\r\n"
-                                          "User-Agent: ndunks-whatsappd/1.0\r\n"
-                                          "Sec-WebSocket-Key: %s\r\n"
-                                          "Sec-WebSocket-Version: 13\r\n\r\n",
-                           path, host, host, ws_key);
+    wss.tx_len = sprintf(wss.tx, "GET %s HTTP/1.1\r\n"
+                                 "Host: %s\r\n"
+                                 "Origin: https://%s\r\n"
+                                 "Upgrade: websocket\r\n"
+                                 "Connection: Upgrade\r\n"
+                                 "User-Agent: ndunks-whatsappd/1.0\r\n"
+                                 "Sec-WebSocket-Key: %s\r\n"
+                                 "Sec-WebSocket-Version: 13\r\n\r\n",
+                         path, host, host, ws_key);
+    do
+    {
+        size = ssl_write(&wss.tx[total], wss.tx_len - total);
+        total += size;
+    } while (total < wss.tx_len);
 
-    ssl_write(wss_data, wss_len);
+    /*
+    HTTP/1.1 101 Switching Protocols
+    Upgrade: websocket
+    Connection: Upgrade
+    Sec-WebSocket-Accept: 0AKLHEJZlxYFm0ZG4vzg0XdQn04=
+    */
+    wss.rx_len = 0;
+    do
+    {
+        size = ssl_read(wss.rx, wss.rx_size);
+        wss.rx[wss.rx_len + size] = 0;
+        //fwrite(wss.rx + wss.rx_len, 1, size, stderr);
+        cptr = strtok(wss.rx + wss.rx_len, "/");
 
-    wss_len = ssl_read(wss_data, wss_alloc);
+        if (cptr != NULL)
+        {
+            // version
+            cptr = strtok(NULL, " ");
+            // code
+            cptr = strtok(NULL, " \r\n");
+            if (strncmp(cptr, "101", 3) != 0)
+            {
+                err("GOT HTTP CODE %s", cptr);
+                return 1;
+            }
+            return 0;
+        }
 
-    return 0;
+        wss.rx_len += size;
+    } while (size > 0);
+
+    err("No response from server");
+    return 1;
 }
 
 int wss_connect(const char *host, const char *port, const char *path)
 {
-    wss_alloc = 1024 * 4;
-    wss_out_alloc = 1024 * 4;
-    wss_data = malloc(wss_alloc);
-    wss_out = malloc(wss_out_alloc);
 
-    if (wss_data == NULL || wss_out == NULL)
+    memset(&wss, 0, sizeof(struct WSS));
+    memset(&frame, 0, sizeof(struct FRAME));
+
+    wss.rx_size = 1024 * 4;
+    wss.tx_size = 1024 * 4;
+    wss.rx = malloc(wss.rx_size);
+    wss.tx = malloc(wss.tx_size);
+
+    if (wss.rx == NULL || wss.tx == NULL)
     {
-        err("wasocket: Fail alloc data buffer");
+        err("wss: Fail alloc data buffer");
         CATCH_RET = 1;
         goto CATCH;
     }
@@ -156,8 +261,8 @@ int wss_connect(const char *host, const char *port, const char *path)
     return 0;
 
 CATCH:
-    free(wss_data);
-    free(wss_out);
+    free(wss.rx);
+    free(wss.tx);
     return CATCH_RET;
 }
 
@@ -167,11 +272,11 @@ int wss_disconnect()
     wss_frame(WS_OPCODE_CONNECTION, 0, mask);
     if (wss_send() != 6)
     {
-        warn("wasocket: Send shutdown fail");
+        warn("wss: Send shutdown fail");
     }
     ssl_disconnect();
-    free(wss_data);
-    free(wss_out);
+    free(wss.rx);
+    free(wss.tx);
     return 0;
 }
 
@@ -184,10 +289,171 @@ size_t wss_send_text(char *msg, size_t len)
     return wss_send() - frame_len;
 }
 
+void dump_frame()
+{
+    int i;
+    struct PAYLOAD *payload;
+    warn("rsv1: %d\nrsv2: %d\nrsv3: %d\nopcode: %d\nmasked: %d\npayloads: %lu\nmask: %08x",
+         frame.rsv1,
+         frame.rsv2,
+         frame.rsv3,
+         frame.opcode,
+         frame.masked,
+         frame.payload_len,
+         frame.mask);
+
+    // Null the last payload
+    // payload = &frame.payloads[ frame.payload_len - 1 ];
+    // payload->data[ payload->size ] = 0;
+
+    for (int i = 0; i < frame.payload_len; i++)
+    {
+        payload = &frame.payloads[i];
+        fwrite(payload->data, 1, payload->size, stderr);
+    }
+    warn("\n------------------");
+}
+
+// void wss_parse_frame()
+// {
+// }
+
+// int wss_thread()
+// {
+// }
+/* 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-------+-+-------------+-------------------------------+
+ * |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+ * |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+ * |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+ * | |1|2|3|       |K|             |                               |
+ * +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+ * |     Extended payload length continued, if payload len == 127  |
+ * + - - - - - - - - - - - - - - - +-------------------------------+
+ * |                               |Masking-key, if MASK set to 1  |
+ * +-------------------------------+-------------------------------+
+ * | Masking-key (continued)       |          Payload Data         |
+ * +-------------------------------- - - - - - - - - - - - - - - - +
+ * :                     Payload Data continued ...                :
+ * + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+ */
 char *wss_read()
 {
-    int read = ssl_read(wss_data, wss_alloc);
-    accent("<< %lu bytes", read);
-    wss_data[read] = 0;
-    return wss_data;
+    int recv;
+    enum WS_OPCODE opcode;
+    size_t offset;
+    ssize_t waiting_payload = 0;
+    struct PAYLOAD *payload;
+    uint8_t b, payload_bytes, fin, masked, frame_size;
+
+    offset = 0;
+    wss.rx_len = 0;
+    frame.payload_len = 0;
+    payload = &frame.payloads[frame.payload_len];
+
+    do
+    {
+        recv = ssl_read(wss.rx, wss.rx_size - wss.rx_len);
+        wss.rx_len += recv;
+        ok("<< %d bytes", recv);
+
+        if (waiting_payload)
+        {
+            waiting_payload += recv;
+            info("WAIT %d %d", waiting_payload, recv);
+            if (waiting_payload == 0)
+            { // received equal that we waiting
+                goto process_payload;
+            }
+            else if (waiting_payload < 0)
+            { // need remaining payload
+                continue;
+            }
+            else
+            { // more frame here
+                offset += recv - waiting_payload;
+                recv = waiting_payload;
+                payload = &frame.payloads[++frame.payload_len];
+                goto process_frame;
+            }
+        }
+        else
+        {
+            if (recv < 2)
+            {
+                warn("Recv to small < 2");
+                continue;
+            }
+
+        process_frame:
+            b = wss.rx[offset];
+
+            fin = (b & 0x80) == 0x80; // (1 << 7)
+            opcode = b & 0b1111;
+
+            if (frame.payload_len == 0)
+            {
+                // set it on first frame
+                // frame.rsv1 = (b & 0x40) == 0x40; // (1 << 6)
+                // frame.rsv2 = (b & 0x20) == 0x20; // (1 << 5)
+                // frame.rsv3 = (b & 0x10) == 0x10; // (1 << 4)
+                frame.opcode = opcode;
+                if( b & 0b01110000 ){
+                    warn("GOT RSV BIT SET!");
+                }
+            }
+
+            // assume no mask and payload_len 1 byte
+            frame_size = 1;
+            payload_bytes = 1;
+            payload->size = wss.rx[offset + 1];
+
+            masked = (payload->size & 0x80);
+            if (masked)
+            {
+                // remove masked flag
+                payload->size &= 0b1111111;
+                warn("GOT MASKED FRAME FROM SERVER!");
+                frame_size += 4; // mask is 4 byte
+                // todo: add mask ptr in each payload if mask is differ for each frame
+            }
+
+            if (payload->size > 0x7d)
+            {
+                if (b == 0x7E)
+                    payload_bytes = 2;
+                else if (b == 0x7F)
+                    payload_bytes = 8;
+
+                wss_read_int(&(((char *)&payload->size)[8 - payload_bytes]), offset + 2, payload_bytes);
+            }
+            frame_size += payload_bytes;
+            payload->data = &wss.rx[offset + frame_size];
+        }
+
+        //check all payload is completely received
+        waiting_payload = wss.rx_len - (offset + frame_size + payload->size);
+        if (waiting_payload != 0)
+        {
+            warn("Wait payload %d", waiting_payload);
+            continue;
+        }
+
+    process_payload:
+        // final data address
+        ok("payload: %lu, fin: %d, opode: %d", payload->size, fin, opcode);
+        payload = &frame.payloads[++frame.payload_len];
+        offset = wss.rx_len;
+
+        if (frame.opcode == WS_OPCODE_CONNECTION)
+        {
+            err("Get close opcode");
+            break;
+        }
+
+    } while (!fin || waiting_payload);
+    warn("DONE: %d %d %d", recv, fin, waiting_payload);
+    //fr.payload = &wss.rx[idx];
+    dump_frame();
+    return wss.rx;
 }
