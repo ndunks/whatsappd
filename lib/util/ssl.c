@@ -81,7 +81,7 @@ int ssl_connect(const char *host, const char *port)
 {
     struct addrinfo hints, *hostinfo = NULL, *ptr = NULL;
     char *pers = "wasocket", err_buff[255];
-    int ret;
+    int ret = 1;
 
     ssl_init();
 

@@ -37,15 +37,15 @@ struct PAYLOAD
     uint8_t frame_size;
 };
 
-struct FRAME
+struct FRAME_RX
 {
-    uint8_t fin,   //  1 bit
-        rsv1,      //  1 bit
-        rsv2,      //  1 bit
-        rsv3,      //  1 bit
-        opcode,    //  4 bits
-        masked;    //  1 bit
-    uint32_t mask; // 32 bits
+    uint8_t // fin,   //  1 bit
+        // rsv1,      //  1 bit
+        // rsv2,      //  1 bit
+        // rsv3,      //  1 bit
+        opcode, //  4 bits
+        masked; //  1 bit
+    //uint32_t mask; // 32 bits
     uint8_t payload_count;
     /* Payload data len only */
     size_t payload_size;
@@ -76,24 +76,6 @@ static void wss_write(uint8_t *data, size_t len, uint8_t mask[4])
     wss.tx_len += len;
 }
 
-static void wss_write_int(uint8_t *data, uint8_t len)
-{
-    WSS_NEED_TX(len);
-
-    for (int i = 0; i < len; i++)
-    {
-        //reversed
-        wss.tx[wss.tx_len++] = data[len - (1 + i)];
-    }
-}
-
-/* Read int big-endian to little */
-/* static void wss_read_int(uint8_t *dst, size_t offset, uint8_t len)
-{
-    for (int i = 0; i < len; i++)
-        dst[len - (1 + i)] = wss.rx[offset + i];
-} */
-
 static int wss_send()
 {
     size_t sent, total = 0;
@@ -105,9 +87,9 @@ static int wss_send()
     do
     {
         sent = ssl_write(&wss.tx[total], wss.tx_len - total);
+        warn(">> %lu bytes", sent);
         total += sent;
     } while (total < wss.tx_len && sent > 0);
-    warn(">> %lu bytes", sent);
     return total;
 }
 
@@ -129,13 +111,15 @@ static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t m
     {
         payload_len &= 0xffff;
         wss.tx[wss.tx_len++] = 0x7E | (1 << 7);
-        wss_write_int((uint8_t *)&payload_len, 2);
+        *((uint16_t *)&wss.tx[wss.tx_len]) = htobe16(payload_len);
+        wss.tx_len += 2;
     }
     else
     {
         payload_len &= 0xffffffffffffffffLL;
         wss.tx[wss.tx_len++] = 0x7F | (1 << 7);
-        wss_write_int((uint8_t *)&payload_len, 8);
+        *((uint64_t *)&wss.tx[wss.tx_len]) = htobe64(payload_len);
+        wss.tx_len += 8;
     }
     warn("   payload %lu bytes", wss.tx_len - 2);
 
@@ -208,7 +192,7 @@ int wss_connect(const char *host, const char *port, const char *path)
 {
 
     memset(&wss, 0, sizeof(struct WSS));
-    memset(&frame, 0, sizeof(struct FRAME));
+    memset(&frame, 0, sizeof(struct FRAME_RX));
 
     wss.rx_size = 1024 * 4;
     wss.tx_size = 1024 * 4;
@@ -317,12 +301,16 @@ char *wss_read(size_t *data_len)
     {
         recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
         ok("<< %d bytes", recv);
+        if (recv == 0)
+        {
+            err("Connection error");
+            break;
+        }
         wss.rx_len += recv;
 
         if (waiting_payload)
         {
             waiting_payload += recv;
-            info("   WAIT %lu %d", waiting_payload, recv);
             if (waiting_payload == 0)
             { // received equal that we waiting
                 goto process_payload;
@@ -431,11 +419,9 @@ char *wss_read(size_t *data_len)
 
     } while (!fin || waiting_payload);
 
-    ok("DONE: %d %d %ld", recv, fin, waiting_payload);
     dump_frame();
 
     // Merge payload into straight rx, removed the frame.
-
     offset = 0;
     for (recv = 0; recv < frame.payload_count; recv++)
     {

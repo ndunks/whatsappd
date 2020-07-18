@@ -1,6 +1,6 @@
 #include <wss.h>
 #include "test.h"
-int wss_connected = 0;
+
 int test_mask()
 {
     uint32_t a, b, c;
@@ -45,17 +45,18 @@ int test_send(size_t msg_len, char ch)
 
 int test_main()
 {
-    //return test_mask() || test_size_7_bit() || test_size_16_bit();
-    //return test_send(0x100, 'f'); // 16 bit;
-    //return test_send(0x1000, 'x'); // 16 bit;
-    return test_send(0x10000, 'x'); // 64 bit;
+    return test_mask() ||
+           test_size_7_bit() ||
+           test_send(0x100, 'f') ||  // 16 bit;
+           test_send(0x1000, 'x') || // 16 bit;
+           test_send(0x10000, 'x');  // 64 bit;
 }
 
 int test_setup()
 {
     ZERO(crypto_init());
-    //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
-    ZERO(wss_connect("localhost", "8433", "/"));
+    ZERO(wss_connect("echo.websocket.org", NULL, "/"));
+    //ZERO(wss_connect("localhost", "8433", "/"));
     return 0;
 }
 
