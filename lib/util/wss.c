@@ -296,31 +296,20 @@ size_t wss_send_binary(char *msg, size_t len)
 void dump_frame()
 {
     struct PAYLOAD *payload;
-    warn("rsv1: %d\nrsv2: %d\nrsv3: %d\nopcode: %d\nmasked: %d\npayloads: %d\nmask: %08x",
-         frame.rsv1,
-         frame.rsv2,
-         frame.rsv3,
+    info("   Frame %lu bytes, opcode: %d,payloads: %d",
+         frame.payload_size,
          frame.opcode,
-         frame.masked,
-         frame.payload_count,
-         frame.mask);
-
-    // Null the last payload
-    // payload = &frame.payloads[ frame.payload_count - 1 ];
-    // payload->data[ payload->size ] = 0;
+         frame.payload_count);
 
     for (int i = 0; i < frame.payload_count; i++)
     {
         payload = &frame.payloads[i];
+        info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
         if (payload->size < 256)
         {
             fwrite(payload->data, 1, payload->size, stderr);
             fprintf(stderr, "\n");
             hexdump(payload->data, payload->size);
-        }
-        else
-        {
-            ok("Payload [%1$d]: %2$lu bytes (0x%2$lx)", i, payload->size);
         }
     }
     // warn("\n------------------");
@@ -328,18 +317,18 @@ void dump_frame()
     // warn("\n==================");
 }
 
-char *wss_read()
+char *wss_read(size_t *data_len)
 {
     int recv;
     enum WS_OPCODE opcode;
-    size_t offset;
+    size_t offset = 0;
     ssize_t waiting_payload = 0;
     struct PAYLOAD *payload;
-    uint8_t payload_bytes, fin, masked;
+    uint8_t fin, masked;
 
-    offset = 0;
     wss.rx_len = 0;
     frame.payload_count = 0;
+    frame.payload_size = 0;
     payload = &frame.payloads[frame.payload_count];
 
     do
@@ -397,8 +386,7 @@ char *wss_read()
             }
 
             // assume no mask and payload_len 1 byte
-            payload_bytes = 1;
-            payload->frame_size = 1;
+            payload->frame_size = 2; // 0 = fin,etc, 1 = mask & len
             payload->size = wss.rx[offset + 1];
 
             masked = (payload->size & 0x80);
@@ -414,23 +402,18 @@ char *wss_read()
             {
                 if (payload->size == 0x7E)
                 {
-                    payload_bytes = 2;
+                    payload->frame_size += 2;
                     payload->size = be16toh(*(uint16_t *)&wss.rx[offset + 2]);
+                    ok("   payload->size (%2$d bytes) %1$ld 0x%1$02lX", payload->size, 2);
                 }
                 else if (payload->size == 0x7F)
                 {
-                    payload_bytes = 8;
-                    payload->size = (uint64_t)wss.rx[offset + 2];
+                    payload->frame_size += 8;
                     payload->size = be64toh(*(uint64_t *)&wss.rx[offset + 2]);
+                    ok("   payload->size (%2$d bytes) %1$ld 0x%1$02lX", payload->size, 8);
                 }
             }
 
-            ok("   payload->size (%2$d bytes) %1$ld 0x%1$02lX", payload->size, payload_bytes);
-            if (payload->size > 10000 || payload->size < 1000)
-            {
-                break;
-            }
-            payload->frame_size += payload_bytes;
             payload->data = &wss.rx[offset + payload->frame_size];
             hexdump(wss.rx + offset, payload->frame_size);
         }
@@ -442,12 +425,12 @@ char *wss_read()
             ok("   Wait payload %ld", waiting_payload);
             wss_need_rx((size_t)-waiting_payload);
             continue;
-            //break;
         }
 
     process_payload:
         // final data address
         ok("   payload: %lu, fin: %d, opode: %d", payload->size, fin, opcode);
+        frame.payload_size += payload->size;
         payload = &frame.payloads[++frame.payload_count];
         memset(payload, 0, sizeof(struct PAYLOAD));
         offset += payload->frame_size + payload->size;
@@ -470,16 +453,21 @@ char *wss_read()
     dump_frame();
 
     // Merge payload into straight rx, removed the frame.
-    frame.payload_size = 0;
+
+    offset = 0;
     for (recv = 0; recv < frame.payload_count; recv++)
     {
         payload = &frame.payloads[recv];
-        memcpy(wss.rx + frame.payload_size, payload->data, payload->size);
-        frame.payload_size += payload->size;
+        memcpy(wss.rx + offset, payload->data, payload->size);
+        offset += payload->size;
     }
 
+    if (offset != frame.payload_size)
+        err(" **payload_size not match! %lu != %lu", offset, frame.payload_size);
+
+    *data_len = frame.payload_size;
     // Nulled
-    wss.rx_len = frame.payload_size;
+    wss.rx_len = offset;
     wss.rx[wss.rx_len] = 0;
     return wss.rx;
 }

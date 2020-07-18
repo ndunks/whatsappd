@@ -7,8 +7,9 @@
     if ((ret_val = (expression)) op val)         \
     {                                            \
         debug(                                   \
-            "%s%s %s%s %s%d%s",                  \
+            "%s%s %s%s %s%d %sbut %d%s",       \
             COL_YELL, #expression, COL_MAG, #op, \
+            COL_CYN, val,                       \
             COL_RED, ret_val, COL_NORM);         \
         return 1;                                \
     }
