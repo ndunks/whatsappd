@@ -29,24 +29,11 @@ int test_size_7_bit()
     return 0;
 }
 
-int test_size_16_bit()
+int test_send(size_t msg_len, char ch)
 {
-    size_t recv_len = 0, msg_len = 0x100;
+    size_t recv_len = 0;
     char msg[msg_len], *reply;
-    memset(msg, 'f', msg_len);
-    TRUTHY(wss_send_binary(msg, msg_len) == msg_len);
-    reply = wss_read(&recv_len);
-    info("%lu vs %lu", recv_len, msg_len);
-    TRUTHY(recv_len == msg_len);
-    //fwrite(reply, 1, recv_len, stderr);
-    ZERO(memcmp(msg, reply, msg_len));
-    return 0;
-}
-int test_size_64_bit()
-{
-    size_t recv_len = 0, msg_len = 0x1000;
-    char msg[msg_len], *reply;
-    memset(msg, 'x', msg_len);
+    memset(msg, ch, msg_len);
     TRUTHY(wss_send_binary(msg, msg_len) == msg_len);
     reply = wss_read(&recv_len);
     info("%lu vs %lu", recv_len, msg_len);
@@ -59,7 +46,9 @@ int test_size_64_bit()
 int test_main()
 {
     //return test_mask() || test_size_7_bit() || test_size_16_bit();
-    return test_size_64_bit();
+    //return test_send(0x100, 'f'); // 16 bit;
+    //return test_send(0x1000, 'x'); // 16 bit;
+    return test_send(0x10000, 'x'); // 64 bit;
 }
 
 int test_setup()

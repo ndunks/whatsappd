@@ -68,10 +68,7 @@ int ssl_write(const char *buf, size_t size)
 
 int ssl_read(char *buf, size_t size)
 {
-    int read;
-    read = mbedtls_ssl_read(&ssl, (u_char *)buf, size - 1);
-    buf[read] = 0;
-    return read;
+    return mbedtls_ssl_read(&ssl, (u_char *)buf, size);
 }
 
 void ssl_disconnect()

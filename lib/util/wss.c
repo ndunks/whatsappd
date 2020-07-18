@@ -10,6 +10,18 @@
 #include "wss.h"
 
 #define WSS_FRAGMENT_MAX 100
+#define WSS_NEED(len, x, x_len, x_size)          \
+    while ((x_len + len) > x_size)               \
+    {                                            \
+        x_size += len + 1;                       \
+        x = realloc(x, x_size);                  \
+        if (x == NULL)                           \
+            die("wss: Fail realloc " #x);        \
+        warn("wss: realloc " #x " %lu", x_size); \
+    }
+
+#define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
+#define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
 
 struct WSS
 {
@@ -51,35 +63,11 @@ uint32_t wss_mask()
     return mask;
 }
 
-static void wss_need_tx(size_t len)
-{
-    while ((wss.tx_len + len) > wss.tx_size)
-    {
-        wss.tx_size += 1024 * 1;
-        wss.tx = realloc(wss.tx, wss.tx_size);
-        if (wss.tx == NULL)
-            die("wss: Fail realloc tx");
-        warn("wss: realloc tx %lu", wss.tx_size);
-    }
-}
-
-static void wss_need_rx(size_t len)
-{
-    while ((wss.rx_len + len) > wss.rx_size)
-    {
-        wss.rx_size += 1024 * 1;
-        wss.rx = realloc(wss.rx, wss.rx_size);
-        if (wss.rx == NULL)
-            die("wss: Fail realloc rx");
-        warn("wss: realloc rx %lu", wss.rx_size);
-    }
-}
-
 static void wss_write(uint8_t *data, size_t len, uint8_t mask[4])
 {
     size_t i;
 
-    wss_need_tx(len);
+    WSS_NEED_TX(len);
 
     for (i = 0; i < len; i++)
     {
@@ -90,7 +78,7 @@ static void wss_write(uint8_t *data, size_t len, uint8_t mask[4])
 
 static void wss_write_int(uint8_t *data, uint8_t len)
 {
-    wss_need_tx(len);
+    WSS_NEED_TX(len);
 
     for (int i = 0; i < len; i++)
     {
@@ -123,13 +111,6 @@ static int wss_send()
     return total;
 }
 
-/* All control frames MUST have a payload length of 125 bytes or less
- * and MUST NOT be fragmented. */
-// static int wss_handle_control_frame()
-// {
-//     return 0;
-// }
-
 // https://tools.ietf.org/html/rfc6455#page-31
 static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t mask)
 {
@@ -137,7 +118,7 @@ static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t m
     wss.tx_len = 0;
     wss.tx[wss.tx_len++] = op_code | (1 << 7);
 
-    wss_need_tx(payload_len + 16);
+    WSS_NEED_TX(payload_len + 16);
 
     if (payload_len <= 0x7d)
     {
@@ -156,6 +137,7 @@ static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t m
         wss.tx[wss.tx_len++] = 0x7F | (1 << 7);
         wss_write_int((uint8_t *)&payload_len, 8);
     }
+    warn("   payload %lu bytes", wss.tx_len - 2);
 
     // Masking
     *((uint32_t *)(&wss.tx[wss.tx_len])) = mask;
@@ -312,7 +294,7 @@ void dump_frame()
             hexdump(payload->data, payload->size);
         }
     }
-    // warn("\n------------------");
+    warn("\n------------------");
     // hexdump(wss.rx, wss.rx_len);
     // warn("\n==================");
 }
@@ -413,9 +395,6 @@ char *wss_read(size_t *data_len)
                     ok("   payload->size (%2$d bytes) %1$ld 0x%1$02lX", payload->size, 8);
                 }
             }
-
-            payload->data = &wss.rx[offset + payload->frame_size];
-            hexdump(wss.rx + offset, payload->frame_size);
         }
 
         //check all payload is completely received
@@ -423,13 +402,16 @@ char *wss_read(size_t *data_len)
         if (waiting_payload != 0)
         {
             ok("   Wait payload %ld", waiting_payload);
-            wss_need_rx((size_t)-waiting_payload);
+            WSS_NEED_RX((size_t)-waiting_payload);
             continue;
         }
 
     process_payload:
         // final data address
+        payload->data = &wss.rx[offset + payload->frame_size];
+        //hexdump(wss.rx + offset, payload->frame_size);
         ok("   payload: %lu, fin: %d, opode: %d", payload->size, fin, opcode);
+
         frame.payload_size += payload->size;
         payload = &frame.payloads[++frame.payload_count];
         memset(payload, 0, sizeof(struct PAYLOAD));
