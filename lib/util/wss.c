@@ -54,7 +54,7 @@ static void wss_need_tx(size_t len)
 {
     while ((wss.tx_len + len) > wss.tx_size)
     {
-        wss.tx_size += 1024 * 4;
+        wss.tx_size += 1024 * 1;
         wss.tx = realloc(wss.tx, wss.tx_size);
         if (wss.tx == NULL)
             die("wss: Fail realloc tx");
@@ -66,11 +66,11 @@ static void wss_need_rx(size_t len)
 {
     while ((wss.rx_len + len) > wss.rx_size)
     {
-        wss.rx_size += 1024 * 4;
+        wss.rx_size += 1024 * 1;
         wss.rx = realloc(wss.rx, wss.rx_size);
         if (wss.rx == NULL)
             die("wss: Fail realloc rx");
-        warn("wss: realloc rx %lu", wss.tx_size);
+        warn("wss: realloc rx %lu", wss.rx_size);
     }
 }
 
@@ -100,6 +100,9 @@ static void wss_write_int(uint8_t *data, uint8_t len)
 
 static void wss_read_int(uint8_t *dst, size_t offset, uint8_t len)
 {
+    info("read int %d", len);
+    hexdump((&wss.rx[offset]), len);
+
     for (int i = 0; i < len; i++)
     {
         //reversed
@@ -110,15 +113,17 @@ static void wss_read_int(uint8_t *dst, size_t offset, uint8_t len)
 static int wss_send()
 {
     size_t sent, total = 0;
-    warn(">> %lu bytes", wss.tx_len);
-    hexdump(wss.tx, wss.tx_len);
+    if (wss.tx_len < 255)
+    {
+        hexdump(wss.tx, wss.tx_len);
+    }
 
     do
     {
         sent = ssl_write(&wss.tx[total], wss.tx_len - total);
         total += sent;
     } while (total < wss.tx_len && sent > 0);
-
+    warn(">> %lu bytes", sent);
     return total;
 }
 
@@ -137,14 +142,15 @@ static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t m
     wss.tx[wss.tx_len++] = op_code | (1 << 7);
 
     // resize if not enough
-    while ((wss.tx_size - 16) < payload_len)
-    {
-        wss.tx_size += 1024 * 4;
-        warn("Realloc tx buffer %lu", wss.tx_size);
-        wss.tx = realloc(wss.tx, wss.tx_size);
-        if (wss.tx == NULL)
-            die("Fail realloc tx buffer");
-    }
+    wss_need_tx(payload_len + 16);
+    // while ((wss.tx_size - 16) < payload_len)
+    // {
+    //     wss.tx_size += 1024 * 4;
+    //     warn("Realloc tx buffer %lu", wss.tx_size);
+    //     wss.tx = realloc(wss.tx, wss.tx_size);
+    //     if (wss.tx == NULL)
+    //         die("Fail realloc tx buffer");
+    // }
 
     if (payload_len <= 0x7d)
     {
@@ -281,13 +287,23 @@ int wss_disconnect()
     return 0;
 }
 
-size_t wss_send_text(char *msg, size_t len)
+size_t wss_send_buffer(char *msg, size_t len, enum WS_OPCODE opcode)
 {
     size_t frame_len;
     uint32_t mask = wss_mask();
-    frame_len = wss_frame(WS_OPCODE_TEXT, len, mask);
+    frame_len = wss_frame(opcode, len, mask);
     wss_write((uint8_t *)msg, len, (uint8_t *)&mask);
     return wss_send() - frame_len;
+}
+
+size_t wss_send_text(char *msg, size_t len)
+{
+    return wss_send_buffer(msg, len, WS_OPCODE_TEXT);   
+}
+
+size_t wss_send_binary(char *msg, size_t len)
+{
+    return wss_send_buffer(msg, len, WS_OPCODE_BINARY);   
 }
 
 void dump_frame()
@@ -335,8 +351,8 @@ char *wss_read()
     do
     {
         recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
-        wss.rx_len += recv;
         ok("<< %d bytes", recv);
+        wss.rx_len += recv;
 
         if (waiting_payload)
         {
@@ -401,13 +417,15 @@ char *wss_read()
 
             if (payload->size > 0x7d)
             {
-                if (b == 0x7E)
+                info("payload->size %02x", payload->size);
+                if (payload->size == 0x7E)
                     payload_bytes = 2;
-                else if (b == 0x7F)
+                else if (payload->size == 0x7F)
                     payload_bytes = 8;
 
-                wss_read_int(&(((uint8_t *)&payload->size)[8 - payload_bytes]), offset + 2, payload_bytes);
+                wss_read_int((uint8_t *)&payload->size, offset + 2, payload_bytes);
             }
+            ok("Payload size %lu", payload->size);
             payload->frame_size += payload_bytes;
             payload->data = &wss.rx[offset + payload->frame_size];
         }
@@ -416,9 +434,10 @@ char *wss_read()
         waiting_payload = wss.rx_len - (offset + payload->frame_size + payload->size);
         if (waiting_payload != 0)
         {
-            //warn("Wait payload %d %d", waiting_payload, -waiting_payload);
-            wss_need_rx(-waiting_payload);
+            warn("Wait payload %d %d", waiting_payload, -waiting_payload);
+            wss_need_rx((size_t)-waiting_payload);
             continue;
+            //break;
         }
 
     process_payload:
