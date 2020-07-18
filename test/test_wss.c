@@ -1,6 +1,6 @@
 #include <wss.h>
 #include "test.h"
-
+int wss_connected = 0;
 int test_mask()
 {
     uint32_t a, b, c;
@@ -18,14 +18,17 @@ int test_mask()
 
 int test_connection()
 {
-    char *msg = "HELLO WORLD EXAMPLES";
+    char *msg = "HELLO WORLD EXAMPLES", *reply;
     int msg_len = strlen(msg);
     //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
     ZERO(wss_connect("localhost", "8433", "/"));
+    wss_connected = 1;
 
     EQUAL(wss_send_text(msg, msg_len), msg_len);
-    wss_read();
-    ZERO(wss_disconnect());
+    reply = wss_read();
+    info("REPLY: %s", reply);
+    ZERO(strcmp(msg, reply));
+    ZERO(strncmp(msg, reply, msg_len));
     return 0;
 }
 
@@ -42,6 +45,10 @@ int test_setup()
 
 int test_cleanup()
 {
+    if (wss_connected)
+    {
+        ZERO(wss_disconnect());
+    }
     crypto_free();
     return 0;
 }

@@ -21,6 +21,7 @@ struct PAYLOAD
 {
     char *data;
     uint64_t size;
+    uint8_t frame_size;
 };
 
 struct FRAME
@@ -32,7 +33,9 @@ struct FRAME
         opcode,    //  4 bits
         masked;    //  1 bit
     uint32_t mask; // 32 bits
-    uint8_t payload_len;
+    uint8_t payload_count;
+    /* Payload data len only */
+    size_t payload_size;
     struct PAYLOAD payloads[WSS_FRAGMENT_MAX];
 } frame;
 
@@ -296,14 +299,14 @@ void dump_frame()
          frame.rsv3,
          frame.opcode,
          frame.masked,
-         frame.payload_len,
+         frame.payload_count,
          frame.mask);
 
     // Null the last payload
-    // payload = &frame.payloads[ frame.payload_len - 1 ];
+    // payload = &frame.payloads[ frame.payload_count - 1 ];
     // payload->data[ payload->size ] = 0;
 
-    for (int i = 0; i < frame.payload_len; i++)
+    for (int i = 0; i < frame.payload_count; i++)
     {
         payload = &frame.payloads[i];
         fwrite(payload->data, 1, payload->size, stderr);
@@ -315,29 +318,6 @@ void dump_frame()
     warn("\n==================");
 }
 
-// void wss_parse_frame()
-// {
-// }
-
-// int wss_thread()
-// {
-// }
-/* 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- * +-+-+-+-+-------+-+-------------+-------------------------------+
- * |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
- * |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
- * |N|V|V|V|       |S|             |   (if payload len==126/127)   |
- * | |1|2|3|       |K|             |                               |
- * +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
- * |     Extended payload length continued, if payload len == 127  |
- * + - - - - - - - - - - - - - - - +-------------------------------+
- * |                               |Masking-key, if MASK set to 1  |
- * +-------------------------------+-------------------------------+
- * | Masking-key (continued)       |          Payload Data         |
- * +-------------------------------- - - - - - - - - - - - - - - - +
- * :                     Payload Data continued ...                :
- * + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
- */
 char *wss_read()
 {
     int recv;
@@ -349,8 +329,8 @@ char *wss_read()
 
     offset = 0;
     wss.rx_len = 0;
-    frame.payload_len = 0;
-    payload = &frame.payloads[frame.payload_len];
+    frame.payload_count = 0;
+    payload = &frame.payloads[frame.payload_count];
 
     do
     {
@@ -374,7 +354,7 @@ char *wss_read()
             { // more frame here
                 offset += recv - waiting_payload;
                 recv = waiting_payload;
-                payload = &frame.payloads[++frame.payload_len];
+                payload = &frame.payloads[++frame.payload_count];
                 goto process_frame;
             }
         }
@@ -392,7 +372,7 @@ char *wss_read()
             fin = (b & 0x80) == 0x80; // (1 << 7)
             opcode = b & 0b1111;
 
-            if (frame.payload_len == 0)
+            if (frame.payload_count == 0)
             {
                 // set it on first frame
                 // frame.rsv1 = (b & 0x40) == 0x40; // (1 << 6)
@@ -406,8 +386,8 @@ char *wss_read()
             }
 
             // assume no mask and payload_len 1 byte
-            frame_size = 1;
             payload_bytes = 1;
+            payload->frame_size = 1;
             payload->size = wss.rx[offset + 1];
 
             masked = (payload->size & 0x80);
@@ -416,8 +396,7 @@ char *wss_read()
                 // remove masked flag
                 payload->size &= 0b1111111;
                 warn("GOT MASKED FRAME FROM SERVER!");
-                frame_size += 4; // mask is 4 byte
-                // todo: add mask ptr in each payload if mask is differ for each frame
+                payload->frame_size += 4; // mask is 4 byte
             }
 
             if (payload->size > 0x7d)
@@ -429,12 +408,12 @@ char *wss_read()
 
                 wss_read_int(&(((uint8_t *)&payload->size)[8 - payload_bytes]), offset + 2, payload_bytes);
             }
-            frame_size += payload_bytes;
-            payload->data = &wss.rx[offset + frame_size];
+            payload->frame_size += payload_bytes;
+            payload->data = &wss.rx[offset + payload->frame_size];
         }
 
         //check all payload is completely received
-        waiting_payload = wss.rx_len - (offset + frame_size + payload->size);
+        waiting_payload = wss.rx_len - (offset + payload->frame_size + payload->size);
         if (waiting_payload != 0)
         {
             //warn("Wait payload %d %d", waiting_payload, -waiting_payload);
@@ -445,8 +424,15 @@ char *wss_read()
     process_payload:
         // final data address
         ok("payload: %lu, fin: %d, opode: %d", payload->size, fin, opcode);
-        payload = &frame.payloads[++frame.payload_len];
+        payload = &frame.payloads[++frame.payload_count];
+        memset(payload, 0, sizeof(struct PAYLOAD));
         offset = wss.rx_len;
+
+        if (frame.payload_count == WSS_FRAGMENT_MAX)
+        {
+            err("Fragment to large!");
+            break;
+        }
 
         if (frame.opcode == WS_OPCODE_CONNECTION)
         {
@@ -458,5 +444,17 @@ char *wss_read()
 
     warn("DONE: %d %d %ld", recv, fin, waiting_payload);
     dump_frame();
+    // Merge payload into straight rx, removed the frame.
+    frame.payload_size = 0;
+    for (recv = 0; recv < frame.payload_count; recv++)
+    {
+        payload = &frame.payloads[recv];
+        memcpy(wss.rx + frame.payload_size, payload->data, payload->size);
+        frame.payload_size += payload->size;
+    }
+
+    // Nulled
+    wss.rx_len = frame.payload_size;
+    wss.rx[wss.rx_len] = 0;
     return wss.rx;
 }
