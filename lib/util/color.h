@@ -21,7 +21,7 @@
     {                                               \
         for (int i = 0; i < size; i++)              \
         {                                           \
-            printf("%02x ", (unsigned char)buf[i]); \
+            printf("%02x ", (unsigned char)(buf)[i]); \
         }                                           \
         printf("\n");                               \
     } while (0)

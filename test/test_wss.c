@@ -32,9 +32,11 @@ int test_size_16_bit()
 {
     uint16_t msg_len = 0xfff;
     char msg[msg_len], *reply;
+    memset(msg, 'f', 0xfff);
     EQUAL(wss_send_binary(msg, msg_len), msg_len);
     reply = wss_read();
     ZERO(memcmp(msg, reply, msg_len));
+    return 0;
 }
 
 int test_main()
