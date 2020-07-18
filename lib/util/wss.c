@@ -71,7 +71,7 @@ static void wss_need_rx(size_t len)
     }
 }
 
-static void wss_write(uint8_t *data, size_t len, uint8_t *mask)
+static void wss_write(uint8_t *data, size_t len, uint8_t mask[4])
 {
     size_t i;
 
@@ -79,7 +79,7 @@ static void wss_write(uint8_t *data, size_t len, uint8_t *mask)
 
     for (i = 0; i < len; i++)
     {
-        wss.tx[wss.tx_len + i] = (data[i] ^ mask[i % 4]) & 0xff;
+        wss.tx[wss.tx_len + i] = (data[i] ^ mask[i % 4]);
     }
     wss.tx_len += len;
 }
@@ -153,27 +153,25 @@ static size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t m
         payload_len &= 0xffff;
         wss.tx[wss.tx_len++] = 0x7E | (1 << 7);
         wss_write_int((uint8_t *)&payload_len, 2);
-        // hexdump(((char *)&payload_len), 2);
-        // hexdump(wss.tx, wss.tx_len);
     }
     else
     {
         payload_len &= 0xffffffffffffffffLL;
         wss.tx[wss.tx_len++] = 0x7F | (1 << 7);
         wss_write_int((uint8_t *)&payload_len, 8);
-        // hexdump(((char *)&payload_len), 8);
-        // hexdump(wss.tx, wss.tx_len);
     }
-    info("Frame payload size %lu", payload_len);
+    //info("TX: payload size %lu", payload_len);
     // Masking
-    wss_write_int((uint8_t *)&mask, 4);
+    *((uint32_t *)(&wss.tx[wss.tx_len])) = mask;
+    //memcpy(wss.tx + wss.tx_len, (uint8_t *)&mask, 4);
+    wss.tx_len += 4;
     return wss.tx_len;
 }
 
 static int wss_handshake(const char *host, const char *path)
 {
     char nonce[16], ws_key[256], *cptr;
-    int size, total = 0, http_code;
+    int size, total = 0;
 
     crypto_random(nonce, 16);
     crypto_base64_encode(ws_key, 256, nonce, 16);
@@ -291,9 +289,8 @@ size_t wss_send_text(char *msg, size_t len)
 
 void dump_frame()
 {
-    int i;
     struct PAYLOAD *payload;
-    warn("rsv1: %d\nrsv2: %d\nrsv3: %d\nopcode: %d\nmasked: %d\npayloads: %lu\nmask: %08x",
+    warn("rsv1: %d\nrsv2: %d\nrsv3: %d\nopcode: %d\nmasked: %d\npayloads: %d\nmask: %08x",
          frame.rsv1,
          frame.rsv2,
          frame.rsv3,
@@ -310,8 +307,12 @@ void dump_frame()
     {
         payload = &frame.payloads[i];
         fwrite(payload->data, 1, payload->size, stderr);
+        fprintf(stderr, "\n");
+        hexdump(payload->data, payload->size);
     }
     warn("\n------------------");
+    hexdump(wss.rx, wss.rx_len);
+    warn("\n==================");
 }
 
 // void wss_parse_frame()
@@ -360,7 +361,7 @@ char *wss_read()
         if (waiting_payload)
         {
             waiting_payload += recv;
-            info("WAIT %d %d", waiting_payload, recv);
+            info("WAIT %lu %d", waiting_payload, recv);
             if (waiting_payload == 0)
             { // received equal that we waiting
                 goto process_payload;
@@ -426,7 +427,7 @@ char *wss_read()
                 else if (b == 0x7F)
                     payload_bytes = 8;
 
-                wss_read_int(&(((char *)&payload->size)[8 - payload_bytes]), offset + 2, payload_bytes);
+                wss_read_int(&(((uint8_t *)&payload->size)[8 - payload_bytes]), offset + 2, payload_bytes);
             }
             frame_size += payload_bytes;
             payload->data = &wss.rx[offset + frame_size];
@@ -436,7 +437,8 @@ char *wss_read()
         waiting_payload = wss.rx_len - (offset + frame_size + payload->size);
         if (waiting_payload != 0)
         {
-            warn("Wait payload %d", waiting_payload);
+            //warn("Wait payload %d %d", waiting_payload, -waiting_payload);
+            wss_need_rx(-waiting_payload);
             continue;
         }
 
@@ -453,8 +455,8 @@ char *wss_read()
         }
 
     } while (!fin || waiting_payload);
-    warn("DONE: %d %d %d", recv, fin, waiting_payload);
-    //fr.payload = &wss.rx[idx];
+
+    warn("DONE: %d %d %ld", recv, fin, waiting_payload);
     dump_frame();
     return wss.rx;
 }
