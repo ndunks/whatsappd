@@ -353,7 +353,7 @@ char *wss_read()
 
     do
     {
-        recv = ssl_read(wss.rx, wss.rx_size - wss.rx_len);
+        recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
         wss.rx_len += recv;
         ok("<< %d bytes", recv);
 
@@ -398,7 +398,8 @@ char *wss_read()
                 // frame.rsv2 = (b & 0x20) == 0x20; // (1 << 5)
                 // frame.rsv3 = (b & 0x10) == 0x10; // (1 << 4)
                 frame.opcode = opcode;
-                if( b & 0b01110000 ){
+                if (b & 0b01110000)
+                {
                     warn("GOT RSV BIT SET!");
                 }
             }
