@@ -1,17 +1,19 @@
+#include <string.h>
+#include <helper.h>
+#include "wasocket.h"
 #include "whatsappd.h"
 
 /**
- * Should handle untill account logged in
+ * Login or resume session
  */
 int whatsappd_init(const char const *config_path)
 {
     CFG cfg;
-    int ret;
 
     memset(&cfg, 0, sizeof(CFG));
 
-    ret = cfg_file(config_path);
-    if (ret < 0)
+    CATCH_RET = cfg_file(config_path);
+    if (CATCH_RET < 0)
     {
         err("Cannot Read/Write %s", cfg_file_get());
         goto CATCH;
@@ -19,40 +21,27 @@ int whatsappd_init(const char const *config_path)
 
     TRY(crypto_init());
 
-    if (ret == 1)
+    if (CATCH_RET == 1)
     {
         TRY(cfg_load(&cfg));
-        ret = crypto_parse_server_keys(cfg.serverSecret, &cfg);
-        if (ret)
+        CATCH_RET = crypto_parse_server_keys(cfg.serverSecret, &cfg);
+        if (CATCH_RET)
         {
             err("Fail while parsing config: %s", config_path);
             goto CATCH;
         }
     }
+    TRY(wasocket_init(&cfg));
 
-    TRY(wss_connect(NULL, NULL, NULL));
-
-    if (cfg_has_credentials(&cfg))
-    {
-        // login takeover
-        ret = 1;
-        err("Unimplemented");
-    }
-    else
-    {
-        // new Login
-        TRY(session_new(&cfg));
-    }
-
-    ret = 0;
+    CATCH_RET = 0;
 
 CATCH:
-    return ret;
+    return CATCH_RET;
 }
 
 void whatsappd_free()
 {
-    wss_disconnect();
+    wasocket_free();
     crypto_free();
 }
 

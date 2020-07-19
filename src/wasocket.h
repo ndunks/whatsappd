@@ -1,3 +1,6 @@
 #pragma once
-#include <wss.h>
 
+#include <cfg.h>
+
+int wasocket_init(CFG *cfg);
+void wasocket_free();
