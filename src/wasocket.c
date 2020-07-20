@@ -8,8 +8,6 @@
 
 #include "wasocket.h"
 
-struct WASOCKET_DATA wasocket_data;
-
 static uint64_t msg_counter = 0;
 static uint32_t mask;
 static int tag_len = 0;
@@ -46,16 +44,32 @@ int wasocket_send_text(char *data, uint len, char *tag)
     {
         tag_len = strlen(tag);
     }
+
     mask = wss_mask();
     wss_frame(WS_OPCODE_TEXT, tag_len + len, mask);
     wss_write_chunk(tag, 0, tag_len, &mask);
     wss_write_chunk(data, tag_len, len + tag_len, &mask);
     info("---\n%s%s\n---", tag, data);
-    wss_send();
+    return wss_send();
 }
 
 // Read and remove tags
-struct WASOCKET_DATA *wasocket_read()
+ssize_t wasocket_read(char **data, char **tag)
 {
-    
+    wss_read(NULL);
+
+    *data = strchr(wss.rx, ',');
+    if (*data == NULL)
+    {
+        err("No tag in message!");
+        return NULL;
+    }
+    *data[0] = 0;
+    (*data)++;
+    *tag = wss.rx;
+
+    info("TAG: %p, DATA: %p", *tag, *data);
+    info("TAG: %s, DATA: %s", *tag, NULL);
+
+    return wss.rx_len - (*data - *tag);
 }

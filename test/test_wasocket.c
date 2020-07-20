@@ -36,12 +36,13 @@ int test_tags()
 
 int test_send_init()
 {
-    size_t reply_len;
+    ssize_t reply_len;
     int sent, len;
-    char buf[255], client_id[75], *reply;
+    char buf[255], client_id[75], *reply, *reply_tag;
 
     ZERO(crypto_init());
-    ZERO(wss_connect(NULL, NULL, NULL));
+    //ZERO(wss_connect(NULL, NULL, NULL));
+    ZERO(wss_connect("localhost", "8433", "/"));
     //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
 
     crypto_random(buf, 16);
@@ -56,10 +57,10 @@ int test_send_init()
                   client_id);
 
     sent = wasocket_send_text(buf, len, NULL);
-    reply = wss_read(&reply_len);
-    info("SENT %d == %d", reply_len, len);
+    reply_len = wasocket_read(&reply, &reply_tag);
+    info("%d == %d", reply_len, len);
     TRUTHY(reply_len == len);
-    ZERO(strncmp(buf, reply, len));
+    ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
 
     wss_disconnect();
     crypto_free();
