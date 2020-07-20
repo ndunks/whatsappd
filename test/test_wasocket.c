@@ -8,7 +8,6 @@ int test_tags()
 {
     char *tag;
     int counter;
-    wasocket_setup();
 
     tag = wasocket_short_tag();
     info("short_tag: %s", tag);
@@ -37,8 +36,30 @@ int test_tags()
 
 int test_send_init()
 {
+    size_t reply_len;
+    int sent, len;
+    char buf[255], client_id[75], *reply;
+
     ZERO(crypto_init());
     ZERO(wss_connect(NULL, NULL, NULL));
+    //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
+
+    crypto_random(buf, 16);
+
+    crypto_base64_encode(client_id, 75, buf, CFG_CLIENT_ID_LEN);
+    info("ClientID: %s", client_id);
+
+    len = sprintf(buf, "[\"admin\",\"init\","
+                       "[2,2019,6],[\"whatsappd\",\"github.com/ndunks\",\"%s\"],"
+                       "\"%s\",true]",
+                  (sizeof(void *) == 4) ? "x86" : "x86_64",
+                  client_id);
+
+    sent = wasocket_send_text(buf, len, NULL);
+    info("SENT %d == %d", sent, len);
+    reply = wss_read(&reply_len);
+    info("reply: %s", reply);
+
     wss_disconnect();
     crypto_free();
     return 0;
@@ -46,11 +67,13 @@ int test_send_init()
 
 int test_main()
 {
-    return test_tags();
+    //return test_tags();
+    return test_send_init();
 }
 
 int test_setup()
 {
+    wasocket_setup();
     return 0;
 }
 
