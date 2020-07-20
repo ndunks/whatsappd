@@ -38,7 +38,7 @@ int test_send_init()
 {
     ssize_t reply_len;
     int sent, len;
-    char buf[255], client_id[75], *reply, *reply_tag;
+    char buf[255], client_id[75], *reply, *reply_tag, *tag = "1818181,";
 
     ZERO(crypto_init());
     //ZERO(wss_connect(NULL, NULL, NULL));
@@ -57,10 +57,19 @@ int test_send_init()
                   client_id);
 
     sent = wasocket_send_text(buf, len, NULL);
-    reply_len = wasocket_read(&reply, &reply_tag);
-    info("%d == %d", reply_len, len);
+    ZERO(wasocket_read(&reply, &reply_tag, &reply_len));
     TRUTHY(reply_len == len);
     ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
+
+    accent("** with custom tag: %s", tag);
+    sent = wasocket_send_text(buf, len, tag);
+    ZERO(wasocket_read(&reply, &reply_tag, &reply_len));
+    info("%ld, tag: %s, data: %s", reply_len, reply_tag, reply);
+    TRUTHY(reply_len == len);
+    ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
+
+    // Comma is replaced by null in reply_tag, so exclude it
+    ZERO(strncmp(tag, reply_tag, strlen(tag) - 1));
 
     wss_disconnect();
     crypto_free();

@@ -12,9 +12,9 @@ static uint64_t msg_counter = 0;
 static uint32_t mask;
 static int tag_len = 0;
 static char tag_buf[32] = {0},
-     short_tag_base[5] = {0},
-     tag_fmt[] = "%lu.--%lu,",
-     short_tag_fmt[] = "%s.--%lu,";
+            short_tag_base[5] = {0},
+            tag_fmt[] = "%lu.--%lu,",
+            short_tag_fmt[] = "%s.--%lu,";
 
 void wasocket_setup()
 {
@@ -54,7 +54,7 @@ int wasocket_send_text(char *data, uint len, char *tag)
 }
 
 // Read and remove tags
-ssize_t wasocket_read(char **data, char **tag)
+int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
     wss_read(NULL);
 
@@ -62,14 +62,12 @@ ssize_t wasocket_read(char **data, char **tag)
     if (*data == NULL)
     {
         err("No tag in message!");
-        return NULL;
+        return 1;
     }
     *data[0] = 0;
     (*data)++;
     *tag = wss.rx;
 
-    info("TAG: %p, DATA: %p", *tag, *data);
-    info("TAG: %s, DATA: %s", *tag, NULL);
-
-    return wss.rx_len - (*data - *tag);
+    *data_size = wss.rx_len - (*data - *tag);
+    return 0;
 }
