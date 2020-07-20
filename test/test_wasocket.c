@@ -56,9 +56,10 @@ int test_send_init()
                   client_id);
 
     sent = wasocket_send_text(buf, len, NULL);
-    info("SENT %d == %d", sent, len);
     reply = wss_read(&reply_len);
-    info("reply: %s", reply);
+    info("SENT %d == %d", reply_len, len);
+    TRUTHY(reply_len == len);
+    ZERO(strncmp(buf, reply, len));
 
     wss_disconnect();
     crypto_free();

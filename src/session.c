@@ -1,9 +1,12 @@
 #include "crypto.h"
 #include "helper.h"
 #include "wss.h"
+#include "wasocket.h"
 #include "session.h"
 
-static int session_init(CFG *cfg)
+static CFG *cfg = NULL;
+
+static int session_send_init()
 {
     char buf[255], clientId[64], *reply;
     size_t size;
@@ -27,7 +30,7 @@ static int session_init(CFG *cfg)
     return 0;
 }
 
-int session_new(CFG *cfg)
+int session_login_new()
 {
     crypto_keys *keys = crypto_gen_keys();
 
@@ -38,14 +41,18 @@ int session_new(CFG *cfg)
     }
 
     TRY(crypto_random(cfg->client_id, CFG_CLIENT_ID_LEN));
-    TRY(session_init(cfg));
+    TRY(session_send_init(cfg));
 
 CATCH:
     return CATCH_RET;
 }
 
-int session_start(CFG *cfg){
+int session_start(CFG *cfg_in)
+{
+    cfg = cfg_in;
+
     TRY(wss_connect(NULL, NULL, NULL));
+    wasocket_setup();
 
     if (cfg_has_credentials(cfg))
     {
@@ -56,9 +63,8 @@ int session_start(CFG *cfg){
     else
     {
         // new Login
-        TRY(session_new(cfg));
+        TRY(session_login_new(cfg));
     }
 CATCH:
     return CATCH_RET;
 }
-
