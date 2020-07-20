@@ -21,11 +21,8 @@ int test_new_session()
     }
 
     EQUAL(access(test_cfg_file, F_OK), -1);
-    
 
-    ZERO(session_new(&cfg));
-
-    ZERO(wss_disconnect());
+    ZERO(session_init(&cfg));
 
     return 0;
 }
