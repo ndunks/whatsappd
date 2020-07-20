@@ -51,9 +51,15 @@ typedef struct FRAME_RX
 } FRAME_RX;
 
 WSS wss;
-FRAME_RX frame;
+FRAME_RX wss_frame_rx;
 
 uint32_t wss_mask();
+size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t mask);
+
+void wss_write_chunk(uint8_t *src, size_t src_start, size_t src_end, const uint32_t *const mask);
+void wss_write(uint8_t *data, size_t len, const uint32_t *const mask);
+int wss_send();
+
 int wss_connect(const char *host, const char *port, const char *path);
 void wss_disconnect();
 char *wss_read(size_t *data_len);
