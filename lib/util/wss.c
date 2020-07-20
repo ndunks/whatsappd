@@ -226,7 +226,7 @@ CATCH:
     return CATCH_RET;
 }
 
-int wss_disconnect()
+void wss_disconnect()
 {
     uint32_t mask = wss_mask();
     wss_frame(WS_OPCODE_CONNECTION, 0, mask);
@@ -237,7 +237,6 @@ int wss_disconnect()
     ssl_disconnect();
     free(wss.rx);
     free(wss.tx);
-    return 0;
 }
 
 size_t wss_send_buffer(char *msg, size_t len, enum WS_OPCODE opcode)
@@ -251,6 +250,10 @@ size_t wss_send_buffer(char *msg, size_t len, enum WS_OPCODE opcode)
 
 size_t wss_send_text(char *msg, size_t len)
 {
+    if (len < 255)
+    {
+        warn(">> %lu bytes (text)\n%s", len, msg);
+    }
     return wss_send_buffer(msg, len, WS_OPCODE_TEXT);
 }
 
@@ -301,7 +304,7 @@ char *wss_read(size_t *data_len)
     {
         recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
         ok("<< %d bytes", recv);
-        if (recv == 0)
+        if (recv <= 0)
         {
             err("Connection error");
             break;

@@ -1,5 +1,8 @@
 #include <string.h>
 #include <helper.h>
+#include <wss.h>
+
+#include "session.h"
 #include "wasocket.h"
 #include "whatsappd.h"
 
@@ -31,7 +34,8 @@ int whatsappd_init(const char const *config_path)
             goto CATCH;
         }
     }
-    TRY(wasocket_init(&cfg));
+
+    TRY(wss_connect(NULL, NULL, NULL));
 
     CATCH_RET = 0;
 
@@ -41,7 +45,7 @@ CATCH:
 
 void whatsappd_free()
 {
-    wasocket_free();
+    wss_disconnect();
     crypto_free();
 }
 

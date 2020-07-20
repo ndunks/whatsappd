@@ -1,38 +1,34 @@
-#include <unistd.h>
+#include <stdint.h>
 #include <malloc.h>
 #include <string.h>
+#include <time.h>
 
 #include <helper.h>
-#include <cfg.h>
-#include <session.h>
 #include <wss.h>
 
 #include "wasocket.h"
 
-/**
- * Should handle untill account logged in
- */
-int wasocket_init(CFG *cfg)
+static uint64_t msg_counter = 0;
+
+char tag_buf[32] = {0},
+     short_tag_base[5] = {0},
+     short_tag_fmt[] = "%s.--%lu";
+
+void wasocket_setup()
 {
-    TRY(wss_connect(NULL, NULL, NULL));
-
-    if (cfg_has_credentials(cfg))
-    {
-        // login takeover
-        CATCH_RET = 1;
-        err("Unimplemented");
-    }
-    else
-    {
-        // new Login
-        TRY(session_new(cfg));
-    }
-CATCH:
-
-    return CATCH_RET;
+    sprintf(short_tag_base, "%ld", (time(NULL) % 1000));
 }
 
-void wasocket_free()
+char *wasocket_short_tag()
 {
-    wss_disconnect();
+    sprintf(tag_buf, short_tag_fmt, short_tag_base, msg_counter++);
+    return tag_buf;
+}
+
+char *wasocket_tag()
+{
+}
+
+int wasocket_send(char *data, uint len)
+{
 }

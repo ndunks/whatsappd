@@ -1,24 +1,32 @@
 #include <sys/file.h>
 #include <unistd.h>
 
-#include <whatsappd.h>
+#include <cfg.h>
+#include <crypto.h>
+#include <wss.h>
+#include <session.h>
 
 #include "test.h"
 
+static char *test_cfg_file = "tmp/test_session_whatsappd.cfg";
+
 int test_new_session()
 {
-    char *cfg_file = "tmp/test_session_whatsappd.cfg";
-    if (access(cfg_file, F_OK) == 0)
+    CFG cfg;
+
+    if (access(test_cfg_file, F_OK) == 0)
     {
-        warn("Deleting %s", cfg_file);
-        unlink(cfg_file);
+        warn("Deleting %s", test_cfg_file);
+        unlink(test_cfg_file);
     }
 
-    EQUAL(access(cfg_file, F_OK), -1);
+    EQUAL(access(test_cfg_file, F_OK), -1);
+    
 
-    ZERO(whatsappd_init(cfg_file));
+    ZERO(session_new(&cfg));
 
-    whatsappd_free();
+    ZERO(wss_disconnect());
+
     return 0;
 }
 
@@ -29,10 +37,12 @@ int test_main()
 
 int test_setup()
 {
+    ZERO(crypto_init());
     return 0;
 }
 
 int test_cleanup()
 {
+    crypto_free();
     return 0;
 }

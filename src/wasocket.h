@@ -1,6 +1,8 @@
 #pragma once
 
-#include <cfg.h>
+#include <stdlib.h>
 
-int wasocket_init(CFG *cfg);
-void wasocket_free();
+void wasocket_setup();
+char *wasocket_short_tag();
+char *wasocket_tag();
+int wasocket_send(char *data, uint len);

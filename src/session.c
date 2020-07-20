@@ -1,11 +1,11 @@
-#include "session.h"
 #include "crypto.h"
 #include "helper.h"
-#include "wasocket.h"
+#include "wss.h"
+#include "session.h"
 
 static int session_init(CFG *cfg)
 {
-    char buf[255], clientId[64];
+    char buf[255], clientId[64], *reply;
     size_t size;
 
     crypto_base64_encode(clientId, 64, cfg->client_id, CFG_CLIENT_ID_LEN);
@@ -15,11 +15,15 @@ static int session_init(CFG *cfg)
                         "\"%s\",true]",
                    (sizeof(void *) == 4) ? "x86" : "x86_64",
                    clientId);
-    if (ssl_write(buf, size) != size)
+
+    if (wss_send_text(buf, size) != size)
     {
         err("Fail send init packed");
         return 1;
     };
+
+    reply = wss_read(&size);
+    info("repl: %s", reply);
     return 0;
 }
 
@@ -37,8 +41,24 @@ int session_new(CFG *cfg)
     TRY(session_init(cfg));
 
 CATCH:
-
-    crypto_free(keys);
-
     return CATCH_RET;
 }
+
+int session_start(CFG *cfg){
+    TRY(wss_connect(NULL, NULL, NULL));
+
+    if (cfg_has_credentials(cfg))
+    {
+        // login takeover
+        CATCH_RET = 1;
+        err("Unimplemented");
+    }
+    else
+    {
+        // new Login
+        TRY(session_new(cfg));
+    }
+CATCH:
+    return CATCH_RET;
+}
+
