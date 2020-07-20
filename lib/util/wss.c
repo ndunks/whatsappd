@@ -41,12 +41,11 @@ void wss_write_chunk(uint8_t *src, size_t src_start, size_t src_end, const uint3
     size_t i, len, pos = 0;
     len = src_end - src_start;
 
-
     WSS_NEED_TX(len);
 
     for (i = src_start; i < src_end; (i++, pos++))
     {
-        wss.tx[wss.tx_len + pos] = (src[ pos ] ^ (((uint8_t *)mask)[i % 4]));
+        wss.tx[wss.tx_len + pos] = (src[pos] ^ (((uint8_t *)mask)[i % 4]));
     }
     wss.tx_len += len;
 }
@@ -59,10 +58,10 @@ void wss_write(uint8_t *src, size_t len, const uint32_t *const mask)
 int wss_send()
 {
     size_t sent, total = 0;
-    if (wss.tx_len < 255)
-    {
-        hexdump(wss.tx, wss.tx_len);
-    }
+    // if (wss.tx_len < 255)
+    // {
+    //     hexdump(wss.tx, wss.tx_len);
+    // }
 
     do
     {
@@ -416,7 +415,8 @@ char *wss_read(size_t *data_len)
     if (offset != wss_frame_rx.payload_size)
         err(" **payload_size not match! %lu != %lu", offset, wss_frame_rx.payload_size);
 
-    *data_len = wss_frame_rx.payload_size;
+    if (data_len != NULL)
+        *data_len = wss_frame_rx.payload_size;
     // Nulled
     wss.rx_len = offset;
     wss.rx[wss.rx_len] = 0;

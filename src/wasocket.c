@@ -11,7 +11,7 @@
 static uint64_t msg_counter = 0;
 static uint32_t mask;
 static int tag_len = 0;
-char tag_buf[32] = {0},
+static char tag_buf[32] = {0},
      short_tag_base[5] = {0},
      tag_fmt[] = "%lu.--%lu,",
      short_tag_fmt[] = "%s.--%lu,";
