@@ -13,14 +13,15 @@ int test_tags()
     short_tag = wasocket_short_tag();
     info("short_tag: %s", short_tag);
     TRUTHY(strlen(short_tag) > 0);
-    TRUTHY(strlen(short_tag) <= 3);
-    counter = atoi(strtok(short_tag, "--"));
+    TRUTHY(strlen(short_tag) <= 7);
+
+    counter = atoi(strrchr(short_tag, '-')+1);
     TRUTHY(counter == 0);
 
     short_tag = wasocket_short_tag();
     TRUTHY(strlen(short_tag) > 0);
-    TRUTHY(strlen(short_tag) <= 3);
-    counter = atoi(strtok(short_tag, "--"));
+    TRUTHY(strlen(short_tag) <= 7);
+    counter = atoi(strrchr(short_tag, '-')+1);
     TRUTHY(counter == 1);
     return 0;
 }
