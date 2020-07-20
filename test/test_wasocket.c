@@ -6,23 +6,32 @@
 
 int test_tags()
 {
-    char *short_tag;
+    char *tag;
     int counter;
     wasocket_setup();
 
-    short_tag = wasocket_short_tag();
-    info("short_tag: %s", short_tag);
-    TRUTHY(strlen(short_tag) > 0);
-    TRUTHY(strlen(short_tag) <= 7);
+    tag = wasocket_short_tag();
+    info("short_tag: %s", tag);
+    TRUTHY(strlen(tag) > 0);
+    TRUTHY(strlen(tag) <= 7);
 
-    counter = atoi(strrchr(short_tag, '-')+1);
+    counter = atoi(strrchr(tag, '-') + 1);
     TRUTHY(counter == 0);
 
-    short_tag = wasocket_short_tag();
-    TRUTHY(strlen(short_tag) > 0);
-    TRUTHY(strlen(short_tag) <= 7);
-    counter = atoi(strrchr(short_tag, '-')+1);
+    tag = wasocket_short_tag();
+    TRUTHY(strlen(tag) > 0);
+    TRUTHY(strlen(tag) <= 7);
+    counter = atoi(strrchr(tag, '-') + 1);
     TRUTHY(counter == 1);
+
+    // long tag  1595220140
+    tag = wasocket_tag();
+    info("long_tag: %s", tag);
+    TRUTHY(strlen(tag) > 0);
+    EQUAL(strlen(tag), 14);
+    counter = atoi(strrchr(tag, '-') + 1);
+    TRUTHY(counter == 2);
+
     return 0;
 }
 

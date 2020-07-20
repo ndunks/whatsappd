@@ -12,6 +12,7 @@ static uint64_t msg_counter = 0;
 
 char tag_buf[32] = {0},
      short_tag_base[5] = {0},
+     tag_fmt[] = "%lu.--%lu",
      short_tag_fmt[] = "%s.--%lu";
 
 void wasocket_setup()
@@ -27,6 +28,8 @@ char *wasocket_short_tag()
 
 char *wasocket_tag()
 {
+    sprintf(tag_buf, tag_fmt, time(NULL), msg_counter++);
+    return tag_buf;
 }
 
 int wasocket_send(char *data, uint len)
