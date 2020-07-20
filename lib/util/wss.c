@@ -1,4 +1,4 @@
-#include <unistd.h>
+
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
@@ -9,7 +9,6 @@
 
 #include "wss.h"
 
-#define WSS_FRAGMENT_MAX 100
 #define WSS_NEED(len, x, x_len, x_size)          \
     while ((x_len + len) > x_size)               \
     {                                            \
@@ -23,34 +22,8 @@
 #define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
 #define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
 
-struct WSS
-{
-    char *tx, *rx;
-    size_t rx_len, rx_size, rx_idx,
-        tx_len, tx_size, tx_idx;
-} wss;
-
-struct PAYLOAD
-{
-    char *data;
-    uint64_t size;
-    uint8_t frame_size;
-};
-
-struct FRAME_RX
-{
-    uint8_t // fin,   //  1 bit
-        // rsv1,      //  1 bit
-        // rsv2,      //  1 bit
-        // rsv3,      //  1 bit
-        opcode, //  4 bits
-        masked; //  1 bit
-    //uint32_t mask; // 32 bits
-    uint8_t payload_count;
-    /* Payload data len only */
-    size_t payload_size;
-    struct PAYLOAD payloads[WSS_FRAGMENT_MAX];
-} frame;
+WSS  wss;
+FRAME_RX frame;
 
 uint32_t wss_mask()
 {

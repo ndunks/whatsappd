@@ -1,6 +1,9 @@
 #pragma once
+
 #include <crypto.h>
 #include <ssl.h>
+
+#define WSS_FRAGMENT_MAX 100
 
 enum WS_OPCODE
 {
@@ -17,6 +20,38 @@ enum WS_OPCODE
     /** Pong Frame */
     WS_OPCODE_PONG = 10,
 };
+
+typedef struct WSS
+{
+    char *tx, *rx;
+    size_t rx_len, rx_size, rx_idx,
+        tx_len, tx_size, tx_idx;
+} WSS;
+
+struct PAYLOAD
+{
+    char *data;
+    uint64_t size;
+    uint8_t frame_size;
+};
+
+typedef struct FRAME_RX
+{
+    uint8_t // fin,   //  1 bit
+        // rsv1,      //  1 bit
+        // rsv2,      //  1 bit
+        // rsv3,      //  1 bit
+        opcode, //  4 bits
+        masked; //  1 bit
+    //uint32_t mask; // 32 bits
+    uint8_t payload_count;
+    /* Payload data len only */
+    size_t payload_size;
+    struct PAYLOAD payloads[WSS_FRAGMENT_MAX];
+} FRAME_RX;
+
+WSS wss;
+FRAME_RX frame;
 
 uint32_t wss_mask();
 int wss_connect(const char *host, const char *port, const char *path);
