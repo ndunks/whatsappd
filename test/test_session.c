@@ -24,6 +24,12 @@ int test_new_session()
 
     ZERO(session_init(&cfg));
 
+    FALSY(cfg.client_id == NULL);
+    FALSY(cfg.serverSecret == NULL);
+    TRUTHY(strlen(cfg.tokens.client));
+
+    session_free();
+
     return 0;
 }
 
