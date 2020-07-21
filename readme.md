@@ -1,6 +1,6 @@
 # The Whatsapp Daemon
 
-Using staticaly linked [mbedtls](https://github.com/ARMmbed/mbedtls) as crypto engine and HTTPS/TLS 1.2 Client
+Using staticaly linked [mbedtls](https://github.com/ARMmbed/mbedtls) as crypto engine and HTTPS/TLS 1.2 Client and [Nayuki's QRCode gen](https://github.com/nayuki/QR-Code-generator).
 
 
 ## Refferences
