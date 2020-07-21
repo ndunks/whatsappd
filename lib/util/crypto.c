@@ -105,6 +105,28 @@ CATCH:
     crypto_keys_free(ctx);
     return NULL;
 }
+int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg)
+{
+    size_t public_key_size;
+    // Private
+    TRY(mbedtls_mpi_size(&keys->d) <= 0);
+    // Public Keys
+    TRY(mbedtls_ecp_is_zero(&keys->Q));
+    // Shared Secret
+    //TRY(mbedtls_mpi_size(&keys->z) <= 0);
+
+    TRY(mbedtls_mpi_write_binary_le(&keys->d, cfg->keys.private, CFG_KEY_LEN));
+    TRY(mbedtls_ecp_point_write_binary(
+        grp, &keys->Q,
+        MBEDTLS_ECP_PF_UNCOMPRESSED,
+        &public_key_size,
+        cfg->keys.public,
+        CFG_KEY_LEN));
+    TRY(public_key_size <= 0);
+
+CATCH:
+    return CATCH_RET;
+}
 
 void crypto_keys_free(crypto_keys *ctx)
 {
