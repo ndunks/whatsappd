@@ -1,4 +1,5 @@
 #pragma once
+#include "string.h"
 #include <stdlib.h>
 #include "color.h"
 
@@ -15,3 +16,4 @@ struct HELPER_JSON_INIT_REPLY
 };
 
 int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src);
+int helper_json_unescape(char **str);

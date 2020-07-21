@@ -1,9 +1,25 @@
-#include "string.h"
 #include "helper.h"
 
 #define HELPER_MAX_LOOP 100
 
 int CATCH_RET = 0;
+
+int helper_json_unescape(char **str)
+{
+    int end = strlen(*str) - 1;
+    if ((*str)[end] == '"')
+        (*str)[end] = 0;
+
+    else
+        return 1;
+
+    if ((**str) == '"')
+        (*str)++;
+    else
+        return 1;
+
+    return 0;
+}
 
 int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
 {
