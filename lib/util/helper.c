@@ -1,41 +1,244 @@
-#include "helper.h"
 #include <locale.h>
+
+#include "helper.h"
 #include "qrcodegen.h"
 
 #define HELPER_MAX_LOOP 100
 
 int CATCH_RET = 0;
 
-int helper_json_next_field(char *ptr)
+int helper_qrcode_show(const char *src)
 {
-    char *start = ptr;
+    int size, border = 2;
+    bool top, bot;
+    const char *ptr,
+        black_white[] = "\xe2\x96\x84", // U+0x2584
+        white_all[] = "\xe2\x96\x88",   // U+0x2588
+        white_black[] = "\xe2\x96\x80", // U+0x2580
+        black_all[] = " ";
+
+    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX],
+        tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+
+    if (!qrcodegen_encodeText(src, tempBuffer, qrcode,
+                              qrcodegen_Ecc_LOW, 5, 16,
+                              qrcodegen_Mask_AUTO, true))
+    {
+        return 1;
+    };
+
+    size = qrcodegen_getSize(qrcode);
+    setlocale(LC_CTYPE, "");
+
+    for (int y = -border; y < size + border; y += 2)
+    {
+        for (int x = -border; x < size + border; x++)
+        {
+            top = qrcodegen_getModule(qrcode, x, y);
+            bot = qrcodegen_getModule(qrcode, x, y + 1);
+            if (top && bot)
+                ptr = white_all;
+            else if (top)
+                ptr = white_black;
+            else if (bot)
+                ptr = black_white;
+            else
+                ptr = black_all;
+            fputs(ptr, stdout);
+        }
+        fputs("\n", stdout);
+    }
+    fputs("\n", stdout);
+    return 0;
+}
+
+char *helper_json_field(char **src)
+{
+    char *start = NULL, *ptr;
     do
     {
-        switch (*ptr)
+        if (**src == '"')
         {
-        case 0:
-            /* code */
-            return 0;
-        case '\\':
+            if (start)
+            {
+                //escaped double quotes
+                if (*((*src) - 1) == '\\')
+                {
+                    ptr = (*src)++;
+                    // shift it
+                    while ((*(ptr - 1) = *ptr))
+                        ptr++;
+                }
+                else
+                { // end of field
+                    **src = 0;
+                    (*src)++;
+                    return start;
+                    break;
+                }
+            }
+            else // start of field
+                start = ++(*src);
+        }
+    } while (*(*src)++);
 
+    return NULL;
+}
+
+static char helper_json_close_token(char c)
+{
+    switch (c)
+    {
+    case '{':
+        return '}';
+        break;
+    case '[':
+        return ']';
+        break;
+    case '"':
+        return '"';
+        break;
+    default: // number or boolean
+        return 0;
+        break;
+    }
+}
+
+static void helper_json_value_end(char **src)
+{
+    do
+    {
+        switch (**src)
+        {
+        case ' ':
+        case '\r':
+        case '\n':
+        case '\t':
+        case ',':
+        case '}':
+        case ']':
+            *((*src)++) = 0;
+        case 0:
+            return;
+        }
+        // end of value
+    } while (*(*src)++);
+}
+static bool helper_json_value_end_token(char **src, char close_token)
+{
+    char stack[64] = {0}, *token;
+    int depth = 0;
+
+    do
+    {
+        switch (**src)
+        {
+        case '\\':
+            (*src)++;
             break;
-        default:
+        case '"':
+            if (depth == 0)
+            {
+                if (close_token == '"')
+                {
+                    goto FOUND;
+                }
+
+                stack[++depth] = '"';
+            }
+            else if (stack[depth] == '"')
+            {
+                stack[depth--] = '*';
+            }
+            break;
+        case '{':
+            stack[++depth] = '}';
+            break;
+        case '[':
+            stack[++depth] = ']';
+            break;
+        case '}':
+        case ']':
+            if (depth)
+            {
+                if (stack[depth] == **src)
+                    stack[depth--] = '*';
+                else
+                {
+                    err("JSON: unexpected close token: %c", **src);
+                    return false;
+                }
+            }
+            else if (close_token == **src)
+            {
+                goto FOUND;
+            }
+            else
+            {
+                warn("JSON: unexpected close token: %c", **src);
+            }
             break;
         }
+        // end of value
+    } while (*(*src)++);
 
-    } while (*ptr++);
+    return false;
+FOUND:
+    *(++(*src)) = 0;
+    (*src)++;
+    return true;
+}
 
-    return ptr - start;
+/* Not support nested values. Just read as-is */
+char *helper_json_value(char **src)
+{
+    char *start = NULL, *ptr, close_token;
+
+    do
+    {
+        if (**src == ':')
+        {
+            // Left trim
+            do
+                (*src)++;
+            while (**src == ' ' ||
+                   **src == '\t' ||
+                   **src == '\r' ||
+                   **src == '\n');
+
+            // start of value
+            start = *src;
+            break;
+        }
+    } while (*(*src)++);
+
+    close_token = helper_json_close_token(**src);
+
+    (*src)++;
+
+    if (close_token)
+    {
+        if (helper_json_value_end_token(src, close_token))
+            return start;
+    }
+    else
+    {
+        helper_json_value_end(src);
+        return start;
+    }
+
+    return NULL;
 }
 
 /* Simple double quote escape. not support multibytes */
-char *helper_json_unescape(char *in)
+char *helper_json_unescape(char *in_str)
 {
-    char *start, *ptr;
-    if (*(start = in++) == '"')
+    uint8_t *start, *ptr, *in = (uint8_t *)in_str;
+    if (*(start = (uint8_t *)in++) == '"')
         start++;
     else
-        return in;
+        return in_str;
+
     do
     {
         switch (*in)
@@ -45,20 +248,22 @@ char *helper_json_unescape(char *in)
             if (*ptr == 'u' || *ptr == 'U')
                 continue; // unsupported unicode, keep it
             // shift it
-            while ((*(ptr - 1) = *ptr++))
-                ;
+            while ((*(ptr - 1) = *ptr))
+                ptr++;
+
             break;
 
         case '\"':
-            *in = 0;
-            return start;
+            *in = 0u;
+
+            return (char *)start;
         }
     } while (*in++);
 
-    return start;
+    return (char *)start;
 }
 
-int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
+int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src)
 {
     char *field, *value, *next, **dst_field = NULL;
     size_t loop = 0, len = 0;
@@ -68,7 +273,7 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
         err("Not JSON Object");
         return 1;
     }
-    next = src;
+    next = (char *)src;
     do
     {
         dst_field = NULL;
@@ -131,52 +336,9 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
     return 0;
 }
 
-int helper_qrcode_show(const char *src)
+int helper_parse_conn(struct HELPER_JSON_INIT_CONN *dst, const char *src)
 {
-    int size, border = 2;
-    bool top, bot;
-    char *ptr,
-        black_white[] = "\xe2\x96\x84", // U+0x2584
-        white_all[] = "\xe2\x96\x88",   // U+0x2588
-        white_black[] = "\xe2\x96\x80", // U+0x2580
-        black_all[] = " ";
-    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX],
-        tempBuffer[qrcodegen_BUFFER_LEN_MAX];
-
-    if (!qrcodegen_encodeText(src, tempBuffer, qrcode,
-                              qrcodegen_Ecc_LOW, 5, 16,
-                              qrcodegen_Mask_AUTO, true))
-    {
-        return 1;
-    };
-
-    size = qrcodegen_getSize(qrcode);
-    setlocale(LC_CTYPE, "");
-
-    for (int y = -border; y < size + border; y += 2)
-    {
-        for (int x = -border; x < size + border; x++)
-        {
-            top = qrcodegen_getModule(qrcode, x, y);
-            bot = qrcodegen_getModule(qrcode, x, y + 1);
-            if (top && bot)
-                ptr = white_all;
-            else if (top)
-                ptr = white_black;
-            else if (bot)
-                ptr = black_white;
-            else
-                ptr = black_all;
-            fputs(ptr, stdout);
-        }
-        fputs("\n", stdout);
-    }
-    fputs("\n", stdout);
-    return 0;
-}
-
-int helper_parse_init_conn()
-{
+    char *field, *value;
     /*
      ["Conn",{
          "ref":"1@k..",
@@ -197,5 +359,17 @@ int helper_parse_init_conn()
          "plugged":false,
          "platform":"iphone",
          "features":{"KEY_PARTICIPANT":true,"FLAGS":"EAE..."}
+    }]
      */
+    if (strncmp(src, "[\"Conn\"", 7) != 0)
+    {
+        err("Invalid Conn data:\n%s", src);
+        return 1;
+    }
+    src = strchr(src, '{');
+    while ((field = helper_json_field(src)))
+    {
+    }
+    printf("SB: %c\n", *src);
+    return 1;
 }
