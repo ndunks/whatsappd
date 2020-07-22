@@ -95,7 +95,6 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
     return 0;
 }
 
-
 int helper_qrcode_show(const char *src)
 {
     int size, border = 2;
@@ -138,4 +137,30 @@ int helper_qrcode_show(const char *src)
     }
     fputs("\n", stdout);
     return 0;
+}
+
+int helper_parse_init_conn()
+{
+    /*
+     ["Conn",{
+         "ref":"1@k..",
+         "wid":"6285726501017@c.us",
+         "connected":true,
+         "isResponse":"false",
+         "serverToken":"1@+..",
+         "browserToken":"1@3..",
+         "clientToken":"dZu..",
+         "lc":"ID",
+         "lg":"en",
+         "locales":"en-ID,id-ID",  <-- watch this have comma
+         "is24h":true,
+         "secret":"s4kb..",
+         "protoVersion":[0,17],  <-- watch this have comma
+         "binVersion":10,
+         "battery":64,
+         "plugged":false,
+         "platform":"iphone",
+         "features":{"KEY_PARTICIPANT":true,
+         "FLAGS":"EAE..."}
+     */
 }
