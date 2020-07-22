@@ -74,7 +74,6 @@ char *helper_json_field(char **src)
                     **src = 0;
                     (*src)++;
                     return start;
-                    break;
                 }
             }
             else // start of field
@@ -126,7 +125,7 @@ static void helper_json_value_end(char **src)
 }
 static bool helper_json_value_end_token(char **src, char close_token)
 {
-    char stack[64] = {0}, *token;
+    char stack[64] = {0};
     int depth = 0;
 
     do
@@ -192,7 +191,7 @@ FOUND:
 /* Not support nested values. Just read as-is */
 char *helper_json_value(char **src)
 {
-    char *start = NULL, *ptr, close_token;
+    char *start = NULL, close_token;
 
     do
     {
@@ -263,30 +262,23 @@ char *helper_json_unescape(char *in_str)
     return (char *)start;
 }
 
-int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src)
+int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
 {
-    char *field, *value, *next, **dst_field = NULL;
-    size_t loop = 0, len = 0;
+    char *field, *value, **dst_field = NULL;
 
     if (src[0] != '{')
     {
         err("Not JSON Object");
         return 1;
     }
-    next = (char *)src;
-    do
+    while ((field = helper_json_field(&src)))
     {
-        dst_field = NULL;
-        field = strchr(next, '"') + 1;
-        //field len
-        len = strcspn(field, "\"");
-        field[len] = 0;
-
-        value = field + len + 2;
-        len = strcspn(value, ",}");
-        value[len] = 0;
-        next = value + len + 1;
-
+        value = helper_json_value(&src);
+        if (value == NULL)
+        {
+            err("JSON: invalid value");
+            return 1;
+        }
         switch (field[0])
         {
         case 's':
@@ -294,7 +286,6 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src)
             break;
         case 'r':
             dst_field = &dst->ref;
-            value = helper_json_unescape(value);
             break;
         case 't':
             if (field[1] == 'i')
@@ -308,7 +299,6 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src)
             break;
         case 'c':
             dst_field = &dst->curr;
-            value = helper_json_unescape(value);
             break;
         }
         // info("%s: %s (%p,%p)", field, value, dst, dst_field);
@@ -318,58 +308,139 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src)
         }
         else
         {
+            if (*value == '"')
+                value = helper_json_unescape(value);
             *dst_field = value;
             //ok("INFO: %p %p", dst->status, *dst_field);
             ok("* %s = %s", field, *dst_field);
         }
-
-        accent("V: %s :: %s", field, value);
-
-        if ((++loop) > HELPER_MAX_LOOP)
-        {
-            err("HELPER_MAX_LOOP REACHED!");
-            return 1;
-        }
-
-    } while (next[0]);
+    };
 
     return 0;
 }
 
-int helper_parse_conn(struct HELPER_JSON_INIT_CONN *dst, const char *src)
+int helper_parse_conn(struct HELPER_JSON_INIT_CONN *dst, char *src)
 {
-    char *field, *value;
-    /*
-     ["Conn",{
-         "ref":"1@k..",
-         "wid":"6285726501017@c.us",
-         "connected":true,
-         "isResponse":"false",
-         "serverToken":"1@+..",
-         "browserToken":"1@3..",
-         "clientToken":"dZu..",
-         "lc":"ID",
-         "lg":"en",
-         "locales":"en-ID,id-ID",  <-- watch this have comma
-         "is24h":true,
-         "secret":"s4kb..",
-         "protoVersion":[0,17],  <-- watch this have comma
-         "binVersion":10,
-         "battery":64,
-         "plugged":false,
-         "platform":"iphone",
-         "features":{"KEY_PARTICIPANT":true,"FLAGS":"EAE..."}
-    }]
-     */
+    char *field, *value, **dst_field = NULL;
+
     if (strncmp(src, "[\"Conn\"", 7) != 0)
     {
         err("Invalid Conn data:\n%s", src);
         return 1;
     }
     src = strchr(src, '{');
-    while ((field = helper_json_field(src)))
+    while ((field = helper_json_field(&src)))
     {
+        value = helper_json_value(&src);
+        if (value == NULL)
+        {
+            err("JSON: invalid value");
+            return 1;
+        }
+
+        switch (*field)
+        {
+        case 'b':
+            switch (*(field + 1))
+            {
+            case 'a':
+                dst_field = &dst->battery;
+                break;
+            case 'i':
+                dst_field = &dst->binVersion;
+                break;
+            case 'r':
+                dst_field = &dst->browserToken;
+                break;
+            }
+            break;
+        case 'c':
+            switch (*(field + 1))
+            {
+            case 'l':
+                dst_field = &dst->clientToken;
+                break;
+            case 'o':
+                dst_field = &dst->connected;
+                break;
+            }
+            break;
+
+        case 'f':
+            dst_field = &dst->features;
+            break;
+        case 'i':
+            switch (*(field + 2))
+            {
+            case '2':
+                dst_field = &dst->is24h;
+                break;
+            case 'R':
+                dst_field = &dst->isResponse;
+                break;
+            }
+            break;
+        case 'l':
+            switch (*(field + 1))
+            {
+            case 'c':
+                dst_field = &dst->lc;
+                break;
+            case 'g':
+                dst_field = &dst->lg;
+                break;
+            case 'o':
+                dst_field = &dst->locales;
+                break;
+            }
+            break;
+        case 'p':
+            switch (*(field + 2))
+            {
+            case 'a':
+                dst_field = &dst->platform;
+                break;
+            case 'u':
+                dst_field = &dst->plugged;
+                break;
+            case 'o':
+                dst_field = &dst->protoVersion;
+                break;
+            }
+            break;
+        case 'r':
+            dst_field = &dst->ref;
+            break;
+        case 's':
+            switch (*(field + 2))
+            {
+            case 'c':
+                dst_field = &dst->secret;
+                break;
+            case 'r':
+                dst_field = &dst->serverToken;
+                break;
+            }
+            break;
+
+        case 'w':
+            dst_field = &dst->wid;
+            break;
+        default:
+            break;
+        }
+        if (dst_field == NULL)
+        {
+            warn("Unhandled field: %s (%s)", field, value);
+        }
+        else
+        {
+            if (*value == '"')
+                value = helper_json_unescape(value);
+            *dst_field = value;
+            //ok("INFO: %p %p", dst->status, *dst_field);
+            ok("* %s = %s", field, *dst_field);
+        }
     }
-    printf("SB: %c\n", *src);
-    return 1;
+    return 0;
 }

@@ -42,5 +42,5 @@ int helper_qrcode_show(const char *src);
 char *helper_json_unescape(char *str);
 char *helper_json_field(char **src);
 char *helper_json_value(char **src);
-int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, const char *src);
-int helper_parse_conn(struct HELPER_JSON_INIT_CONN *dst, const char *src);
+int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src);
+int helper_parse_conn(struct HELPER_JSON_INIT_CONN *dst, char *src);
