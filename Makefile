@@ -33,7 +33,7 @@ $(BUILD_BIN): $(OBJECTS) build_lib
 $(OBJECTS) : build/%.o : src/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-watch:
+watch: buildfs
 	nodemon --delay 0.5 -w Makefile -w src -e .c,.h,.mk -x "make run || false"
 
 clean:
