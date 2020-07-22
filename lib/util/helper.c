@@ -6,21 +6,56 @@
 
 int CATCH_RET = 0;
 
-int helper_json_unescape(char **str)
+int helper_json_next_field(char *ptr)
 {
-    int end = strlen(*str) - 1;
-    if ((*str)[end] == '"')
-        (*str)[end] = 0;
+    char *start = ptr;
+    do
+    {
+        switch (*ptr)
+        {
+        case 0:
+            /* code */
+            return 0;
+        case '\\':
 
+            break;
+        default:
+            break;
+        }
+
+    } while (*ptr++);
+
+    return ptr - start;
+}
+
+/* Simple double quote escape. not support multibytes */
+char *helper_json_unescape(char *in)
+{
+    char *start, *ptr;
+    if (*(start = in++) == '"')
+        start++;
     else
-        return 1;
+        return in;
+    do
+    {
+        switch (*in)
+        {
+        case '\\':
+            ptr = ++in; //whatever the value, skip it
+            if (*ptr == 'u' || *ptr == 'U')
+                continue; // unsupported unicode, keep it
+            // shift it
+            while ((*(ptr - 1) = *ptr++))
+                ;
+            break;
 
-    if ((**str) == '"')
-        (*str)++;
-    else
-        return 1;
+        case '\"':
+            *in = 0;
+            return start;
+        }
+    } while (*in++);
 
-    return 0;
+    return start;
 }
 
 int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
@@ -54,6 +89,7 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
             break;
         case 'r':
             dst_field = &dst->ref;
+            value = helper_json_unescape(value);
             break;
         case 't':
             if (field[1] == 'i')
@@ -66,8 +102,8 @@ int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src)
             dst_field = &dst->update;
             break;
         case 'c':
-
             dst_field = &dst->curr;
+            value = helper_json_unescape(value);
             break;
         }
         // info("%s: %s (%p,%p)", field, value, dst, dst_field);
@@ -160,7 +196,6 @@ int helper_parse_init_conn()
          "battery":64,
          "plugged":false,
          "platform":"iphone",
-         "features":{"KEY_PARTICIPANT":true,
-         "FLAGS":"EAE..."}
+         "features":{"KEY_PARTICIPANT":true,"FLAGS":"EAE..."}
      */
 }

@@ -16,5 +16,5 @@ struct HELPER_JSON_INIT_REPLY
 };
 
 int helper_parse_init_reply(struct HELPER_JSON_INIT_REPLY *dst, char *src);
-int helper_json_unescape(char **str);
+char * helper_json_unescape(char *str);
 int helper_qrcode_show(const char *src);
