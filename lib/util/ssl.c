@@ -3,8 +3,6 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
@@ -69,6 +67,11 @@ int ssl_write(const char *buf, size_t size)
 int ssl_read(char *buf, size_t size)
 {
     return mbedtls_ssl_read(&ssl, (u_char *)buf, size);
+}
+
+int ssl_check_read(uint32_t timeout_ms)
+{
+    return mbedtls_net_poll(&ws_net, MBEDTLS_NET_POLL_READ, timeout_ms);
 }
 
 void ssl_disconnect()
