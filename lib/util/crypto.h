@@ -37,7 +37,7 @@ int crypto_random(char *buf, size_t len);
 size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len);
 size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len);
 
-int crypto_parse_server_keys(const char const server_secret[144], CFG *cfg);
+int crypto_parse_server_keys(const char server_secret[144], CFG *cfg);
 int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
 
 crypto_keys *crypto_gen_keys();

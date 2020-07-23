@@ -62,6 +62,36 @@ int test_keys()
     return 0;
 }
 
+int test_crypto_cfg()
+{
+    CFG cfg, *cfg2;
+    crypto_keys *keys, *keys2;
+    char null_keys[CFG_KEY_LEN];
+
+    memset(&cfg, 0, sizeof(CFG));
+    memset(null_keys, 0, CFG_KEY_LEN);
+    cfg2 = &cfg;
+
+    keys = crypto_gen_keys();
+    crypto_keys_store_cfg(keys, cfg2);
+    keys2 = crypto_keys_init(cfg.keys.private, cfg.keys.public);
+    FALSY(keys2 == NULL);
+    ZERO(mbedtls_mpi_cmp_mpi(&keys->d, &keys2->d));
+    ZERO(mbedtls_ecp_point_cmp(&keys->Q, &keys2->Q));
+
+    crypto_keys_free(keys);
+    crypto_keys_free(keys2);
+
+    FALSY(cfg.keys.private == NULL);
+    FALSY(cfg.keys.public == NULL);
+
+    TRUTHY(memcmp(null_keys, cfg.keys.private, CFG_KEY_LEN));
+    TRUTHY(memcmp(null_keys, cfg.keys.public, CFG_KEY_LEN));
+    ok("test_crypto_cfg OK");
+
+    return 0;
+}
+
 int test_parse_server_keys()
 {
     CFG cfg;
@@ -101,7 +131,7 @@ int test_parse_server_keys()
 int test_main()
 {
 
-    return test_keys() || test_random() || test_parse_server_keys();
+    return test_keys() || test_random() || test_crypto_cfg() || test_parse_server_keys();
 }
 
 int test_setup()

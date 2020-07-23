@@ -4,7 +4,8 @@
 #include <mbedtls/md.h>
 #include <mbedtls/hkdf.h>
 #include <mbedtls/sha256.h>
-#include "mbedtls/aes.h"
+#include <mbedtls/aes.h>
+#include <mbedtls/error.h>
 
 #include "color.h"
 #include "crypto.h"
@@ -78,6 +79,7 @@ int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic)
 
 crypto_keys *crypto_keys_init(const char *private_key, const char *public_key)
 {
+    char err_buf[256];
     crypto_keys *ctx = calloc(sizeof(crypto_keys), 1);
     mbedtls_mpi_init(&ctx->d);
     mbedtls_mpi_init(&ctx->z);
@@ -103,6 +105,11 @@ crypto_keys *crypto_keys_init(const char *private_key, const char *public_key)
     return ctx;
 CATCH:
     crypto_keys_free(ctx);
+    if (CATCH_RET < 0)
+    {
+        mbedtls_strerror(CATCH_RET, err_buf, 256);
+        warn("%s", err_buf);
+    }
     return NULL;
 }
 int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg)
@@ -176,7 +183,7 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
     return written;
 }
 
-int crypto_parse_server_keys(const char const server_secret[144], CFG *cfg)
+int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
 {
     unsigned char key[32],
         shared_secret[32],
@@ -241,8 +248,9 @@ int crypto_parse_server_keys(const char const server_secret[144], CFG *cfg)
         aes_encrypted,
         decrypted));
     mbedtls_aes_free(&aes_ctx);
-    // store it
-    if (*server_secret != *cfg->serverSecret)
+
+    // store it if null
+    if (cfg->serverSecret[0] == 0)
     {
         memcpy(cfg->serverSecret, server_secret, CFG_SERVER_SECRET_LEN);
         info("server_secret saved to CFG");

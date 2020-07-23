@@ -82,20 +82,20 @@ int test_json_parse_init()
 }
 int test_json_parse_conn()
 {
-    char *ptr, str[] = "[\"Conn\",{\n"
-                       "\"ref\":\"1@k..\","
+    char *ptr, str[] = "[\"Conn\",{"
+                       "\"ref\":\"cPpK0lGO2KXhVIXrehgVRmEgBBQjOCeQYW7bWtLze1ySwQXZ3fq0W1Tr4j844Y93B7FAPFf53J3DVJCTuutwPiNxq5g809+iZaWTAzqHIY++6Y2Cr4aBUjijqoFvBB3bWW2cAGwxOVZ0diHcDhRYB7LaKV/VGfr2sZMdWO+5//PW/t8WUDRYyMQS187xKiYU\","
                        "\"wid\":\"6285726501017@c.us\","
                        "\"connected\":true,"
                        "\"isResponse\":\"false\","
-                       "\"serverToken\":\"1@+..\","
-                       "\"browserToken\":\"1@3..\","
-                       "\"clientToken\":\"dZu..\","
+                       "\"serverToken\":\"DBfJ4PCV1kLbQ2up0ZoKFhqKXlHVx/2Zdh6MzfDDVz8FfMIpRmnrodCuAsClz2D2TBktxKLqyWl0rBbJqu7dyQ==\","
+                       "\"browserToken\":\"1@qKJVYiKP81i8+i8RQaQZaI7MmtMbfCI7mNBSt+vUaQAKZ3cKAekG0rFkr1tfFru1K0xwKUvluUw6MA==\","
+                       "\"clientToken\":\"1@4migVn2az+QmVKdiO7LSSfPyPNteqkBtgIgDNwT6tRHuHsEvRcYKwFD+40LxObIprO7j6eMZI1HupxwGFhNuv/DNELIlGVN73gLtZjZ9k77q4zDaQ6k7LK/0yqqLMNEK0vUFaYsYUYhq3v5UJNUQWw==\","
                        "\"lc\":\"ID\","
                        "\"lg\":\"en\","
-                       "\"locales\":\"en-ID,id-ID\"," // <-- watch this have comma
+                       "\"locales\":\"en-ID,id-ID\","
                        "\"is24h\":true,"
                        "\"secret\":\"s4kb..\","
-                       "\"protoVersion\":[0,17]," // <-- watch this have comma
+                       "\"protoVersion\":[0,17],"
                        "\"binVersion\":10,"
                        "\"battery\":64,"
                        "\"plugged\":false,"
@@ -103,13 +103,13 @@ int test_json_parse_conn()
                        "\"features\":{\"KEY_PARTICIPANT\":true,\"FLAGS\":\"EAE...\"}}]";
     ptr = str;
     ZERO(json_parse_object(&ptr));
-    ZERO(strcmp(json_get("ref"), "1@k.."));
+    ZERO(strcmp(json_get("ref"), "cPpK0lGO2KXhVIXrehgVRmEgBBQjOCeQYW7bWtLze1ySwQXZ3fq0W1Tr4j844Y93B7FAPFf53J3DVJCTuutwPiNxq5g809+iZaWTAzqHIY++6Y2Cr4aBUjijqoFvBB3bWW2cAGwxOVZ0diHcDhRYB7LaKV/VGfr2sZMdWO+5//PW/t8WUDRYyMQS187xKiYU"));
     ZERO(strcmp(json_get("wid"), "6285726501017@c.us"));
     ZERO(strcmp(json_get("connected"), "true"));
     ZERO(strcmp(json_get("isResponse"), "false"));
-    ZERO(strcmp(json_get("serverToken"), "1@+.."));
-    ZERO(strcmp(json_get("browserToken"), "1@3.."));
-    ZERO(strcmp(json_get("clientToken"), "dZu.."));
+    ZERO(strcmp(json_get("serverToken"), "DBfJ4PCV1kLbQ2up0ZoKFhqKXlHVx/2Zdh6MzfDDVz8FfMIpRmnrodCuAsClz2D2TBktxKLqyWl0rBbJqu7dyQ=="));
+    ZERO(strcmp(json_get("browserToken"), "1@qKJVYiKP81i8+i8RQaQZaI7MmtMbfCI7mNBSt+vUaQAKZ3cKAekG0rFkr1tfFru1K0xwKUvluUw6MA=="));
+    ZERO(strcmp(json_get("clientToken"), "1@4migVn2az+QmVKdiO7LSSfPyPNteqkBtgIgDNwT6tRHuHsEvRcYKwFD+40LxObIprO7j6eMZI1HupxwGFhNuv/DNELIlGVN73gLtZjZ9k77q4zDaQ6k7LK/0yqqLMNEK0vUFaYsYUYhq3v5UJNUQWw=="));
     ZERO(strcmp(json_get("lc"), "ID"));
     ZERO(strcmp(json_get("lg"), "en"));
     ZERO(strcmp(json_get("locales"), "en-ID,id-ID"));

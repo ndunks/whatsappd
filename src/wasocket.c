@@ -71,3 +71,22 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
     *data_size = wss.rx_len - (*data - *tag);
     return 0;
 }
+
+void *wasocket_thread()
+{
+    ssize_t size;
+    char *msg, *tag;
+
+    do
+    {
+        if (wasocket_read(&msg, &tag, &size))
+        {
+            err("wasocket_thread: read fail");
+            break;
+        }
+        info("Got %ld bytes", size);
+
+    } while (1);
+    warn("wasocket thread exit");
+    return NULL;
+}
