@@ -11,7 +11,7 @@ MBEDTLS_CFLAGS := -I$(PWD)/lib/util -DMBEDTLS_CONFIG_FILE='<config.h>'
 build_lib: mbedtls $(BUILD_LIB)
 
 $(BUILD_LIB): $(LIB_OBJECTS)
-	$(info Creating $@)
+	$(info archiving $?)
 	@$(AR) cr $@ $?
 
 $(LIB_OBJECTS): build/lib/util/%.o: lib/util/%.c
