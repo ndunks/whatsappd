@@ -92,13 +92,13 @@ static int session_login_new()
          b64_client_id[64], *re_ref = "[\"admin\",\"Conn\",\"reref\"]",
          *reply, *reply_tag;
 
-    TRY(keys == NULL);
+    cfg->cfg_file_version = 1;
 
-    TRY(crypto_random(cfg->client_id, CFG_CLIENT_ID_LEN));
-    TRY(crypto_keys_store_cfg(keys, cfg));
+    crypto_random(cfg->client_id, CFG_CLIENT_ID_LEN);
+    crypto_keys_store_cfg(keys, cfg);
+    crypto_base64_encode(b64_public_key, 128, cfg->keys.public, CFG_KEY_LEN);
+    crypto_base64_encode(b64_client_id, 64, cfg->client_id, CFG_CLIENT_ID_LEN);
     crypto_keys_free(keys);
-    TRY(crypto_base64_encode(b64_public_key, 128, cfg->keys.public, CFG_KEY_LEN) <= 0);
-    TRY(crypto_base64_encode(b64_client_id, 64, cfg->client_id, CFG_CLIENT_ID_LEN) <= 0);
 
     TRY(session_send_init(b64_client_id));
 
