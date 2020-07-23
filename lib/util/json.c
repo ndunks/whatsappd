@@ -215,6 +215,16 @@ int json_parse_object(char **src)
     char *key;
     json_len = 0;
 
+    *src = strchr(*src, '{');
+
+    if (*src == NULL)
+    {
+        err("json_parse_object: No object token");
+        return 1;
+    }
+
+    (*src)++;
+
     while ((key = json_parse_key(src)))
     {
         ptr = &json[json_len++];
@@ -248,7 +258,7 @@ int json_has(char *key)
     return json_find(key) >= 0;
 }
 
-char *json_value(char *key)
+char *json_get(char *key)
 {
     int i = json_find(key);
     if (i < 0)

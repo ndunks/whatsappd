@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include "crypto.h"
 #include "helper.h"
+#include "json.h"
 #include "wss.h"
 #include "ssl.h"
 #include "wasocket.h"
@@ -32,7 +33,6 @@ static int session_login_takeover()
 
 static int session_login_new()
 {
-    struct HELPER_JSON_INIT_REPLY response;
     crypto_keys *keys = crypto_gen_keys();
     int reply_status = 0, seconds = 0, ttl = 20;
     ssize_t reply_size;
@@ -54,26 +54,24 @@ static int session_login_new()
         if (seconds == 0)
         {
             // reading reply
-            memset(&response, 0, sizeof(response));
             TRY(wasocket_read(&reply, &reply_tag, &reply_size));
-            TRY(helper_parse_init_reply(&response, reply));
+            TRY(json_parse_object(&reply));
 
-            if (response.status != NULL)
-                reply_status = atoi(response.status);
+            if (json_has( "status" ))
+                reply_status = atoi(json_get("status"));
             else
                 reply_status = 0;
 
-            if (response.ttl != NULL)
-                ttl = atoi(response.ttl) / 1000;
+            if (json_has( "ttl" ))
+                ttl = atoi(json_get("ttl")) / 1000;
 
             info("QR CODE: status: %d, ttl: %d", reply_status, ttl);
 
             switch (reply_status)
             {
             case 200:
-                TRY(helper_json_unescape(&response.ref));
-
-                sprintf(qrcode_content, "%s,%s,%s", response.ref, b64_public_key, b64_client_id);
+        
+                sprintf(qrcode_content, "%s,%s,%s", json_get("ref"), b64_public_key, b64_client_id);
                 helper_qrcode_show(qrcode_content);
                 break;
 
