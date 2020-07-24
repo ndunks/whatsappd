@@ -119,8 +119,6 @@ int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg)
     TRY(mbedtls_mpi_size(&keys->d) <= 0);
     // Public Keys
     TRY(mbedtls_ecp_is_zero(&keys->Q));
-    // Shared Secret
-    //TRY(mbedtls_mpi_size(&keys->z) <= 0);
 
     TRY(mbedtls_mpi_write_binary_le(&keys->d, cfg->keys.private, CFG_KEY_LEN));
     TRY(mbedtls_ecp_point_write_binary(

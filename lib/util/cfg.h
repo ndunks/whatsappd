@@ -20,7 +20,7 @@ typedef struct __attribute__((packed))
     struct __attribute__((packed))
     {
         /** Base64 **/
-        char client[60], server[120], browser[180];
+        char client[256], server[256], browser[256];
     } tokens;
     /** Secret from server contains encrypted aesKey and macKey generated on crypto_parse_server_keys */
     char serverSecret[CFG_SERVER_SECRET_LEN];

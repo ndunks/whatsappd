@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include "cfg.h"
 #include "crypto.h"
 #include "helper.h"
 #include "json.h"
@@ -12,7 +13,9 @@ static CFG *cfg = NULL;
 static int session_send_init(char *b64_client_id)
 {
     char buf[255];
-    size_t size;
+    uint size;
+
+    crypto_base64_encode(b64_client_id, 64, cfg->client_id, CFG_CLIENT_ID_LEN);
 
     size = sprintf(buf, "[\"admin\",\"init\","
                         "[2,2029,4],[\"whatsappd\",\"github.com/ndunks\",\"%s\"],"
@@ -25,15 +28,20 @@ static int session_send_init(char *b64_client_id)
 
 static int session_handle_conn(char *data)
 {
-    ssize_t msg_size;
+    ssize_t size;
     size_t len;
     int i;
-    char *msg, *msg_tag, server_secret[CFG_SERVER_SECRET_LEN];
+    char *buf, *tag, server_secret[CFG_SERVER_SECRET_LEN],
+        *tokens[] = {
+            "serverToken",
+            "browserToken",
+            "clientToken",
+            0};
 
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    TRY(wasocket_read(&buf, &tag, &size));
 
-    TRY(strncmp(msg, "[\"Conn\",{", 9));
-    TRY(json_parse_object(&msg));
+    TRY(strncmp(buf, "[\"Conn\",{", 9));
+    TRY(json_parse_object(&buf));
     i = json_find("secret");
     if (i >= 0)
     {
@@ -46,32 +54,35 @@ static int session_handle_conn(char *data)
                 len) != CFG_SERVER_SECRET_LEN)
         {
             err("server_secret: Failed decoding base64");
-            CATCH_RET = 1;
-            goto CATCH;
+            return 1;
         }
-        info("server_secret:");
-        hexdump(server_secret, CFG_SERVER_SECRET_LEN);
-        info("-------------");
+
         TRY(crypto_parse_server_keys(server_secret, cfg));
     }
 
-    if (json_has("serverToken"))
-        strcpy(cfg->tokens.server, json_get("serverToken"));
+    if ((buf = json_get("serverToken")) != NULL)
+    {
+        strcpy(cfg->tokens.server, buf);
+        accent("serverToken (%d):\n%s", strlen(buf), buf);
+    }
     else
         warn("No serverToken");
 
-    if (json_has("browserToken"))
-        strcpy(cfg->tokens.browser, json_get("browserToken"));
+    if ((buf = json_get("browserToken")) != NULL)
+    {
+        strcpy(cfg->tokens.browser, buf);
+        accent("browserToken (%d):\n%s", strlen(buf), buf);
+    }
     else
         warn("No browserToken");
 
-    if (json_has("clientToken"))
-        strcpy(cfg->tokens.client, json_get("clientToken"));
+    if ((buf = json_get("clientToken")) != NULL)
+    {
+        strcpy(cfg->tokens.client, buf);
+        accent("clientToken (%d):\n%s", strlen(buf), buf);
+    }
     else
         warn("No clientToken");
-
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
-    printf("MSG: %s\n", msg);
 
     CATCH_RET = 0;
 CATCH:
@@ -80,59 +91,129 @@ CATCH:
 
 static int session_login_takeover()
 {
-    return 0;
+    char buf[1024], b64_client_id[64], *msg, *msg_tag;
+    ssize_t msg_size;
+    int len, status;
+
+    //init
+    TRY(session_send_init(&b64_client_id));
+    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    TRY(json_parse_object(&msg));
+    TRY(strncmp("200", json_get("status"), 3));
+
+    // take over
+    len = sprintf(buf, "[\"admin\",\"login\",\"%s\",\"%s\",\"%s\",\"takeover\"]",
+                  cfg->tokens.client, cfg->tokens.server, b64_client_id);
+    TRY(wasocket_send_text(buf, len, NULL) < len);
+    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    json_parse_object(&msg);
+
+    if (!json_has("status"))
+    {
+        if (strcmp(json_get("type"), "challenge") == 0)
+        {
+            err("Unimplemented handle chalenge");
+            return 1;
+        }
+        else
+        {
+            err("No status reply in json");
+            return 1;
+        }
+    }
+
+    status = atoi(json_get("status"));
+    len = 0;
+
+    switch (status)
+    {
+    case 200:
+        TRY(session_handle_conn(msg));
+        return 0;
+
+    case 401:
+        len = sprintf(buf, "%s Unpaired from the phone", json_get("status"));
+    case 403:
+        if (len == 0)
+            len = sprintf(buf, "%s Access denied", json_get("status"));
+
+        len += sprintf(buf + len, ", remove config file %s and login again.", cfg_file_get());
+
+        if (json_has("tos"))
+        {
+            len += sprintf(buf + len, "TOS: %s", json_get("tos"));
+        }
+        err("%s", buf);
+        return 1;
+
+    case 405:
+        err("Already logged in");
+        return 1;
+
+    case 409:
+        err("Logged in from another location");
+        return 1;
+
+    default:
+
+        err("Unhandled status code: %s", json_get("status"));
+        return 1;
+    }
+
+    CATCH_RET = 0;
+CATCH:
+
+    return CATCH_RET;
 }
 
 static int session_login_new()
 {
     crypto_keys *keys = crypto_gen_keys();
-    int reply_status = 0, seconds = 0, ttl = 20;
-    ssize_t reply_size;
+    int msg_status = 0, seconds = 0, ttl = 20;
+    ssize_t msg_size;
     char qrcode_content[1024] = {0}, b64_public_key[128],
-         b64_client_id[64], *re_ref = "[\"admin\",\"Conn\",\"reref\"]",
-         *reply, *reply_tag;
+         *re_ref = "[\"admin\",\"Conn\",\"reref\"]",
+         b64_client_id[64], *msg, *msg_tag;
 
     cfg->cfg_file_version = 1;
 
     crypto_random(cfg->client_id, CFG_CLIENT_ID_LEN);
     crypto_keys_store_cfg(keys, cfg);
     crypto_base64_encode(b64_public_key, 128, cfg->keys.public, CFG_KEY_LEN);
-    crypto_base64_encode(b64_client_id, 64, cfg->client_id, CFG_CLIENT_ID_LEN);
     crypto_keys_free(keys);
 
-    TRY(session_send_init(b64_client_id));
+    TRY(session_send_init(&b64_client_id));
 
     while (seconds < 120)
     {
         if (seconds == 0)
         {
-            // reading reply
-            TRY(wasocket_read(&reply, &reply_tag, &reply_size));
-            TRY(json_parse_object(&reply));
+            // reading msg
+            TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+            TRY(json_parse_object(&msg));
 
             if (json_has("status"))
-                reply_status = atoi(json_get("status"));
+                msg_status = atoi(json_get("status"));
             else
-                reply_status = 0;
+                msg_status = 0;
 
             if (json_has("ttl"))
                 ttl = atoi(json_get("ttl")) / 1000;
 
-            info("QR CODE: status: %d, ttl: %d", reply_status, ttl);
+            info("QR CODE: status: %d, ttl: %d", msg_status, ttl);
 
-            switch (reply_status)
+            switch (msg_status)
             {
             case 200:
-
                 sprintf(qrcode_content, "%s,%s,%s", json_get("ref"), b64_public_key, b64_client_id);
                 helper_qrcode_show(qrcode_content);
                 break;
 
             case 304:
-                warn("Not yet refresh QR CODE");
-                // try again after ~5secs
-                seconds = ttl - 5;
+                warn(" refresh QR CODE");
+                seconds = ttl - 5; // try again after ~5secs
                 break;
+
             case 429:
                 err("Login timeout!");
 
@@ -150,25 +231,17 @@ static int session_login_new()
             goto CATCH;
         }
 
-        if (CATCH_RET)
-        {
-            // Yes it have reply
-            CATCH_RET = 0;
+        if (CATCH_RET) // Yes it have reply
             break;
-        }
 
-        seconds++;
-        printf("%d ", seconds);
-
-        if (seconds >= ttl)
+        if (++seconds >= ttl) // Refreshing QR Code
         {
-            printf(COL_MAG "Refreshing QR Code...\n" COL_NORM);
             TRY(wasocket_send_text(re_ref, strlen(re_ref), NULL) <= 0);
             seconds = 0;
         }
     }
 
-    TRY(session_handle_conn(reply));
+    TRY(session_handle_conn(msg));
 
     CATCH_RET = 0;
 
@@ -177,29 +250,24 @@ CATCH:
     return CATCH_RET;
 }
 
+// TODO: return the keys
 int session_init(CFG *cfg_in)
 {
 
     cfg = cfg_in;
 
-    TRY(wss_connect(NULL, NULL, NULL));
+    if (wss_connect(NULL, NULL, NULL) != 0)
+    {
+        err("Fail connecting to server.");
+        return 1;
+    }
+
     wasocket_setup();
 
     if (cfg_has_credentials(cfg))
-    {
-        // login takeover
-        CATCH_RET = 1;
-        err("Unimplemented");
-    }
+        return session_login_takeover();
     else
-    {
-        // new Login
-        TRY(session_login_new(cfg));
-    }
-
-    CATCH_RET = 0;
-CATCH:
-    return CATCH_RET;
+        return session_login_new();
 }
 
 void session_free()

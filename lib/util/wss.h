@@ -23,9 +23,10 @@ enum WS_OPCODE
 
 typedef struct WSS
 {
-    char *tx, *rx;
+    char *tx, *rx, *buf;
     size_t rx_len, rx_size, rx_idx,
-        tx_len, tx_size, tx_idx;
+        tx_len, tx_size, tx_idx,
+        buf_len, buf_size, buf_idx;
 } WSS;
 
 struct PAYLOAD

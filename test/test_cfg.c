@@ -56,7 +56,7 @@ int test_config_file()
     ZERO(cfg_file("/tmp/nothing.cfg"));
     ZERO(strcmp("/tmp/nothing.cfg", cfg_file_get()));
     // Default is in home
-    ZERO(cfg_file(NULL));
+    TRUTHY(cfg_file(NULL) >= 0);
     if ((homedir = getenv("HOME")) == NULL)
     {
         homedir = getpwuid(getuid())->pw_dir;
@@ -141,6 +141,8 @@ int test_real_values()
     TRUTHY(cfg_has_credentials(cfg1));
 
     ZERO(cfg_save(cfg1));
+    memset(cfg1, 0, sizeof(CFG));
+    ZERO(cfg_load(cfg1));
     ZERO(cfg_load(cfg2));
 
     TRUTHY(cfg_has_credentials(cfg1));

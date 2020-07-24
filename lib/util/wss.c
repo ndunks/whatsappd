@@ -9,18 +9,19 @@
 
 #include "wss.h"
 
-#define WSS_NEED(len, x, x_len, x_size)          \
-    while ((x_len + len) > x_size)               \
-    {                                            \
-        x_size += len + 1;                       \
-        x = realloc(x, x_size);                  \
-        if (x == NULL)                           \
-            die("wss: Fail realloc " #x);        \
-        warn("wss: realloc " #x " %lu", x_size); \
+#define WSS_NEED(len, x, x_len, x_size)            \
+    while ((x_len + len) > x_size)                 \
+    {                                              \
+        x_size += len + 1;                         \
+        x = realloc(x, x_size);                    \
+        if (x == NULL)                             \
+            die("wss: Fail realloc " #x);          \
+        accent("wss: realloc " #x " %lu", x_size); \
     }
 
 #define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
 #define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
+#define WSS_NEED_BUF(len) WSS_NEED(len, wss.buf, wss.buf_len, wss.buf_size)
 
 WSS wss;
 FRAME_RX wss_frame_rx;
@@ -173,10 +174,12 @@ int wss_connect(const char *host, const char *port, const char *path)
     memset(&wss, 0, sizeof(struct WSS));
     memset(&wss_frame_rx, 0, sizeof(struct FRAME_RX));
 
-    wss.rx_size = 1024 * 4;
-    wss.tx_size = 1024 * 4;
+    wss.rx_size = 1024 * 10;
+    wss.tx_size = 1024 * 50;
+    wss.buf_size = 1024 * 10;
     wss.rx = malloc(wss.rx_size);
     wss.tx = malloc(wss.tx_size);
+    wss.buf = malloc(wss.buf_size);
 
     if (wss.rx == NULL || wss.tx == NULL)
     {
@@ -202,6 +205,7 @@ int wss_connect(const char *host, const char *port, const char *path)
 CATCH:
     free(wss.rx);
     free(wss.tx);
+    free(wss.buf);
     return CATCH_RET;
 }
 
@@ -216,6 +220,7 @@ void wss_disconnect()
     ssl_disconnect();
     free(wss.rx);
     free(wss.tx);
+    free(wss.buf);
 }
 
 size_t wss_send_buffer(char *msg, size_t len, enum WS_OPCODE opcode)
@@ -267,9 +272,9 @@ void dump_frame()
 
 char *wss_read(size_t *data_len)
 {
-    int recv;
+    int recv, i;
     enum WS_OPCODE opcode;
-    size_t offset = 0;
+    uint64_t offset = 0;
     ssize_t waiting_payload = 0;
     struct PAYLOAD *payload;
     uint8_t fin, masked;
@@ -281,13 +286,23 @@ char *wss_read(size_t *data_len)
 
     do
     {
-        recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
-        ok("<< %d bytes", recv);
-        if (recv <= 0)
+        if (wss.buf_len > 0)
         {
-            err("Connection error");
-            break;
+            accent(" * Restored buffer");
+            memcpy(wss.rx + wss.rx_len, wss.buf, wss.buf_len);
+            recv = wss.buf_len;
+            wss.buf_len = 0;
         }
+        else
+            recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
+        ok("<< %d bytes", recv);
+
+        if (recv < 0)
+        {
+            err("wss_read: Connection error");
+            return NULL;
+        }
+
         wss.rx_len += recv;
 
         if (waiting_payload)
@@ -299,16 +314,33 @@ char *wss_read(size_t *data_len)
             }
             else if (waiting_payload < 0)
             {
-                ok("   need remaining payload %ld", waiting_payload);
+                ok("   need payload %ld", waiting_payload);
                 continue;
             }
             else
             {
-                ok("   more frame here %ld", waiting_payload);
-                offset += payload->frame_size + payload->size;
                 recv = waiting_payload;
-                payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
-                goto process_frame;
+                waiting_payload = 0;
+
+                if (fin)
+                {
+                    accent("   another frame, cutoff %ld", recv);
+                    WSS_NEED_BUF(recv);
+                    // Copy it to our buffers
+                    memcpy(
+                        &wss.buf[wss.buf_len],
+                        &wss.rx[payload->frame_size + payload->size],
+                        recv);
+                    wss.buf_len += recv;
+                    goto process_payload;
+                }
+                else
+                { // next fragment
+                    accent("   next fragment %ld", recv);
+                    offset += payload->frame_size + payload->size;
+                    payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
+                    goto process_frame;
+                }
             }
         }
         else
@@ -323,6 +355,7 @@ char *wss_read(size_t *data_len)
 
             fin = (wss.rx[offset] & 0x80) == 0x80; // (1 << 7)
             opcode = wss.rx[offset] & 0b1111;
+            accent(" * fin: %d, opode: %d", fin, opcode);
 
             if (wss_frame_rx.payload_count == 0)
             {
@@ -380,7 +413,7 @@ char *wss_read(size_t *data_len)
         // final data address
         payload->data = &wss.rx[offset + payload->frame_size];
         //hexdump(wss.rx + offset, payload->frame_size);
-        ok("   payload: %lu, fin: %d, opode: %d", payload->size, fin, opcode);
+        ok("   payload: count: %u, size %lu", wss_frame_rx.payload_count, payload->size);
 
         wss_frame_rx.payload_size += payload->size;
         payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
@@ -405,9 +438,9 @@ char *wss_read(size_t *data_len)
 
     // Merge payload into straight rx, removed the wss_frame_rx.
     offset = 0;
-    for (recv = 0; recv < wss_frame_rx.payload_count; recv++)
+    for (i = 0; i < wss_frame_rx.payload_count; i++)
     {
-        payload = &wss_frame_rx.payloads[recv];
+        payload = &wss_frame_rx.payloads[i];
         memcpy(wss.rx + offset, payload->data, payload->size);
         offset += payload->size;
     }

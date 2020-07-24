@@ -7,6 +7,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <libgen.h>
+#include <fcntl.h>
 
 #include "color.h"
 #include "cfg.h"
@@ -96,7 +97,7 @@ int cfg_load(CFG *cfg)
 
 int cfg_save(CFG *cfg)
 {
-    int file = open(cfg_config_file, O_WRONLY | O_CREAT);
+    int file = open(cfg_config_file, O_WRONLY | O_CREAT, 0644);
     ssize_t size = sizeof(CFG);
 
     if (file < 0)
@@ -118,7 +119,8 @@ int cfg_save(CFG *cfg)
 
 int cfg_has_credentials(CFG *cfg)
 {
-    char null[255] = {0};
+    char null[256];
+    memset(null, 0, 256);
 
     return (
         cfg->tokens.browser[0] &&
