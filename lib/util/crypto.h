@@ -43,6 +43,7 @@ int crypto_compute_shared(crypto_keys *ctx, mbedtls_ecp_point *theirPublic);
 crypto_keys *crypto_gen_keys();
 crypto_keys *crypto_keys_init(const char *private_key, const char *public_key);
 int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg);
+int crypto_sign(char *dst, char *src, size_t len);
 
 void crypto_keys_free(crypto_keys *ctx);
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);

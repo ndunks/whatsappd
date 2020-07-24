@@ -89,11 +89,70 @@ CATCH:
     return CATCH_RET;
 }
 
+static int session_handle_challenge(char *b64_client_id)
+{
+    char buf[1024] = {0}, challenge_b64[256],
+         challenge_signed[256], challenge[256], *ptr, *msg, *msg_tag;
+
+    ssize_t msg_size;
+    size_t len;
+    int status = 0;
+
+    memset(challenge_signed, 0, 256);
+
+    ptr = json_get("challenge");
+
+    TRY(ptr == NULL);
+
+    len = crypto_base64_decode(challenge, 256, ptr, strlen(ptr));
+    TRY(len <= 0);
+
+    accent("Challenge: %lu bytes", len);
+    hexdump(challenge, len);
+    accent("--------------");
+
+    TRY(crypto_sign(challenge_signed, challenge, len))
+    accent("Signed   : %lu bytes", len);
+    hexdump(challenge_signed, len + 20);
+    accent("--------------");
+
+    crypto_base64_encode(challenge_b64, 256, challenge_signed, len);
+
+    len = sprintf(buf, "[\"admin\",\"challenge\",\"%s\",\"%s\",\"%s\"]",
+                  challenge_b64, cfg->tokens.server, b64_client_id);
+
+    wasocket_send_text(buf, len, NULL);
+    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    json_parse_object(&msg);
+
+    if (!json_has("status"))
+    {
+        if (strcmp(json_get("type"), "challenge") == 0)
+        {
+            TRY(session_handle_challenge(b64_client_id));
+        }
+        else
+        {
+            err("No status reply in json");
+            return 1;
+        }
+    }
+
+    status = atoi(json_get("status"));
+    accent("Chalenge reply: %d", status);
+    CATCH_RET = status != 200;
+CATCH:
+
+    return CATCH_RET;
+}
+
 static int session_login_takeover()
 {
     char buf[1024], b64_client_id[64], *msg, *msg_tag;
     ssize_t msg_size;
     int len, status;
+
+    TRY(crypto_parse_server_keys(cfg->serverSecret, cfg));
 
     //init
     TRY(session_send_init(&b64_client_id));
@@ -112,8 +171,7 @@ static int session_login_takeover()
     {
         if (strcmp(json_get("type"), "challenge") == 0)
         {
-            err("Unimplemented handle chalenge");
-            return 1;
+            TRY(session_handle_challenge(b64_client_id));
         }
         else
         {
@@ -128,6 +186,7 @@ static int session_login_takeover()
     switch (status)
     {
     case 200:
+        ok("Take over OK");
         TRY(session_handle_conn(msg));
         return 0;
 

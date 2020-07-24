@@ -15,6 +15,7 @@ mbedtls_entropy_context *crypto_entropy;
 aes_keys crypto_aes_keys;
 
 static mbedtls_ecp_group *grp;
+static mbedtls_md_info_t *md_sha256;
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
 {
@@ -181,6 +182,17 @@ size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t s
     return written;
 }
 
+int crypto_sign(char *dst, char *src, size_t len)
+{
+    return mbedtls_md_hmac(
+        md_sha256,
+        (uint8_t *)crypto_aes_keys.mac,
+        32,
+        (uint8_t *)src,
+        len,
+        (uint8_t *)dst);
+}
+
 int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
 {
     unsigned char key[32],
@@ -193,7 +205,6 @@ int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
         decrypted[80] = {0};
     crypto_keys *my_keys = crypto_keys_init(cfg->keys.private, cfg->keys.public);
     mbedtls_ecp_point server_public;
-    const mbedtls_md_info_t *md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
 
     mbedtls_ecp_point_init(&server_public);
 
@@ -280,6 +291,8 @@ int crypto_init()
         mbedtls_ecp_group_free(grp);
         return 1;
     }
+
+    md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
 
     crypto_p_rng = malloc(sizeof(mbedtls_ctr_drbg_context));
     crypto_entropy = malloc(sizeof(mbedtls_entropy_context));

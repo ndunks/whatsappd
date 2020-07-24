@@ -32,6 +32,7 @@ int test_new_session()
     ZERO(session_init(&cfg));
     ZERO(wasocket_read_all(2000));
     session_free();
+
     info("tokens.client : %p %lu\n%s", cfg.tokens.client, strlen(cfg.tokens.client), cfg.tokens.client);
     info("tokens.server : %p %lu\n%s", cfg.tokens.server, strlen(cfg.tokens.server), cfg.tokens.server);
     info("tokens.browser: %p %lu\n%s", cfg.tokens.browser, strlen(cfg.tokens.browser), cfg.tokens.browser);
@@ -51,7 +52,7 @@ int test_new_session()
     cfg_file(NULL);
     ZERO(cfg_save(&cfg));
 
-    wasocket_read_all(5000);
+    wasocket_read_all(3000);
 
     ok("test_new_session OK");
     return 0;
@@ -75,12 +76,13 @@ int test_resume_session()
     info("tokens.browser: %p %ld\n%s", cfg.tokens.browser, cfg.serverSecret - cfg.tokens.browser, cfg.tokens.browser);
 
     ZERO(session_init(&cfg));
+    ZERO(wasocket_read_all(3000));
+    session_free();
 
-    ZERO(wasocket_read_all(2000));
+    ZERO(cfg_save(&cfg));
     // ZERO(wasocket_start());
     // sleep(5);
     // ZERO(wasocket_stop());
-    session_free();
 
     return 0;
 }
@@ -88,11 +90,11 @@ int test_resume_session()
 int test_main()
 {
 
-    return test_new_session() || test_resume_session();
+    //return test_new_session() || test_resume_session();
 
     //return test_new_session();
 
-    //return test_resume_session();
+    return test_resume_session();
 }
 
 int test_setup()
