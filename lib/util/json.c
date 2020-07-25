@@ -227,6 +227,11 @@ int json_parse_object(char **src)
 
     while ((key = json_parse_key(src)))
     {
+        if (json_len == JSON_MAX_FIELDS)
+        {
+            err("JSON: Not enough");
+            return 1;
+        }
         ptr = &json[json_len++];
         memset(ptr, 0, sizeof(JSON));
         ptr->key = key;
@@ -239,6 +244,7 @@ int json_parse_object(char **src)
 
         if (*ptr->value == '"')
             ptr->value = json_unslash_str(ptr->value);
+        info("json: %s = %s", ptr->key, ptr->value);
     }
     return 0;
 }

@@ -121,13 +121,64 @@ int test_json_parse_conn()
     ZERO(strcmp(json_get("plugged"), "false"));
     ZERO(strcmp(json_get("platform"), "iphone"));
     ZERO(strcmp(json_get("features"), "{\"KEY_PARTICIPANT\":true,\"FLAGS\":\"EAE...\"}"));
+    ok("test_json_parse_conn OK\n------------------");
+    return 0;
+}
+int test_json_parse_conn_takeover()
+{
+    char *ptr, str[] = "[\"Conn\",{"
+                       "\"ref\": \"1@N9QMCQb2tmj/JTss5bwEVyDj9Xl1U6uvjlXUnhe0LkmOQ9p761T2CtKvTXAZOcRdEbOVGgiFs37P8Q==\","
+                       "\"wid\": \"6285640992980@c.us\","
+                       "\"connected\": true,"
+                       "\"isResponse\": \"true\","
+                       "\"serverToken\": \"1@GGJVQhXxUBmXONlj2WS2C52gmG+6h+yG1urYJl4oRKhbtMJTGicetPymkC5Qj9TQ2xQN8Yt/yedUCg==\","
+                       "\"browserToken\": \"1@ufhB49yNHOS+2WpsIjlMDL/TrkAM6T+JW8bdwrD2y2ICQGHRD7W5igWiKBF6kAMBKi8kvELJsfGoeig4YY0tjHCJkdsAqoAkuH2/WyeTVPVXwMY6pHTafWBVOYPv/uOIWqYoUvDvk9yU6cRRoLS80Q==\","
+                       "\"clientToken\": \"QNZq7et2EO7ZTBOv6quFvC9F4oCPqE/Q22mZLzAktmU=\","
+                       "\"lc\": \"ID\","
+                       "\"lg\": \"in\","
+                       "\"locales\": \"in-ID\","
+                       "\"is24h\": true,"
+                       "\"protoVersion\": [0,17],"
+                       "\"binVersion\": 11,"
+                       "\"battery\": 74,"
+                       "\"plugged\": false,"
+                       "\"platform\": \"android\","
+                       "\"features\": { \"URL\": true,\"FLAGS\": \"EAEYASgBOAFAAUgBWAFgAWgBeAGYAQGgAQGwAQK4AQHIAQHYAQHoAQLwAQP4AQOIAgE=\"},"
+                       "\"phone\": {\"wa_version\": \"2.20.123\",\"mcc\": \"510\",\"mnc\": \"001\",\"os_version\": \"4.4.2\",\"device_manufacturer\": \"HIMAX\",\"device_model\": \"HIMAX\",\"os_build_number\": \"ZOOM\"},"
+                       "\"pushname\": \"Netizen\","
+                       "\"tos\": 0"
+                       "}]";
+    ptr = str;
+    ZERO(json_parse_object(&ptr));
+
+    ZERO(strcmp(json_get("ref"), "1@N9QMCQb2tmj/JTss5bwEVyDj9Xl1U6uvjlXUnhe0LkmOQ9p761T2CtKvTXAZOcRdEbOVGgiFs37P8Q=="));
+    ZERO(strcmp(json_get("wid"), "6285640992980@c.us"));
+    ZERO(strcmp(json_get("connected"), "true"));
+    ZERO(strcmp(json_get("isResponse"), "true"));
+    ZERO(strcmp(json_get("serverToken"), "1@GGJVQhXxUBmXONlj2WS2C52gmG+6h+yG1urYJl4oRKhbtMJTGicetPymkC5Qj9TQ2xQN8Yt/yedUCg=="));
+    ZERO(strcmp(json_get("browserToken"), "1@ufhB49yNHOS+2WpsIjlMDL/TrkAM6T+JW8bdwrD2y2ICQGHRD7W5igWiKBF6kAMBKi8kvELJsfGoeig4YY0tjHCJkdsAqoAkuH2/WyeTVPVXwMY6pHTafWBVOYPv/uOIWqYoUvDvk9yU6cRRoLS80Q=="));
+    ZERO(strcmp(json_get("clientToken"), "QNZq7et2EO7ZTBOv6quFvC9F4oCPqE/Q22mZLzAktmU="));
+    ZERO(strcmp(json_get("lc"), "ID"));
+    ZERO(strcmp(json_get("lg"), "in"));
+    ZERO(strcmp(json_get("locales"), "in-ID"));
+    ZERO(strcmp(json_get("is24h"), "true"));
+    ZERO(strcmp(json_get("protoVersion"), "[0,17]"));
+    ZERO(strcmp(json_get("binVersion"), "11"));
+    ZERO(strcmp(json_get("battery"), "74"));
+    ZERO(strcmp(json_get("plugged"), "false"));
+    ZERO(strcmp(json_get("platform"), "android"));
+    ZERO(strcmp(json_get("features"), "{ \"URL\": true,\"FLAGS\": \"EAEYASgBOAFAAUgBWAFgAWgBeAGYAQGgAQGwAQK4AQHIAQHYAQHoAQLwAQP4AQOIAgE=\"}"));
+    ZERO(strcmp(json_get("phone"), "{\"wa_version\": \"2.20.123\",\"mcc\": \"510\",\"mnc\": \"001\",\"os_version\": \"4.4.2\",\"device_manufacturer\": \"HIMAX\",\"device_model\": \"HIMAX\",\"os_build_number\": \"ZOOM\"}"));
+    ZERO(strcmp(json_get("pushname"), "Netizen"));
+    ZERO(strcmp(json_get("tos"), "0"));
+
     return 0;
 }
 
 int test_main()
 {
 
-    return test_json_field() || test_json_parse_init() || test_json_parse_conn();
+    return test_json_field() || test_json_parse_init() || test_json_parse_conn() || test_json_parse_conn_takeover();
 }
 
 int test_setup()
