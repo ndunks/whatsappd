@@ -16,7 +16,7 @@ static char tag_buf[32] = {0},
             short_tag_base[5] = {0},
             tag_fmt[] = "%lu.--%lu,",
             short_tag_fmt[] = "%s.--%lu,";
-static pthread_t wasocket_thread;
+static pthread_t wasocket_thread = 0;
 static pthread_mutex_t wasocket_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void wasocket_setup()
@@ -68,13 +68,26 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
         err("No tag in message!");
         return 1;
     }
-    *data[0] = 0;
+    **data = 0;
     (*data)++;
     *tag = wss.rx;
 
-    info("TAG LEN: %ld", *data - *tag);
+    *data_size = wss.rx_len - (*data - *tag) - 1;
 
-    *data_size = wss.rx_len - (*data - *tag);
+    info("TAG (%ld): %s", *data - *tag - 1, *tag);
+    if (*data_size < 1024)
+    {
+        if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
+        {
+            accent("%s\n-----------", *data);
+        }
+        else
+        {
+            hexdump(*data, *data_size);
+            accent("-----------");
+        }
+    }
+
     return 0;
 }
 
@@ -83,20 +96,21 @@ int wasocket_read_all(uint32_t timeout_ms)
     int ret = 1;
     ssize_t size;
     char *msg, *tag;
-
+    accent("-------\nwasocket_read_all");
     do
     {
         ret = ssl_check_read((ret > 1) ? 100 : timeout_ms);
         info("ssl_check_read: %d", ret);
         if (ret > 0)
         {
+            info("%p == %ld", &size, size);
             if (wasocket_read(&msg, &tag, &size))
             {
                 err("wasocket_thread: read fail");
                 return 1;
             }
-
-            info("Got %ld bytes\n%s", size, tag);
+            info("%p == %ld", &size, size);
+            info("Got %ld bytes", size);
             if (size < 256)
             {
                 hexdump(msg, size);
@@ -131,7 +145,7 @@ static void *wasocket_run()
             warn("\n-------------------");
         }
 
-    } while (size >= 0);
+    } while (size > 0);
 
     warn("wasocket thread exit");
     return NULL;
@@ -144,8 +158,12 @@ int wasocket_start()
 
 int wasocket_stop()
 {
-    pthread_cancel(wasocket_thread);
-    pthread_join(wasocket_thread, NULL);
+    if (wasocket_thread)
+    {
+        pthread_cancel(wasocket_thread);
+        pthread_join(wasocket_thread, NULL);
+        wasocket_thread = 0;
+    }
     return 0;
 }
 

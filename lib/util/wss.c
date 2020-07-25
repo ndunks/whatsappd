@@ -258,12 +258,12 @@ void dump_frame()
     {
         payload = &wss_frame_rx.payloads[i];
         info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
-        if (payload->size < 256)
-        {
-            fwrite(payload->data, 1, payload->size, stderr);
-            fprintf(stderr, "\n");
-            hexdump(payload->data, payload->size);
-        }
+        // if (payload->size < 1024)
+        // {
+        //     fwrite(payload->data, 1, payload->size, stderr);
+        //     fprintf(stderr, "\n");
+        //     hexdump(payload->data, payload->size);
+        // }
     }
     warn("\n------------------");
     // hexdump(wss.rx, wss.rx_len);

@@ -30,6 +30,9 @@ int test_new_session()
     memset(&cfg, 0, sizeof(CFG));
 
     ZERO(session_init(&cfg));
+    ZERO(cfg_save(&cfg));
+    ZERO(access(test_cfg_file, F_OK));
+
     ZERO(wasocket_read_all(2000));
     session_free();
 
@@ -44,9 +47,6 @@ int test_new_session()
     TRUTHY(strlen(cfg.tokens.browser) > 40);
 
     TRUTHY(cfg_has_credentials(&cfg));
-
-    ZERO(cfg_save(&cfg));
-    ZERO(access(test_cfg_file, F_OK));
 
     // Default file location
     cfg_file(NULL);
@@ -69,32 +69,26 @@ int test_resume_session()
     }
 
     memset(&cfg, 0, sizeof(CFG));
+
     ZERO(cfg_load(&cfg));
-
-    info("tokens.client: %p %ld\n%s", cfg.tokens.client, cfg.tokens.server - cfg.tokens.client, cfg.tokens.client);
-    info("tokens.server: %p %ld\n%s", cfg.tokens.server, cfg.tokens.browser - cfg.tokens.server, cfg.tokens.server);
-    info("tokens.browser: %p %ld\n%s", cfg.tokens.browser, cfg.serverSecret - cfg.tokens.browser, cfg.tokens.browser);
-
     ZERO(session_init(&cfg));
+    ZERO(cfg_save(&cfg));
+
     ZERO(wasocket_read_all(3000));
     session_free();
 
-    ZERO(cfg_save(&cfg));
-    // ZERO(wasocket_start());
-    // sleep(5);
-    // ZERO(wasocket_stop());
-
+    ok("test_resume_session OK");
     return 0;
 }
 
 int test_main()
 {
 
-    //return test_new_session() || test_resume_session();
+    return test_new_session() || test_resume_session();
 
     //return test_new_session();
 
-    return test_resume_session();
+    //return test_resume_session();
 }
 
 int test_setup()

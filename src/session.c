@@ -8,8 +8,9 @@
 #include "wasocket.h"
 #include "session.h"
 
-static CFG *cfg = NULL;
+Me session_me;
 
+static CFG *cfg = NULL;
 static int session_send_init(char *b64_client_id)
 {
     char buf[255];
@@ -26,22 +27,20 @@ static int session_send_init(char *b64_client_id)
     return wasocket_send_text(buf, size, NULL) < size;
 }
 
-static int session_handle_conn(char *data)
+static int session_handle_conn()
 {
-    ssize_t size;
     size_t len;
     int i;
-    char *buf, *tag, server_secret[CFG_SERVER_SECRET_LEN],
+    char *buf,
+        server_secret[CFG_SERVER_SECRET_LEN],
         *tokens[] = {
             "serverToken",
             "browserToken",
             "clientToken",
             0};
-
-    TRY(wasocket_read(&buf, &tag, &size));
-
-    TRY(strncmp(buf, "[\"Conn\",{", 9));
-    TRY(json_parse_object(&buf));
+    info("session_handle_conn");
+    // TRY(strncmp(buf, "[\"Conn\",{", 9));
+    // TRY(json_parse_object(&buf));
     i = json_find("secret");
     if (i >= 0)
     {
@@ -59,6 +58,8 @@ static int session_handle_conn(char *data)
 
         TRY(crypto_parse_server_keys(server_secret, cfg));
     }
+    else
+        accent("No secret in Conn.");
 
     if ((buf = json_get("serverToken")) != NULL)
     {
@@ -66,7 +67,10 @@ static int session_handle_conn(char *data)
         accent("serverToken (%d):\n%s", strlen(buf), buf);
     }
     else
-        warn("No serverToken");
+    {
+        err("No serverToken");
+        return 1;
+    }
 
     if ((buf = json_get("browserToken")) != NULL)
     {
@@ -74,7 +78,10 @@ static int session_handle_conn(char *data)
         accent("browserToken (%d):\n%s", strlen(buf), buf);
     }
     else
-        warn("No browserToken");
+    {
+        err("No browserToken");
+        return 1;
+    }
 
     if ((buf = json_get("clientToken")) != NULL)
     {
@@ -82,7 +89,34 @@ static int session_handle_conn(char *data)
         accent("clientToken (%d):\n%s", strlen(buf), buf);
     }
     else
-        warn("No clientToken");
+    {
+        err("No clientToken");
+        return 1;
+    }
+
+    if ((buf = json_get("pushname")) != NULL)
+    {
+        strcpy(session_me.pushname, buf);
+        accent("pushname (%d):\n%s", strlen(buf), buf);
+    }
+    else
+        warn("No pushname");
+
+    if ((buf = json_get("wid")) != NULL)
+    {
+        strcpy(session_me.wid, buf);
+        accent("wid (%d):\n%s", strlen(buf), buf);
+    }
+    else
+        warn("No wid");
+
+    if ((buf = json_get("platform")) != NULL)
+    {
+        strcpy(session_me.platform, buf);
+        accent("platform (%d):\n%s", strlen(buf), buf);
+    }
+    else
+        warn("No platform");
 
     CATCH_RET = 0;
 CATCH:
@@ -127,15 +161,8 @@ static int session_handle_challenge(char *b64_client_id)
 
     if (!json_has("status"))
     {
-        if (strcmp(json_get("type"), "challenge") == 0)
-        {
-            TRY(session_handle_challenge(b64_client_id));
-        }
-        else
-        {
-            err("No status reply in json");
-            return 1;
-        }
+        err("No status in Chalenge reply");
+        return 1;
     }
 
     status = atoi(json_get("status"));
@@ -148,7 +175,7 @@ CATCH:
 
 static int session_login_takeover()
 {
-    char buf[1024], b64_client_id[64], *msg, *msg_tag;
+    char buf[1024], b64_client_id[64], *msg, *msg_tag, *msg_prefix;
     ssize_t msg_size;
     int len, status;
 
@@ -165,59 +192,30 @@ static int session_login_takeover()
                   cfg->tokens.client, cfg->tokens.server, b64_client_id);
     TRY(wasocket_send_text(buf, len, NULL) < len);
     TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    msg_prefix = msg;
     json_parse_object(&msg);
 
-    if (!json_has("status"))
+    if (strncmp(msg_prefix, "[\"Conn\",{", 9) == 0)
     {
-        if (strcmp(json_get("type"), "challenge") == 0)
-        {
-            TRY(session_handle_challenge(b64_client_id));
-        }
-        else
-        {
-            err("No status reply in json");
-            return 1;
-        }
+        return session_handle_conn();
     }
 
-    status = atoi(json_get("status"));
-    len = 0;
-
-    switch (status)
+    if (!json_has("type"))
     {
-    case 200:
-        ok("Take over OK");
-        TRY(session_handle_conn(msg));
-        return 0;
-
-    case 401:
-        len = sprintf(buf, "%s Unpaired from the phone", json_get("status"));
-    case 403:
-        if (len == 0)
-            len = sprintf(buf, "%s Access denied", json_get("status"));
-
-        len += sprintf(buf + len, ", remove config file %s and login again.", cfg_file_get());
-
-        if (json_has("tos"))
-        {
-            len += sprintf(buf + len, "TOS: %s", json_get("tos"));
-        }
-        err("%s", buf);
-        return 1;
-
-    case 405:
-        err("Already logged in");
-        return 1;
-
-    case 409:
-        err("Logged in from another location");
-        return 1;
-
-    default:
-
-        err("Unhandled status code: %s", json_get("status"));
+        err("session_login_takeover: No type in response");
         return 1;
     }
+
+    if (strcmp(json_get("type"), "challenge") != 0)
+    {
+        err("No cannot handle type: %s", json_get("type"));
+        return 1;
+    }
+
+    TRY(session_handle_challenge(b64_client_id));
+    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    json_parse_object(&msg);
+    TRY(session_handle_conn());
 
     CATCH_RET = 0;
 CATCH:
@@ -300,7 +298,9 @@ static int session_login_new()
         }
     }
 
-    TRY(session_handle_conn(msg));
+    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    TRY(json_parse_object(&msg));
+    TRY(session_handle_conn());
 
     CATCH_RET = 0;
 
@@ -314,6 +314,7 @@ int session_init(CFG *cfg_in)
 {
 
     cfg = cfg_in;
+    memset(&session_me, 0, sizeof(Me));
 
     if (wss_connect(NULL, NULL, NULL) != 0)
     {

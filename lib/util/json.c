@@ -222,7 +222,6 @@ int json_parse_object(char **src)
         err("json_parse_object: No object token");
         return 1;
     }
-
     (*src)++;
 
     while ((key = json_parse_key(src)))
@@ -244,7 +243,7 @@ int json_parse_object(char **src)
 
         if (*ptr->value == '"')
             ptr->value = json_unslash_str(ptr->value);
-        info("json: %s = %s", ptr->key, ptr->value);
+        accent("JSON: %s = %s", ptr->key, ptr->value);
     }
     return 0;
 }
