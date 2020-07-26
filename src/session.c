@@ -156,7 +156,9 @@ static int session_handle_challenge(char *b64_client_id)
                   challenge_b64, cfg->tokens.server, b64_client_id);
 
     wasocket_send_text(buf, len, NULL);
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    if (wasocket_read(&msg, &msg_tag, &msg_size))
+        return 1;
+
     json_parse_object(&msg);
 
     if (!json_has("status"))
@@ -183,15 +185,21 @@ static int session_login_takeover()
 
     //init
     TRY(session_send_init(&b64_client_id));
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+
+    if (wasocket_read(&msg, &msg_tag, &msg_size))
+        return 1;
+
     TRY(json_parse_object(&msg));
     TRY(strncmp("200", json_get("status"), 3));
 
     // take over
     len = sprintf(buf, "[\"admin\",\"login\",\"%s\",\"%s\",\"%s\",\"takeover\"]",
                   cfg->tokens.client, cfg->tokens.server, b64_client_id);
+
     TRY(wasocket_send_text(buf, len, NULL) < len);
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    if (wasocket_read(&msg, &msg_tag, &msg_size))
+        return 1;
+
     msg_prefix = msg;
     json_parse_object(&msg);
 
@@ -213,7 +221,9 @@ static int session_login_takeover()
     }
 
     TRY(session_handle_challenge(b64_client_id));
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    if (wasocket_read(&msg, &msg_tag, &msg_size))
+        return 1;
+
     json_parse_object(&msg);
     TRY(session_handle_conn());
 
@@ -246,7 +256,9 @@ static int session_login_new()
         if (seconds == 0)
         {
             // reading msg
-            TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+            if (wasocket_read(&msg, &msg_tag, &msg_size))
+                return 1;
+
             TRY(json_parse_object(&msg));
 
             if (json_has("status"))
@@ -298,7 +310,9 @@ static int session_login_new()
         }
     }
 
-    TRY(wasocket_read(&msg, &msg_tag, &msg_size));
+    if (wasocket_read(&msg, &msg_tag, &msg_size))
+        return 1;
+
     TRY(json_parse_object(&msg));
     TRY(session_handle_conn());
 

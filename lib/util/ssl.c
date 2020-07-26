@@ -84,7 +84,6 @@ int ssl_connect(const char *host, const char *port)
 {
     struct addrinfo hints, *hostinfo = NULL, *ptr = NULL;
     struct timeval timeout;
-    char err_buff[255];
     int ret = 1;
 
     ssl_init();
@@ -164,10 +163,16 @@ int ssl_connect(const char *host, const char *port)
                mbedtls_ssl_get_ciphersuite(&ssl));
         return 0;
     }
-    mbedtls_strerror(ret, err_buff, 255);
-    err("SSL Handshake fail 0x%04x %s", (unsigned int)-ret, err_buff);
 
+    ssl_error("SSL Handshake fail", ret);
 exit:
     ssl_free();
     return ret;
+}
+
+void ssl_error(const char *msg, int errcode)
+{
+    char buf[255];
+    mbedtls_strerror(errcode, buf, 255);
+    err("%s (0x%x): %s", msg, (unsigned int)-errcode, buf);
 }

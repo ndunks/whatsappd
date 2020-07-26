@@ -299,7 +299,7 @@ char *wss_read(size_t *data_len)
 
         if (recv < 0)
         {
-            err("wss_read: Connection error");
+            ssl_error("wss_read", recv);
             return NULL;
         }
 

@@ -105,10 +105,8 @@ int wasocket_read_all(uint32_t timeout_ms)
         {
             info("%p == %ld", &size, size);
             if (wasocket_read(&msg, &tag, &size))
-            {
-                err("wasocket_thread: read fail");
                 return 1;
-            }
+            
             info("%p == %ld", &size, size);
             info("Got %ld bytes", size);
             if (size < 256)
@@ -131,10 +129,8 @@ static void *wasocket_run()
     do
     {
         if (wasocket_read(&msg, &tag, &size))
-        {
-            err("wasocket_thread: read fail");
             break;
-        }
+            
 
         info("Got %ld bytes\n%s", size, tag);
         if (size < 256)
