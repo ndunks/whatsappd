@@ -15,7 +15,7 @@ mbedtls_entropy_context *crypto_entropy;
 aes_keys crypto_aes_keys;
 
 static mbedtls_ecp_group *grp;
-static mbedtls_md_info_t *md_sha256;
+static const mbedtls_md_info_t *md_sha256;
 
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
 {
@@ -113,21 +113,21 @@ CATCH:
     }
     return NULL;
 }
+
 int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg)
 {
     size_t public_key_size;
-    // Private
-    TRY(mbedtls_mpi_size(&keys->d) <= 0);
-    // Public Keys
-    TRY(mbedtls_ecp_is_zero(&keys->Q));
 
-    TRY(mbedtls_mpi_write_binary_le(&keys->d, cfg->keys.private, CFG_KEY_LEN));
-    TRY(mbedtls_ecp_point_write_binary(
+    TRY(mbedtls_mpi_size(&keys->d) <= 0); // Private key
+    TRY(mbedtls_ecp_is_zero(&keys->Q));   // Public yey
+
+    mbedtls_mpi_write_binary_le(&keys->d, (uint8_t *)cfg->keys.private, CFG_KEY_LEN);
+    mbedtls_ecp_point_write_binary(
         grp, &keys->Q,
         MBEDTLS_ECP_PF_UNCOMPRESSED,
         &public_key_size,
-        cfg->keys.public,
-        CFG_KEY_LEN));
+        (uint8_t *)cfg->keys.public,
+        CFG_KEY_LEN);
     TRY(public_key_size <= 0);
 
 CATCH:

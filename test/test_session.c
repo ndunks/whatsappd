@@ -85,10 +85,6 @@ int test_main()
 {
 
     return test_new_session() || test_resume_session();
-
-    //return test_new_session();
-
-    //return test_resume_session();
 }
 
 int test_setup()

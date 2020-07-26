@@ -149,10 +149,9 @@ static int wss_handshake(const char *host, const char *path)
 
         if (cptr != NULL)
         {
-            // version
-            cptr = strtok(NULL, " ");
-            // code
-            cptr = strtok(NULL, " \r\n");
+            cptr = strtok(NULL, " ");     // version
+            cptr = strtok(NULL, " \r\n"); // code
+
             if (strncmp(cptr, "101", 3) != 0)
             {
                 err("GOT HTTP CODE %s", cptr);
@@ -213,10 +212,10 @@ void wss_disconnect()
 {
     uint32_t mask = wss_mask();
     wss_frame(WS_OPCODE_CONNECTION, 0, mask);
+
     if (wss_send() != 6)
-    {
         warn("wss: Send shutdown fail");
-    }
+
     ssl_disconnect();
     free(wss.rx);
     free(wss.tx);
@@ -324,7 +323,7 @@ char *wss_read(size_t *data_len)
 
                 if (fin)
                 {
-                    accent("   another frame, cutoff %ld", recv);
+                    accent("   another frame, cutoff %d", recv);
                     WSS_NEED_BUF(recv);
                     // Copy it to our buffers
                     memcpy(
@@ -336,7 +335,7 @@ char *wss_read(size_t *data_len)
                 }
                 else
                 { // next fragment
-                    accent("   next fragment %ld", recv);
+                    accent("   next fragment %d", recv);
                     offset += payload->frame_size + payload->size;
                     payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
                     goto process_frame;
@@ -359,15 +358,9 @@ char *wss_read(size_t *data_len)
 
             if (wss_frame_rx.payload_count == 0)
             {
-                // set it on first frame
-                // wss_frame_rx.rsv1 = (b & 0x40) == 0x40; // (1 << 6)
-                // wss_frame_rx.rsv2 = (b & 0x20) == 0x20; // (1 << 5)
-                // wss_frame_rx.rsv3 = (b & 0x10) == 0x10; // (1 << 4)
                 wss_frame_rx.opcode = opcode;
                 if (wss.rx[offset] & 0b01110000)
-                {
                     warn("   GOT RSV BIT SET!");
-                }
             }
 
             // assume no mask and payload_len 1 byte
@@ -412,7 +405,6 @@ char *wss_read(size_t *data_len)
     process_payload:
         // final data address
         payload->data = &wss.rx[offset + payload->frame_size];
-        //hexdump(wss.rx + offset, payload->frame_size);
         ok("   payload: count: %u, size %lu", wss_frame_rx.payload_count, payload->size);
 
         wss_frame_rx.payload_size += payload->size;

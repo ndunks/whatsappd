@@ -20,4 +20,3 @@ int json_parse_object(char **src);
 int json_find(char *key);
 int json_has(char *key);
 char *json_get(char *key);
-#include <stdint.h>

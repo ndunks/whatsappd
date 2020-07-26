@@ -6,25 +6,6 @@ int json_len = 0;
 
 static JSON *ptr = NULL;
 
-static char json_parse_close_token(char c)
-{
-    switch (c)
-    {
-    case '{':
-        return '}';
-        break;
-    case '[':
-        return ']';
-        break;
-    case '"':
-        return '"';
-        break;
-    default: // number or boolean
-        return 0;
-        break;
-    }
-}
-
 static void json_parse_value_end(char **src)
 {
     do
@@ -172,7 +153,7 @@ char *json_parse_key(char **src)
 /* Not support nested values. Just read as-is */
 char *json_parse_value(char **src)
 {
-    char *start = NULL, close_token;
+    char *start = NULL, close_token = 0;
 
     do
     {
@@ -192,7 +173,19 @@ char *json_parse_value(char **src)
         }
     } while (*(*src)++);
 
-    close_token = json_parse_close_token(**src);
+    switch (**src)
+    {
+    case '{':
+        close_token = '}';
+        break;
+    case '[':
+        close_token = ']';
+        break;
+    case '"':
+        close_token = '"';
+        break;
+        // default: number or boolean
+    }
 
     (*src)++;
 

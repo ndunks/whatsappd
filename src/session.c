@@ -11,7 +11,7 @@
 Me session_me;
 
 static CFG *cfg = NULL;
-static int session_send_init(char *b64_client_id)
+static int session_send_init(char b64_client_id[64])
 {
     char buf[255];
     uint size;
@@ -32,40 +32,25 @@ static int session_handle_conn()
     size_t len;
     int i;
     char *buf,
-        server_secret[CFG_SERVER_SECRET_LEN],
-        *tokens[] = {
-            "serverToken",
-            "browserToken",
-            "clientToken",
-            0};
-    info("session_handle_conn");
-    // TRY(strncmp(buf, "[\"Conn\",{", 9));
-    // TRY(json_parse_object(&buf));
+        server_secret[CFG_SERVER_SECRET_LEN];
+
     i = json_find("secret");
     if (i >= 0)
     {
-        len = strlen(json[i].value);
-        ok("\nhas secret (%lu bytes)\n%s", len, json[i].value);
-        if (crypto_base64_decode(
-                server_secret,
-                CFG_SERVER_SECRET_LEN,
-                json[i].value,
-                len) != CFG_SERVER_SECRET_LEN)
-        {
-            err("server_secret: Failed decoding base64");
-            return 1;
-        }
+        len = crypto_base64_decode(
+            server_secret,
+            CFG_SERVER_SECRET_LEN,
+            json[i].value,
+            strlen(json[i].value));
 
+        TRY(len != CFG_SERVER_SECRET_LEN);
         TRY(crypto_parse_server_keys(server_secret, cfg));
     }
     else
         accent("No secret in Conn.");
 
     if ((buf = json_get("serverToken")) != NULL)
-    {
         strcpy(cfg->tokens.server, buf);
-        accent("serverToken (%d):\n%s", strlen(buf), buf);
-    }
     else
     {
         err("No serverToken");
@@ -73,10 +58,7 @@ static int session_handle_conn()
     }
 
     if ((buf = json_get("browserToken")) != NULL)
-    {
         strcpy(cfg->tokens.browser, buf);
-        accent("browserToken (%d):\n%s", strlen(buf), buf);
-    }
     else
     {
         err("No browserToken");
@@ -84,10 +66,7 @@ static int session_handle_conn()
     }
 
     if ((buf = json_get("clientToken")) != NULL)
-    {
         strcpy(cfg->tokens.client, buf);
-        accent("clientToken (%d):\n%s", strlen(buf), buf);
-    }
     else
     {
         err("No clientToken");
@@ -95,26 +74,17 @@ static int session_handle_conn()
     }
 
     if ((buf = json_get("pushname")) != NULL)
-    {
         strcpy(session_me.pushname, buf);
-        accent("pushname (%d):\n%s", strlen(buf), buf);
-    }
     else
         warn("No pushname");
 
     if ((buf = json_get("wid")) != NULL)
-    {
         strcpy(session_me.wid, buf);
-        accent("wid (%d):\n%s", strlen(buf), buf);
-    }
     else
         warn("No wid");
 
     if ((buf = json_get("platform")) != NULL)
-    {
         strcpy(session_me.platform, buf);
-        accent("platform (%d):\n%s", strlen(buf), buf);
-    }
     else
         warn("No platform");
 
@@ -179,12 +149,12 @@ static int session_login_takeover()
 {
     char buf[1024], b64_client_id[64], *msg, *msg_tag, *msg_prefix;
     ssize_t msg_size;
-    int len, status;
+    int len;
 
     TRY(crypto_parse_server_keys(cfg->serverSecret, cfg));
 
     //init
-    TRY(session_send_init(&b64_client_id));
+    TRY(session_send_init(b64_client_id));
 
     if (wasocket_read(&msg, &msg_tag, &msg_size))
         return 1;
@@ -249,7 +219,7 @@ static int session_login_new()
     crypto_base64_encode(b64_public_key, 128, cfg->keys.public, CFG_KEY_LEN);
     crypto_keys_free(keys);
 
-    TRY(session_send_init(&b64_client_id));
+    TRY(session_send_init(b64_client_id));
 
     while (seconds < 120)
     {
