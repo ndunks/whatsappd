@@ -83,10 +83,13 @@ void ssl_disconnect()
 int ssl_connect(const char *host, const char *port)
 {
     struct addrinfo hints, *hostinfo = NULL, *ptr = NULL;
-    char *pers = "wasocket", err_buff[255];
+    struct timeval timeout;
+    char err_buff[255];
     int ret = 1;
 
     ssl_init();
+    timeout.tv_sec = 7;
+    timeout.tv_usec = 0;
 
     if (mbedtls_ssl_config_defaults(&conf,
                                     MBEDTLS_SSL_IS_CLIENT,
@@ -140,6 +143,15 @@ int ssl_connect(const char *host, const char *port)
     {
         err("Connect failed");
         goto exit;
+    }
+
+    if (setsockopt(ws_net.fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)))
+    {
+        warn("Fail set socket timeout");
+    }
+    if (setsockopt(ws_net.fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)))
+    {
+        warn("Fail set socket timeout");
     }
 
     mbedtls_ssl_set_bio(&ssl, &ws_net, mbedtls_net_send, mbedtls_net_recv, NULL);
