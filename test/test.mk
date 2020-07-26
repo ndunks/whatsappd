@@ -14,7 +14,7 @@ test: build_lib $(TEST_BINS)
 		./$$test_bin || exit 1;\
 	done || true
 
-test-watch:
+test-watch: buildfs
 	nodemon --delay 0.5 \
 		-w lib -w src -w test \
 		-e .c,.h,.mk \
