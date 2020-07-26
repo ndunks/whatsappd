@@ -59,33 +59,57 @@ int wasocket_send_text(char *data, uint len, char *tag)
 // Read and remove tags
 int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
+    char *buf;
+    int ret;
+    size_t buf_len, decrypted_len;
+
     if (wss_read(NULL) == NULL)
         return 1;
 
+    *tag = wss.rx;
     *data = strchr(wss.rx, ',');
     if (*data == NULL)
     {
         err("No tag in message!");
         return 1;
     }
+
     **data = 0;
     (*data)++;
-    *tag = wss.rx;
+    *data_size = wss.rx_len - (*data - *tag);
 
-    *data_size = wss.rx_len - (*data - *tag) - 1;
+    if (wss_frame_rx.opcode == WS_OPCODE_BINARY)
+    {
+        WSS_NEED_BUF(*data_size);
+        buf = wss.buf + wss.buf_len;
+        memset(buf, 0, *data_size);
+        wss.buf_len += *data_size;
+        decrypted_len = *data_size;
+
+        info("TAG (%ld): %s: datasz: %lu", strlen(*tag), *tag, *data_size);
+        hexdump(*data, *data_size);
+        accent("-----------");
+        ret = crypto_decrypt_hmac(data, &decrypted_len, buf);
+        wss.buf_len -= (*data_size);
+        if (ret)
+        {
+            return ret;
+        };
+        (*data_size) = decrypted_len;
+    }
 
     info("TAG (%ld): %s", *data - *tag - 1, *tag);
     if (*data_size < 1024)
     {
-        if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
-        {
-            accent("%s\n-----------", *data);
-        }
-        else
-        {
-            hexdump(*data, *data_size);
-            accent("-----------");
-        }
+        // if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
+        // {
+        accent("%s\n-----------", *data);
+        // }
+        // else
+        // {
+        //     hexdump(*data, *data_size);
+        //     accent("-----------");
+        // }
     }
 
     return 0;
@@ -106,7 +130,7 @@ int wasocket_read_all(uint32_t timeout_ms)
             info("%p == %ld", &size, size);
             if (wasocket_read(&msg, &tag, &size))
                 return 1;
-            
+
             info("%p == %ld", &size, size);
             info("Got %ld bytes", size);
             if (size < 256)
@@ -130,7 +154,6 @@ static void *wasocket_run()
     {
         if (wasocket_read(&msg, &tag, &size))
             break;
-            
 
         info("Got %ld bytes\n%s", size, tag);
         if (size < 256)

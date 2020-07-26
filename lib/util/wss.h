@@ -1,7 +1,21 @@
 #pragma once
-
 #include <crypto.h>
-#include <ssl.h>
+#include "ssl.h"
+#include "helper.h"
+
+#define WSS_NEED(len, x, x_len, x_size)            \
+    while ((x_len + len) > x_size)                 \
+    {                                              \
+        x_size += len + 1;                         \
+        x = realloc(x, x_size);                    \
+        if (x == NULL)                             \
+            die("wss: Fail realloc " #x);          \
+        accent("wss: realloc " #x " %lu", x_size); \
+    }
+
+#define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
+#define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
+#define WSS_NEED_BUF(len) WSS_NEED(len, wss.buf, wss.buf_len, wss.buf_size)
 
 #define WSS_FRAGMENT_MAX 100
 

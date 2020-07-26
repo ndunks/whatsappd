@@ -46,8 +46,13 @@ static int session_handle_conn()
         TRY(len != CFG_SERVER_SECRET_LEN);
         TRY(crypto_parse_server_keys(server_secret, cfg));
     }
+    else if (cfg->serverSecret[0])
+        info("No secret in Conn.");
     else
-        accent("No secret in Conn.");
+    {
+        err("No secret in Conn and CFG!");
+        return 1;
+    }
 
     if ((buf = json_get("serverToken")) != NULL)
         strcpy(cfg->tokens.server, buf);

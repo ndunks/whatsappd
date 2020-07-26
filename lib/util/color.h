@@ -15,22 +15,3 @@
 #define warn(fmt, ...) debug(COL_YELL fmt COL_NORM, ##__VA_ARGS__)
 #define err(fmt, ...) debug(COL_RED fmt COL_NORM, ##__VA_ARGS__)
 #define accent(fmt, ...) debug(COL_MAG fmt COL_NORM, ##__VA_ARGS__)
-
-#define hexdump(buf, size)                          \
-    do                                              \
-    {                                               \
-        for (int i = 0; i < size; i++)              \
-        {                                           \
-            printf("%02x ", (unsigned char)(buf)[i]); \
-        }                                           \
-        printf("\n");                               \
-    } while (0)
-
-#define TRY(expression)                           \
-    if ((CATCH_RET = (expression)) != 0)          \
-    {                                             \
-        err(#expression ": RET %d", CATCH_RET); \
-        goto CATCH;                               \
-    }
-// in helper.c
-extern int CATCH_RET;

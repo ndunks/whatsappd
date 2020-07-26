@@ -1,27 +1,10 @@
-
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
-//#include <pthread.h>
 #include <byteswap.h>
-#include <helper.h>
 #include <color.h>
 
 #include "wss.h"
-
-#define WSS_NEED(len, x, x_len, x_size)            \
-    while ((x_len + len) > x_size)                 \
-    {                                              \
-        x_size += len + 1;                         \
-        x = realloc(x, x_size);                    \
-        if (x == NULL)                             \
-            die("wss: Fail realloc " #x);          \
-        accent("wss: realloc " #x " %lu", x_size); \
-    }
-
-#define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
-#define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
-#define WSS_NEED_BUF(len) WSS_NEED(len, wss.buf, wss.buf_len, wss.buf_size)
 
 WSS wss;
 FRAME_RX wss_frame_rx;
@@ -257,12 +240,12 @@ void dump_frame()
     {
         payload = &wss_frame_rx.payloads[i];
         info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
-        // if (payload->size < 1024)
-        // {
-        //     fwrite(payload->data, 1, payload->size, stderr);
-        //     fprintf(stderr, "\n");
-        //     hexdump(payload->data, payload->size);
-        // }
+        if (payload->size < 1024)
+        {
+            fwrite(payload->data, 1, payload->size, stderr);
+            fprintf(stderr, "\n");
+            hexdump(payload->data, payload->size);
+        }
     }
     warn("\n------------------");
     // hexdump(wss.rx, wss.rx_len);

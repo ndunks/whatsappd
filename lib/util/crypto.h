@@ -44,6 +44,7 @@ crypto_keys *crypto_gen_keys();
 crypto_keys *crypto_keys_init(const char *private_key, const char *public_key);
 int crypto_keys_store_cfg(crypto_keys *keys, CFG *cfg);
 int crypto_sign(char *dst, char *src, size_t len);
+int crypto_decrypt_hmac(char **data, size_t *len, char *buf);
 
 void crypto_keys_free(crypto_keys *ctx);
 void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name);
