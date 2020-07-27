@@ -4,7 +4,7 @@
 #include <sys/file.h>
 
 #include <helper.h>
-#include <binary.h>
+#include "binary_reader.h"
 
 #include "test.h"
 
@@ -89,8 +89,8 @@ int test_read_int()
     binary_read_set(buf, 9);
     accent("int8  0x%02x", read_byte());
     accent("int16 0x%04x", read_int16());
-    accent("int20 0x%06lx", read_int20());
-    accent("int32 0x%08lx", read_int32());
+    accent("int20 0x%06x", read_int20());
+    accent("int32 0x%08x", read_int32());
 
     // reset index, keep old data
     binary_read_set(buf, 9);
@@ -111,7 +111,20 @@ int test_preempt()
 
     // First preempts is contact lists
     ZERO(load_file(preempts[0]));
-    binary_read(buf, buf_size);
+    BINARY_NODE *node = binary_read(buf, buf_size);
+    FALSY(node == NULL);
+
+    ZERO(strcmp(node->tag, "response"));
+    TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
+    TRUTHY(node->child_len == 901);
+
+    TRUTHY(node->attr_len == 2);
+    FALSY(node->attrs[0].key == NULL);
+    FALSY(node->attrs[1].key == NULL);
+    TRUTHY(node->attrs[2].key == NULL);
+    ZERO(strcmp(binary_attr(node, "checksum"), "1BE33034-E32C-40EA-BB66-554B81AF0AE7"));
+    ZERO(strcmp(binary_attr(node, "type"), "contacts"));
+
     binary_free();
     return 0;
 }

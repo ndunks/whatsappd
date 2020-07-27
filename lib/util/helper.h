@@ -26,11 +26,11 @@
 
 extern int CATCH_RET;
 
-#define die(msg)          \
-    do                    \
-    {                     \
-        printf(msg "\n"); \
-        exit(1);          \
+#define die(msg)  \
+    do            \
+    {             \
+        err(msg); \
+        exit(1);  \
     } while (0)
 
 int helper_qrcode_show(const char *src);

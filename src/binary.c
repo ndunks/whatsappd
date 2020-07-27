@@ -1,6 +1,9 @@
+#include "helper.h"
 #include "binary.h"
+const char *wa_host_short = "c.us",
+           *wa_host_long = "s.whatsapp.net";
 
-char *DICTIONARY_SINGLEBYTE[] = {
+const char *const DICTIONARY_SINGLEBYTE[] = {
     0, 0, 0, "200", "400", "404", "500", "501", "502", "action", "add", "after", "archive", "author", "available", "battery", "before", "body", "broadcast", "chat", "clear", "code", "composing", "contacts", "count", "create", "debug", "delete", "demote", "duplicate", "encoding", "error", "false", "filehash", "from", "g.us", "group", "groups_v2", "height", "id", "image", "in",
     "index", "invis", "item", "jid", "kind", "last", "leave", "live", "log", "media", "message", "mimetype", "missing", "modify", "name", "notification", "notify", "out", "owner", "participant", "paused", "picture", "played", "presence", "preview", "promote", "query", "raw", "read", "receipt", "received", "recipient", "recording", "relay", "remove", "response", "resume", "retry", "s.whatsapp.net", "seconds",
     "set", "size", "status", "subject", "subscribe", "t", "text", "to", "true", "type", "unarchive", "unavailable", "url", "user", "value", "web", "width", "mute", "read_only", "admin", "creator", "short", "update", "powersave", "checksum", "epoch", "block", "previous", "409", "replaced", "reason", "spam", "modify_tag",
@@ -27,3 +30,55 @@ char *DICTIONARY_SINGLEBYTE[] = {
     "quick_reply", "sticker", "pay_t", "accept", "reject", "sticker_pack", "invalid", "canceled", "missed", "connected", "result", "audio", "video", "recent"};
 
 int DICTIONARY_SINGLEBYTE_LEN = sizeof(DICTIONARY_SINGLEBYTE) / sizeof(void *);
+
+static int malloc_idx = 0;
+static void *malloc_stacks[BINARY_MALLOC_MAX] = {0};
+
+void *binary_alloc(size_t size)
+{
+    if (malloc_idx == BINARY_MALLOC_MAX)
+    {
+        die("BINARY_MALLOC_MAX");
+    }
+
+    char *ptr = malloc(size + 1);
+    ptr[size] = 0;
+    malloc_stacks[malloc_idx] = ptr;
+    malloc_idx++;
+    malloc_stacks[malloc_idx] = NULL;
+    return (void *)ptr;
+}
+
+void binary_free()
+{
+    while (malloc_idx--)
+    {
+        free(malloc_stacks[malloc_idx]);
+    }
+}
+
+char *binary_attr(BINARY_NODE *node, const char *key)
+{
+    for (int i = 0; i < node->attr_len; i++)
+    {
+        if (strcmp(key, node->attrs[i].key) == 0)
+            return node->attrs[i].value;
+    }
+    return NULL;
+}
+
+BINARY_NODE *binary_child(BINARY_NODE *node, int index)
+{
+    if (node->child_type != BINARY_NODE_CHILD_LIST)
+    {
+        warn("Not list child undefined: %d", node->child_type);
+        return NULL;
+    }
+
+    if (index + 1 == node->child_len)
+    {
+        warn("Index undefined: %d", index);
+        return NULL;
+    }
+    return *(node->child.list + index);
+}
