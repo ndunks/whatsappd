@@ -1,8 +1,12 @@
 #include "test.h"
+#include <sys/time.h>
+
 int ret_val;
 int main(int argc, char const *argv[])
 {
     char test_name[] = TEST;
+    struct timeval start, stop;
+    long secs_used, micros_used;
 
     info("** TEST: %s **", test_name);
 
@@ -12,13 +16,21 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    if ((ret_val = test_main()) != 0){
-        err("** TEST: %s FAIL %d **", test_name, ret_val);
+    gettimeofday(&start, NULL);
+    ret_val = test_main();
+    gettimeofday(&stop, NULL);
+    secs_used = (stop.tv_sec - start.tv_sec); //avoid overflow by subtracting first
+    micros_used = ((secs_used * 1000000) + stop.tv_usec) - (start.tv_usec);
+
+    if (ret_val != 0)
+    {
+        err("** TEST: %s FAIL %d [%ld ms] **", test_name, ret_val, micros_used);
         err("-------------------------\n");
     }
-    else{
+    else
+    {
 
-        ok("** TEST: %s OK **", test_name);
+        ok("** TEST: %s OK [%ld ms] **", test_name, micros_used);
         ok("-------------------------\n");
     }
 
