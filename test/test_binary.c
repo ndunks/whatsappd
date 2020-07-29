@@ -12,10 +12,9 @@
 #define SAMPLE_DIR "test/binary-sample/"
 
 static char buf[BUF_SIZE] = {0},
-            preempts[3][64] = {0},
             files[10][64] = {0};
 static size_t buf_size = 0;
-static int files_count = 0, preempts_count = 0;
+static int files_count = 0;
 
 int alphasort_r(const struct dirent **a, const struct dirent **b)
 {
@@ -40,9 +39,6 @@ int get_list_files()
         case '1':
             dst = files[files_count++];
             break;
-        case 'p':
-            dst = preempts[preempts_count++];
-            break;
         default:
             info("Ignoring %s", src);
             continue;
@@ -51,7 +47,6 @@ int get_list_files()
         free(namelist[n]);
     }
     free(namelist);
-    preempts[preempts_count][0] = 0;
     files[files_count][0] = 0;
     return 0;
 }
@@ -76,7 +71,7 @@ int load_file(char *name)
 
     fclose(fd);
 
-    accent("%s: %lu bytes", name, buf_size);
+    ok("%s: %lu bytes", name, buf_size);
     return 0;
 }
 
@@ -107,11 +102,12 @@ int test_read_int()
 
 int test_preempt()
 {
-    TRUTHY(preempts_count == 2);
+    int i;
+    BINARY_NODE *ptr, *node;
 
     // First preempts is contact lists
-    ZERO(load_file(preempts[0]));
-    BINARY_NODE *node = binary_read(buf, buf_size);
+    ZERO(load_file("preempt-1589472058-318"));
+    node = binary_read(buf, buf_size);
     FALSY(node == NULL);
 
     ZERO(strcmp(node->tag, "response"));
@@ -122,21 +118,85 @@ int test_preempt()
     FALSY(node->attrs[0].key == NULL);
     FALSY(node->attrs[1].key == NULL);
     TRUTHY(node->attrs[2].key == NULL);
+    FALSY(binary_attr(node, "checksum") == NULL);
+    FALSY(binary_attr(node, "type") == NULL);
     ZERO(strcmp(binary_attr(node, "checksum"), "1BE33034-E32C-40EA-BB66-554B81AF0AE7"));
     ZERO(strcmp(binary_attr(node, "type"), "contacts"));
 
+    for (i = 0; i < node->child_len; i++)
+    {
+        ptr = binary_child(node, i);
+        TRUTHY(ptr != NULL);
+        ZERO(strcmp(ptr->tag, "user"));
+    }
+
+    ptr = binary_child(node, 14);
+    ZERO(ptr->child_len);
+    TRUTHY(ptr->child.list == NULL);
+    FALSY(binary_attr(ptr, "notify") == NULL);
+    FALSY(binary_attr(ptr, "verify") == NULL);
+    FALSY(binary_attr(ptr, "vname") == NULL);
+    FALSY(binary_attr(ptr, "jid") == NULL);
+    ZERO(strcmp(binary_attr(ptr, "notify"), "defri reza"));
+    ZERO(strcmp(binary_attr(ptr, "verify"), "0"));
+    ZERO(strcmp(binary_attr(ptr, "vname"), "defri reza"));
+    ZERO(strcmp(binary_attr(ptr, "jid"), "62816655404@c.us"));
+
+    binary_alloc_stat();
     binary_free();
+
+    // second preempt status?
+    ZERO(load_file("preempt-1589472058-319"));
+    node = binary_read(buf, buf_size);
+    FALSY(node == NULL);
+
+    ZERO(strcmp(node->tag, "response"));
+    TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
+    TRUTHY(node->child_len == 292);
+
+    FALSY(binary_attr(node, "status") == NULL);
+    FALSY(binary_attr(node, "type") == NULL);
+    ZERO(strcmp(binary_attr(node, "status"), "992971"));
+    ZERO(strcmp(binary_attr(node, "type"), "chat"));
+
+    for (i = 0; i < node->child_len; i++)
+    {
+        ptr = binary_child(node, i);
+        TRUTHY(ptr != NULL);
+        ZERO(strcmp(ptr->tag, "chat"));
+    }
+
+    ptr = binary_child(node, 2);
+    FALSY(binary_attr(ptr, "t") == NULL);
+    FALSY(binary_attr(ptr, "count") == NULL);
+    FALSY(binary_attr(ptr, "spam") == NULL);
+    FALSY(binary_attr(ptr, "jid") == NULL);
+    FALSY(binary_attr(ptr, "modify_tag") == NULL);
+    FALSY(binary_attr(ptr, "name") == NULL);
+    ZERO(strcmp(binary_attr(ptr, "t"), "1588824994"));
+    ZERO(strcmp(binary_attr(ptr, "count"), "0"));
+    ZERO(strcmp(binary_attr(ptr, "spam"), "false"));
+    ZERO(strcmp(binary_attr(ptr, "jid"), "6281230008708@c.us"));
+    ZERO(strcmp(binary_attr(ptr, "modify_tag"), "406232"));
+    ZERO(strcmp(binary_attr(ptr, "name"), "Ade"));
     return 0;
+}
+
+int test_read_message()
+{
+    ZERO(get_list_files());
+    /** Message sent after preempt is contain chats */
+    return 1;
 }
 
 int test_main()
 {
-    return test_read_int() || test_preempt();
+    //return test_read_int() || test_preempt() || test_read_message();
+    return test_read_message();
 }
 
 int test_setup()
 {
-    ZERO(get_list_files());
     return 0;
 }
 

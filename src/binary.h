@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define BINARY_MALLOC_MAX 16000
+#define BINARY_MALLOC_MAX 8000
 typedef enum BINARY_NODE_CHILD_TYPE
 {
     BINARY_NODE_CHILD_EMPTY,
@@ -56,5 +56,6 @@ extern int DICTIONARY_SINGLEBYTE_LEN;
 
 void *binary_alloc(size_t size);
 void binary_free();
+void binary_alloc_stat();
 char *binary_attr(BINARY_NODE *node, const char *key);
 BINARY_NODE *binary_child(BINARY_NODE *node, int index);

@@ -196,10 +196,10 @@ int crypto_sign(char *dst, char *src, size_t len)
 
 int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
 {
-    uint8_t hmac_check[32], *sign, *iv, *input, *src = *data;
+    uint8_t hmac_check[32], *sign, *iv, *input, *src = (uint8_t *)*data;
     size_t check_len = 0, decrypted_len = 0;
     memset(hmac_check, 0, 32);
-    info("decrypt_hmac: before %lu", *len);
+    //info("decrypt_hmac: before %lu", *len);
 
     if (*len <= 64)
     {
@@ -215,9 +215,9 @@ int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
 
     CHECK(mbedtls_md_hmac(
         md_sha256,
-        crypto_aes_keys.mac,
+        (uint8_t *)crypto_aes_keys.mac,
         32,
-        (*data) + 32,
+        (uint8_t *)((*data) + 32),
         check_len,
         hmac_check));
 
@@ -236,9 +236,9 @@ int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
         (uint8_t *)buf));
     mempcpy(*data, buf, decrypted_len);
     *len = decrypted_len;
-    info("Decrypted");
-    fwrite(*data, 1, decrypted_len, stderr);
-    info("---------------");
+    // info("Decrypted");
+    // fwrite(*data, 1, decrypted_len, stderr);
+    // info("---------------");
     return 0;
 }
 
@@ -317,8 +317,8 @@ int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
     // Fill the result
     memcpy(crypto_aes_keys.enc, decrypted, 32);
     memcpy(crypto_aes_keys.mac, decrypted + 32, 32);
-    mbedtls_aes_setkey_dec(crypto_aes_ctx, crypto_aes_keys.enc, 32 * 8);
-    mbedtls_aes_setkey_enc(crypto_aes_ctx, crypto_aes_keys.enc, 32 * 8);
+    mbedtls_aes_setkey_dec(crypto_aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    mbedtls_aes_setkey_enc(crypto_aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
 
     info("Gained aes & mac key");
 

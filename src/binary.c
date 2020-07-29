@@ -49,6 +49,11 @@ void *binary_alloc(size_t size)
     return (void *)ptr;
 }
 
+void binary_alloc_stat()
+{
+    accent("BINARY allocated %d times.", malloc_idx);
+}
+
 void binary_free()
 {
     while (malloc_idx--)
@@ -75,7 +80,7 @@ BINARY_NODE *binary_child(BINARY_NODE *node, int index)
         return NULL;
     }
 
-    if (index + 1 == node->child_len)
+    if (index == node->child_len)
     {
         warn("Index undefined: %d", index);
         return NULL;

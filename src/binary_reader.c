@@ -25,7 +25,7 @@ uint32_t read_int20()
     uint32_t value = (buf[idx++] & 0xf) << 16;
     value |= (buf[idx++] & 0xff) << 8;
     value |= (buf[idx++] & 0xff);
-    warn("READ int20 %u", value);
+    //warn("READ int20 %u", value);
     return value;
     // return (uint32_t)(
     //     ((buf[idx++] & 0xf) << 16) |
@@ -36,7 +36,7 @@ uint32_t read_int20()
 uint32_t read_int32()
 {
     idx += 4;
-    warn("READ int32 %u", (uint32_t *)&buf[idx - 4]);
+    //warn("READ int32 %u", (uint32_t *)&buf[idx - 4]);
     return be32toh(*(uint32_t *)&buf[idx - 4]);
 }
 
@@ -95,13 +95,13 @@ char unpack_byte(uint8_t tag, int val)
 char *read_packed8(uint8_t tag)
 {
     char *str;
-    int i, flag, odd, len;
+    int i, flag, len; // odd;
     flag = read_byte();
-    odd = flag >> 7;
+    //odd = flag >> 7;
     len = 127 & flag;
     str = binary_alloc(len * 2 + 1);
     memset(str, 0, len * 2 + 1);
-    accent("read_packed8: %p %u %d", str, tag, len * 2 + 1);
+    //accent("read_packed8: %p %u %d", str, tag, len * 2 + 1);
 
     for (i = 0; i < len; i++)
     {
@@ -109,12 +109,12 @@ char *read_packed8(uint8_t tag)
         str[i * 2] = unpack_byte(tag, (0xf0 & flag) >> 4);
         str[i * 2 + 1] = unpack_byte(tag, 0x0f & flag);
     }
-    info("PACKED: %1$d %2$p %2$s", strlen(str), str);
-    if (odd)
-    {
-        //r = r.substring(0, r.length - 1)
-        str[len * 2 - 1] = 0;
-    }
+    //info("PACKED: %1$d %2$p %2$s", strlen(str), str);
+    // if (odd)
+    // {
+    //     //r = r.substring(0, r.length - 1)
+    //     str[len * 2 - 1] = 0;
+    // }
     return str;
 }
 
@@ -133,7 +133,7 @@ uint read_list_flag(uint8_t bin_tag)
     }
 }
 
-const char *read_token(uint8_t no)
+char *read_token(uint8_t no)
 {
     char *str;
 
@@ -146,9 +146,9 @@ const char *read_token(uint8_t no)
     else
     {
         // read only!
-        str = DICTIONARY_SINGLEBYTE[no];
+        str = (char *)DICTIONARY_SINGLEBYTE[no];
         if (strcmp(str, wa_host_long) == 0)
-            str = wa_host_short;
+            str = (char *)wa_host_short;
     }
     return str;
 }
@@ -227,8 +227,8 @@ char *read_string_tag_jid_ad()
 char *read_string_tag(uint32_t bin_tag)
 {
     int len;
-    const char *str;
-    accent("read_string_tag: %d", bin_tag);
+    char *str;
+    //accent("read_string_tag: %d", bin_tag);
 
     if (bin_tag > 2 && bin_tag < 236)
     {
@@ -236,7 +236,7 @@ char *read_string_tag(uint32_t bin_tag)
         //info("Single token: %s", str);
         return str;
     }
-    info("read_str_tag: %d", bin_tag);
+    //info("read_str_tag: %d", bin_tag);
 
     switch (bin_tag)
     {
@@ -330,7 +330,7 @@ void read_list(BINARY_NODE *node, uint8_t bin_tag)
     len = read_list_size(bin_tag);
     size = sizeof(void *) * (len + 1);
 
-    ok("Read list: %d %d", size, len);
+    //ok("Read list: %d %d", size, len);
     node->child.list = binary_alloc(size);
     memset(node->child.list, 0, size);
     for (i = 0; i < len; i++)
@@ -358,7 +358,7 @@ BINARY_NODE *read_node()
     memset(node, 0, sizeof(BINARY_NODE));
 
     bin_tag = read_byte();
-    ok("read_node: %x %d", idx - 1, bin_tag);
+    //ok("read_node: %x %d", idx - 1, bin_tag);
     list_flag = read_list_flag(bin_tag);
     bin_tag = read_byte();
 
@@ -376,7 +376,7 @@ BINARY_NODE *read_node()
     }
 
     node->attr_len = ((list_flag - 2) + (list_flag % 2)) >> 1;
-    info("read_node, tag: %s, list_flag: %d, attr_len: %d", node->tag, list_flag, node->attr_len);
+    //info("read_node, tag: %s, list_flag: %d, attr_len: %d", node->tag, list_flag, node->attr_len);
     if (node->attr_len > 0)
     {
         read_attributes(node);
@@ -384,11 +384,11 @@ BINARY_NODE *read_node()
 
     if ((list_flag % 2) == 1)
     {
-        accent("Node nochild");
+        //accent("Node nochild");
         node->child_type = BINARY_NODE_CHILD_EMPTY;
         return node;
     }
-    ok("node: Read child");
+    //ok("node: Read child");
 
     bin_tag = read_byte();
     switch (bin_tag)
