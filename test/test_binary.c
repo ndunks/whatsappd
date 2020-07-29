@@ -11,44 +11,12 @@
 #define BUF_SIZE 80000
 #define SAMPLE_DIR "test/binary-sample/"
 
-static char buf[BUF_SIZE] = {0},
-            files[10][64] = {0};
-static size_t buf_size = 0;
-static int files_count = 0;
+static char buf[BUF_SIZE];
+static size_t buf_size;
 
 int alphasort_r(const struct dirent **a, const struct dirent **b)
 {
     return -strcoll((*a)->d_name, (*b)->d_name);
-}
-
-int get_list_files()
-{
-    struct dirent **namelist;
-    int n;
-    char *dst, *src;
-
-    n = scandir(SAMPLE_DIR, &namelist, NULL, alphasort_r);
-    if (n == -1)
-        return 1;
-
-    while (n--)
-    {
-        src = namelist[n]->d_name;
-        switch (*src)
-        {
-        case '1':
-            dst = files[files_count++];
-            break;
-        default:
-            info("Ignoring %s", src);
-            continue;
-        }
-        strcpy(dst, src);
-        free(namelist[n]);
-    }
-    free(namelist);
-    files[files_count][0] = 0;
-    return 0;
 }
 
 int load_file(char *name)
@@ -184,9 +152,29 @@ int test_preempt()
 
 int test_read_message()
 {
-    ZERO(get_list_files());
+    struct dirent **ent;
+    int files_idx, i;
+    BINARY_NODE *ptr, *node;
+
     /** Message sent after preempt is contain chats */
-    return 1;
+    files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
+    while (files_idx--)
+    {
+        if (*ent[files_idx]->d_name != '1')
+            continue;
+
+        ZERO(load_file(ent[files_idx]->d_name));
+        node = binary_read(buf, buf_size);
+        FALSY(node == NULL);
+
+        ZERO(strcmp(node->tag, "action"));
+        TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
+        FALSY(node->child.list == NULL);
+        binary_free();
+        free(ent[files_idx]);
+    }
+    free(ent);
+    return 0;
 }
 
 int test_main()
