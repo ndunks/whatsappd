@@ -4,6 +4,31 @@
 #define NANO_PER_SEC 1000000000.0
 
 int ret_val;
+
+int load_sample(const char *name, const char *buf, size_t buf_size, size_t *read_size)
+{
+    char path[64] = {0};
+    FILE *fd;
+    size_t recv;
+
+    strcat(path, SAMPLE_DIR);
+    strcat(path, name);
+
+    fd = fopen(path, "r");
+    *read_size = 0;
+
+    do
+    {
+        recv = fread(buf, 1, buf_size - *read_size, fd);
+        *read_size += recv;
+    } while (recv > 0);
+
+    fclose(fd);
+
+    ok("%s: %lu bytes", name, *read_size);
+    return 0;
+}
+
 int main(int argc, char const *argv[])
 {
     char test_name[] = TEST;
@@ -35,7 +60,6 @@ int main(int argc, char const *argv[])
     }
     else
     {
-
         ok("** TEST: %s OK [%.4f ms] **", test_name, elapsed_sec);
         ok("-------------------------\n");
     }

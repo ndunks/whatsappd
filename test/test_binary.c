@@ -9,38 +9,13 @@
 #include "test.h"
 
 #define BUF_SIZE 80000
-#define SAMPLE_DIR "test/binary-sample/"
 
 static char buf[BUF_SIZE];
-static size_t buf_size;
+static size_t read_size;
 
 int alphasort_r(const struct dirent **a, const struct dirent **b)
 {
     return -strcoll((*a)->d_name, (*b)->d_name);
-}
-
-int load_file(char *name)
-{
-    char path[64] = {0};
-    FILE *fd;
-    size_t recv;
-
-    strcat(path, SAMPLE_DIR);
-    strcat(path, name);
-
-    fd = fopen(path, "r");
-    buf_size = 0;
-
-    do
-    {
-        recv = fread(buf, 1, BUF_SIZE - buf_size, fd);
-        buf_size += recv;
-    } while (recv > 0);
-
-    fclose(fd);
-
-    ok("%s: %lu bytes", name, buf_size);
-    return 0;
 }
 
 int test_read_int()
@@ -74,8 +49,8 @@ int test_preempt()
     BINARY_NODE *ptr, *node;
 
     // First preempts is contact lists
-    ZERO(load_file("preempt-1589472058-318"));
-    node = binary_read(buf, buf_size);
+    ZERO(load_sample("preempt-1589472058-318", buf, BUF_SIZE, &read_size));
+    node = binary_read(buf, read_size);
     FALSY(node == NULL);
 
     ZERO(strcmp(node->tag, "response"));
@@ -114,8 +89,8 @@ int test_preempt()
     binary_free();
 
     // second preempt status?
-    ZERO(load_file("preempt-1589472058-319"));
-    node = binary_read(buf, buf_size);
+    ZERO(load_sample("preempt-1589472058-319", buf, BUF_SIZE, &read_size));
+    node = binary_read(buf, read_size);
     FALSY(node == NULL);
 
     ZERO(strcmp(node->tag, "response"));
@@ -163,13 +138,20 @@ int test_read_message()
         if (*ent[files_idx]->d_name != '1')
             continue;
 
-        ZERO(load_file(ent[files_idx]->d_name));
-        node = binary_read(buf, buf_size);
+        ZERO(load_sample(ent[files_idx]->d_name, buf, BUF_SIZE, &read_size));
+        node = binary_read(buf, read_size);
         FALSY(node == NULL);
 
         ZERO(strcmp(node->tag, "action"));
         TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
         FALSY(node->child.list == NULL);
+        info("CHILDS: %d", node->child_len);
+
+        for (i = 0; i < node->child_len; i++)
+        {
+            ptr = node->child.list[i];
+            info(" %3d: %s", i, ptr->tag);
+        }
         binary_free();
         free(ent[files_idx]);
     }
