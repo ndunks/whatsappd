@@ -57,5 +57,6 @@ extern int DICTIONARY_SINGLEBYTE_LEN;
 void *binary_alloc(size_t size);
 void binary_free();
 void binary_alloc_stat();
+void binary_print_attr(BINARY_NODE *node);
 char *binary_attr(BINARY_NODE *node, const char *key);
 BINARY_NODE *binary_child(BINARY_NODE *node, int index);

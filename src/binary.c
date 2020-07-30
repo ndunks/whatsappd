@@ -62,6 +62,16 @@ void binary_free()
     }
 }
 
+void binary_print_attr(BINARY_NODE *node)
+{
+    accent("print_attr: %s", node->tag);
+    for (int i = 0; i < node->attr_len; i++)
+    {
+        printf("%s: %s\n", node->attrs[i].key, node->attrs[i].value);
+    }
+    accent("--------------");
+}
+
 char *binary_attr(BINARY_NODE *node, const char *key)
 {
     for (int i = 0; i < node->attr_len; i++)
