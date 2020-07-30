@@ -11,7 +11,7 @@
 
 #define BUF_SIZE 80000
 
-static char buf[BUF_SIZE];
+static char read_buf[BUF_SIZE];
 static size_t read_size;
 
 int alphasort_r(const struct dirent **a, const struct dirent **b)
@@ -38,8 +38,8 @@ int test_main()
             continue;
         }
 
-        ZERO(load_sample(ent[files_idx]->d_name, buf, BUF_SIZE, &read_size));
-        node = binary_read(buf, read_size);
+        ZERO(load_sample(ent[files_idx]->d_name, read_buf, BUF_SIZE, &read_size));
+        node = binary_read(read_buf, read_size);
         FALSY(node == NULL);
 
         TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);

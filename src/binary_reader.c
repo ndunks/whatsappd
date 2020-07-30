@@ -1,44 +1,14 @@
 #include <byteswap.h>
 #include <helper.h>
+#include <buf.h>
 
 #include "binary_reader.h"
 
-static uint8_t *buf = NULL;
-static size_t idx = 0, buf_len = 0;
+
 static int IS_READING_ATTR = 0;
 
 char *read_string_tag(uint32_t bin_tag);
 
-uint8_t read_byte()
-{
-    return buf[idx++];
-}
-
-uint16_t read_int16()
-{
-    idx += 2;
-    return be16toh(*(uint16_t *)&buf[idx - 2]);
-}
-
-uint32_t read_int20()
-{
-    uint32_t value = (buf[idx++] & 0xf) << 16;
-    value |= (buf[idx++] & 0xff) << 8;
-    value |= (buf[idx++] & 0xff);
-    //warn("READ int20 %u", value);
-    return value;
-    // return (uint32_t)(
-    //     ((buf[idx++] & 0xf) << 16) |
-    //     ((buf[idx++] & 0xff) << 8) |
-    //     ((buf[idx++] & 0xff)));
-}
-
-uint32_t read_int32()
-{
-    idx += 4;
-    //warn("READ int32 %u", (uint32_t *)&buf[idx - 4]);
-    return be32toh(*(uint32_t *)&buf[idx - 4]);
-}
 
 char unpack_nibble(int e)
 {
@@ -96,7 +66,7 @@ char *read_packed8(uint8_t tag)
 {
     char *str;
     int i, flag, len; // odd;
-    flag = read_byte();
+    flag = buf_read_byte();
     //odd = flag >> 7;
     len = 127 & flag;
     str = binary_alloc(len * 2 + 1);
@@ -105,7 +75,7 @@ char *read_packed8(uint8_t tag)
 
     for (i = 0; i < len; i++)
     {
-        flag = read_byte();
+        flag = buf_read_byte();
         str[i * 2] = unpack_byte(tag, (0xf0 & flag) >> 4);
         str[i * 2 + 1] = unpack_byte(tag, 0x0f & flag);
     }
@@ -123,9 +93,9 @@ uint read_list_flag(uint8_t bin_tag)
     switch (bin_tag)
     {
     case LIST_8:
-        return read_byte();
+        return buf_read_byte();
     case LIST_16:
-        return read_int16();
+        return buf_read_int16();
     default:
         warn("invalid list size: %d", bin_tag);
     case LIST_EMPTY:
@@ -163,8 +133,8 @@ char *read_token_double(uint8_t no, uint8_t len)
 char *read_string_len(int len)
 {
     char *str = binary_alloc(len);
-    memcpy(str, &buf[idx], len);
-    idx += len;
+    memcpy(str, &buf[buf_idx], len);
+    buf_idx += len;
     return str;
 }
 
@@ -172,9 +142,9 @@ char *read_string_tag_jid_pair()
 {
     char *user = NULL, *host = NULL, *str = NULL;
     int len;
-    user = read_string_tag(read_byte());
+    user = read_string_tag(buf_read_byte());
     //info("jid_pair %s %s", user, host);
-    host = read_string_tag(read_byte());
+    host = read_string_tag(buf_read_byte());
     //info("jid_pair %p %p", user, host);
 
     if (user != NULL && host != NULL)
@@ -195,10 +165,10 @@ char *read_string_tag_jid_ad()
 {
     char *user, *str;
     uint8_t len,
-        agent = read_byte(),
-        device = read_byte();
+        agent = buf_read_byte(),
+        device = buf_read_byte();
     //user
-    len = read_byte();
+    len = buf_read_byte();
     user = read_string_tag(len);
 
     if (user == NULL)
@@ -244,25 +214,25 @@ char *read_string_tag(uint32_t bin_tag)
     case DICTIONARY_1:
     case DICTIONARY_2:
     case DICTIONARY_3:
-        len = read_byte();
+        len = buf_read_byte();
         return read_token_double(bin_tag - DICTIONARY_0, len);
     case LIST_EMPTY:
         return NULL;
     case BINARY_8:
-        str = read_string_len(read_byte());
+        str = read_string_len(buf_read_byte());
         if (IS_READING_ATTR)
             return str;
         else
             return NULL;
     case BINARY_20:
-        str = read_string_len(read_int20());
+        str = read_string_len(buf_read_int20());
         if (IS_READING_ATTR)
             return str;
         else
             return NULL;
 
     case BINARY_32:
-        str = read_string_len(read_int32());
+        str = read_string_len(buf_read_int32());
         if (IS_READING_ATTR)
             return str;
         else
@@ -291,9 +261,9 @@ int read_list_size(uint8_t tag)
     case LIST_EMPTY:
         return 0;
     case LIST_8:
-        return read_byte();
+        return buf_read_byte();
     case LIST_16:
-        return read_int16();
+        return buf_read_int16();
     default:
         warn("invalid list size. tag %d", tag);
         return 0;
@@ -311,9 +281,9 @@ void read_attributes(BINARY_NODE *node)
     {
         attr = &node->attrs[i];
         //ok("attrs[%d]: %p", i, attr->value);
-        attr->key = read_string_tag(read_byte());
+        attr->key = read_string_tag(buf_read_byte());
         //ok("attrs KEY: %s", attr->key);
-        attr->value = read_string_tag(read_byte());
+        attr->value = read_string_tag(buf_read_byte());
         //ok("attrs[%d]: %p", i, attr->value);
 
         //accent("  attr %s:%s", attr->key, attr->value);
@@ -357,10 +327,10 @@ BINARY_NODE *read_node()
 
     memset(node, 0, sizeof(BINARY_NODE));
 
-    bin_tag = read_byte();
-    //ok("read_node: %x %d", idx - 1, bin_tag);
+    bin_tag = buf_read_byte();
+    //ok("read_node: %x %d", buf_idx - 1, bin_tag);
     list_flag = read_list_flag(bin_tag);
-    bin_tag = read_byte();
+    bin_tag = buf_read_byte();
 
     if (bin_tag == STREAM_END)
     {
@@ -390,7 +360,7 @@ BINARY_NODE *read_node()
     }
     //ok("node: Read child");
 
-    bin_tag = read_byte();
+    bin_tag = buf_read_byte();
     switch (bin_tag)
     {
     case LIST_EMPTY:
@@ -401,17 +371,17 @@ BINARY_NODE *read_node()
         break;
     case BINARY_8:
         node->child_type = BINARY_NODE_CHILD_BINARY;
-        node->child_len = read_byte();
+        node->child_len = buf_read_byte();
         node->child.data = read_string_len(node->child_len);
         break;
     case BINARY_20:
         node->child_type = BINARY_NODE_CHILD_BINARY;
-        node->child_len = read_int20();
+        node->child_len = buf_read_int20();
         node->child.data = read_string_len(node->child_len);
         break;
     case BINARY_32:
         node->child_type = BINARY_NODE_CHILD_BINARY;
-        node->child_len = read_int32();
+        node->child_len = buf_read_int32();
         node->child.data = read_string_len(node->child_len);
         break;
     default:
@@ -423,15 +393,9 @@ BINARY_NODE *read_node()
     return node;
 }
 
-void binary_read_set(char *src, size_t src_len)
-{
-    idx = 0;
-    buf = (uint8_t *)src;
-    buf_len = src_len;
-}
 
 BINARY_NODE *binary_read(char *src, size_t src_len)
 {
-    binary_read_set(src, src_len);
+    buf_set(src, src_len);
     return read_node();
 }

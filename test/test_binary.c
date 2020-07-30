@@ -4,13 +4,14 @@
 #include <sys/file.h>
 
 #include <helper.h>
+#include <buf.h>
 #include "binary_reader.h"
 
 #include "test.h"
 
 #define BUF_SIZE 80000
 
-static char buf[BUF_SIZE];
+static char read_buf[BUF_SIZE];
 static size_t read_size;
 
 int alphasort_r(const struct dirent **a, const struct dirent **b)
@@ -18,25 +19,25 @@ int alphasort_r(const struct dirent **a, const struct dirent **b)
     return -strcoll((*a)->d_name, (*b)->d_name);
 }
 
-int test_read_int()
+int test_buf()
 {
-    char buf[] = "\xcd"              // int8
+    char local_buf[] = "\xcd"              // int8
                  "\xf0\x0f"          // int16
                  "\x0a\xbb\x0c"      // int 20
                  "\xaa\xbb\xcc\xdd"; // int32
-    binary_read_set(buf, 9);
-    accent("int8  0x%02x", read_byte());
-    accent("int16 0x%04x", read_int16());
-    accent("int20 0x%06x", read_int20());
-    accent("int32 0x%08x", read_int32());
+    buf_set(local_buf, 9);
+    accent("int8  0x%02x", buf_read_byte());
+    accent("int16 0x%04x", buf_read_int16());
+    accent("int20 0x%06x", buf_read_int20());
+    accent("int32 0x%08x", buf_read_int32());
 
     // reset index, keep old data
-    binary_read_set(buf, 9);
+    buf_set(local_buf, 9);
 
-    TRUTHY(read_byte() == 0xcd);
-    TRUTHY(read_int16() == 0xf00f);
-    TRUTHY(read_int20() == 0x0abb0c);
-    TRUTHY(read_int32() == 0xaabbccdd);
+    TRUTHY(buf_read_byte() == 0xcd);
+    TRUTHY(buf_read_int16() == 0xf00f);
+    TRUTHY(buf_read_int20() == 0x0abb0c);
+    TRUTHY(buf_read_int32() == 0xaabbccdd);
     // TRUTHY(read_int16() == 0x0ff0);
     // TRUTHY(read_int20() == 0x0cbbaa);
     // TRUTHY(read_int32() == 0xaabbccdd);
@@ -49,8 +50,8 @@ int test_preempt()
     BINARY_NODE *ptr, *node;
 
     // First preempts is contact lists
-    ZERO(load_sample("preempt-1589472058-318", buf, BUF_SIZE, &read_size));
-    node = binary_read(buf, read_size);
+    ZERO(load_sample("preempt-1589472058-318", read_buf, BUF_SIZE, &read_size));
+    node = binary_read(read_buf, read_size);
     FALSY(node == NULL);
 
     ZERO(strcmp(node->tag, "response"));
@@ -89,8 +90,8 @@ int test_preempt()
     binary_free();
 
     // second preempt status?
-    ZERO(load_sample("preempt-1589472058-319", buf, BUF_SIZE, &read_size));
-    node = binary_read(buf, read_size);
+    ZERO(load_sample("preempt-1589472058-319", read_buf, BUF_SIZE, &read_size));
+    node = binary_read(read_buf, read_size);
     FALSY(node == NULL);
 
     ZERO(strcmp(node->tag, "response"));
@@ -138,8 +139,8 @@ int test_read_message()
         if (*ent[files_idx]->d_name != '1')
             continue;
 
-        ZERO(load_sample(ent[files_idx]->d_name, buf, BUF_SIZE, &read_size));
-        node = binary_read(buf, read_size);
+        ZERO(load_sample(ent[files_idx]->d_name, read_buf, BUF_SIZE, &read_size));
+        node = binary_read(read_buf, read_size);
         FALSY(node == NULL);
 
         ZERO(strcmp(node->tag, "action"));
@@ -161,8 +162,7 @@ int test_read_message()
 
 int test_main()
 {
-    //return test_read_int() || test_preempt() || test_read_message();
-    return test_read_message();
+    return test_buf() || test_preempt() || test_read_message();
 }
 
 int test_setup()
