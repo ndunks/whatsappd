@@ -1,8 +1,10 @@
 #include <helper.h>
 #include <binary.h>
 #include <proto.h>
+#include <wss.h>
 
 #include "handler.h"
+#include "wasocket.h"
 
 size_t handler_unread_count = 0;
 CHAT *handler_unread_chats = NULL;
@@ -267,6 +269,54 @@ int handler_handle(BINARY_NODE *node)
         warn("Unhandled: %s", node->tag);
         return 1;
     }
+    info("HANDLE: %s", node->tag);
 
     return (*handle->function)(node);
+}
+
+int handler_preempt()
+{
+    BINARY_NODE *node;
+    char *data, *tag;
+    ssize_t size;
+    int preempt_count = 0;
+    int ret;
+    while (1)
+    {
+
+        ret = ssl_check_read(100);
+        if (ret <= 0)
+            break;
+
+        info("handler_preempt_read\n-------------------", ret);
+
+        CHECK(wasocket_read(&data, &tag, &size));
+        if (wss_frame_rx.opcode != WS_OPCODE_BINARY)
+        {
+            warn("Not binary");
+            continue;
+        }
+
+        if (preempt_count == 2)
+        {
+            warn("Unimplemented parse messages");
+            break;
+        }
+
+        if (strncmp("preempt-", tag, 8))
+        {
+            err("Not preempt tag, but: %s", tag);
+            continue;
+        }
+
+        node = binary_read(data, size);
+        if (node == NULL)
+            return 1;
+
+        handler_handle(node);
+        preempt_count++;
+        binary_free();
+    }
+
+    return preempt_count == 2;
 }

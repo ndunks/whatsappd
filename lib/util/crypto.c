@@ -217,10 +217,9 @@ int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
         md_sha256,
         (uint8_t *)crypto_aes_keys.mac,
         32,
-        (uint8_t *)((*data) + 32),
+        iv, // -> src + 32
         check_len,
         hmac_check));
-
     if (memcmp(sign, hmac_check, 32) != 0)
     {
         err("HMAC Not match!");
@@ -236,9 +235,9 @@ int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
         (uint8_t *)buf));
     mempcpy(*data, buf, decrypted_len);
     *len = decrypted_len;
-    // info("Decrypted");
-    // fwrite(*data, 1, decrypted_len, stderr);
-    // info("---------------");
+    info("Decrypted %lu", decrypted_len);
+    fwrite(*data, 1, decrypted_len, stderr);
+    info("---------------");
     return 0;
 }
 

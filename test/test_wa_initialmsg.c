@@ -10,11 +10,12 @@
 
 int test_main()
 {
-    accent("MAIN RUNTIME START");
-    ZERO(wasocket_start());
-    sleep(10);
-    wasocket_stop();
-    accent("MAIN RUNTIME Stop");
+    ZERO(handler_preempt());
+    // accent("MAIN RUNTIME START");
+    // ZERO(wasocket_start());
+    // sleep(10);
+    // wasocket_stop();
+    // accent("MAIN RUNTIME Stop");
     return 0;
 }
 

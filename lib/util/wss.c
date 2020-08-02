@@ -240,12 +240,12 @@ void dump_frame()
     {
         payload = &wss_frame_rx.payloads[i];
         info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
-        if (payload->size < 1024)
-        {
-            fwrite(payload->data, 1, payload->size, stderr);
-            fprintf(stderr, "\n");
-            hexdump(payload->data, payload->size);
-        }
+        // if (payload->size < 1024)
+        // {
+        //     fwrite(payload->data, 1, payload->size, stderr);
+        //     fprintf(stderr, "\n");
+        //     hexdump(payload->data, payload->size);
+        // }
     }
     warn("\n------------------");
     // hexdump(wss.rx, wss.rx_len);
@@ -260,11 +260,12 @@ char *wss_read(size_t *data_len)
     ssize_t waiting_payload = 0;
     struct PAYLOAD *payload;
     uint8_t fin, masked;
+    size_t total_size = 0;
 
     wss.rx_len = 0;
     wss_frame_rx.payload_count = 0;
     wss_frame_rx.payload_size = 0;
-    payload = &wss_frame_rx.payloads[wss_frame_rx.payload_count];
+    payload = &wss_frame_rx.payloads[0];
 
     do
     {
@@ -306,12 +307,12 @@ char *wss_read(size_t *data_len)
 
                 if (fin)
                 {
-                    accent("   another frame, cutoff %d", recv);
+                    accent("   another frame, save it %d", recv);
                     WSS_NEED_BUF(recv);
                     // Copy it to our buffers
                     memcpy(
                         &wss.buf[wss.buf_len],
-                        &wss.rx[payload->frame_size + payload->size],
+                        &wss.rx[total_size],
                         recv);
                     wss.buf_len += recv;
                     goto process_payload;
@@ -319,8 +320,9 @@ char *wss_read(size_t *data_len)
                 else
                 { // next fragment
                     accent("   next fragment %d", recv);
-                    offset += payload->frame_size + payload->size;
+                    offset += total_size;
                     payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
+                    total_size = 0;
                     goto process_frame;
                 }
             }
@@ -376,13 +378,28 @@ char *wss_read(size_t *data_len)
             }
         }
 
+        total_size = payload->frame_size + payload->size;
+
         //check all payload is completely received
-        waiting_payload = wss.rx_len - (offset + payload->frame_size + payload->size);
-        if (waiting_payload != 0)
+        waiting_payload = wss.rx_len - (offset + total_size);
+        if (waiting_payload < 0)
         {
             ok("   Wait payload %ld", waiting_payload);
             WSS_NEED_RX((size_t)-waiting_payload);
             continue;
+        }
+        if (waiting_payload > 0)
+        {
+            accent("   too many bytes, save it %d", waiting_payload);
+            WSS_NEED_BUF(waiting_payload);
+            // Copy it to our buffers
+            memcpy(
+                &wss.buf[wss.buf_len],
+                &wss.rx[total_size],
+                waiting_payload);
+            wss.buf_len += waiting_payload;
+            wss.rx_len = offset + total_size;
+            waiting_payload = 0;
         }
 
     process_payload:
@@ -393,7 +410,7 @@ char *wss_read(size_t *data_len)
         wss_frame_rx.payload_size += payload->size;
         payload = &wss_frame_rx.payloads[++wss_frame_rx.payload_count];
         memset(payload, 0, sizeof(struct PAYLOAD));
-        offset += payload->frame_size + payload->size;
+        offset += total_size;
 
         if (wss_frame_rx.payload_count == WSS_FRAGMENT_MAX)
         {

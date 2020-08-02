@@ -1,6 +1,7 @@
 #include <mbedtls/error.h>
 #include <crypto.h>
 #include <cfg.h>
+#include <helper.h>
 
 #include "test.h"
 #include "data_auth.h"
@@ -124,7 +125,7 @@ int test_parse_server_keys()
 
     ZERO(memcmp(crypto_aes_keys.enc, aesKeyByte, CFG_KEY_LEN));
     ZERO(memcmp(crypto_aes_keys.mac, macKeyByte, CFG_KEY_LEN));
-
+    ok("test_parse_server_keys OK");
     return 0;
 }
 

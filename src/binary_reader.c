@@ -321,13 +321,15 @@ BINARY_NODE *read_node()
 {
     uint8_t bin_tag;
     int list_flag;
-    BINARY_NODE *node = binary_alloc(sizeof(BINARY_NODE));
-
-    memset(node, 0, sizeof(BINARY_NODE));
+    BINARY_NODE *node;
 
     bin_tag = buf_read_byte();
-    //ok("read_node: %x %d", buf_idx - 1, bin_tag);
+    ok("read_node: %x %d", buf_idx - 1, bin_tag);
     list_flag = read_list_flag(bin_tag);
+    if (list_flag == LIST_EMPTY)
+    {
+        return NULL;
+    }
     bin_tag = buf_read_byte();
 
     if (bin_tag == STREAM_END)
@@ -335,11 +337,18 @@ BINARY_NODE *read_node()
         err("Unexpected end tag");
         return NULL;
     }
+
+    node = binary_alloc(sizeof(BINARY_NODE));
+    memset(node, 0, sizeof(BINARY_NODE));
     node->tag = read_string_tag(bin_tag);
 
     if (list_flag == 0 || node->tag == NULL)
     {
         err("Invalid node");
+        hexdump(buf, buf_len);
+        warn("-------------------");
+        fwrite(buf, 1, buf_len, stderr);
+        warn("\n-------------------");
         return NULL;
     }
 
