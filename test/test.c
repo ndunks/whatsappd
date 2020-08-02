@@ -25,7 +25,7 @@ int load_sample(const char *name, char *buf, size_t buf_size, size_t *read_size)
 
     fclose(fd);
 
-    ok("%s: %lu bytes", name, *read_size);
+    accent("%s: " COL_YELL "%lu bytes", name, *read_size);
     return 0;
 }
 

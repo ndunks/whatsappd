@@ -7,6 +7,8 @@
 #include <session.h>
 #include <wasocket.h>
 
+#define REQUIRE_WA
+
 #include "test.h"
 
 static char *test_cfg_file = "tmp/test_session_whatsappd.cfg";
@@ -83,7 +85,6 @@ int test_resume_session()
 
 int test_main()
 {
-
     return test_new_session() || test_resume_session();
 }
 

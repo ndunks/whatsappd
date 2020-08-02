@@ -172,7 +172,7 @@ static int handle_chat(BINARY_NODE *node)
 
     if (!wid_is_user(jid))
     {
-        info("Skip group chat");
+        //info("Skip group chat");
         return 0;
     }
 

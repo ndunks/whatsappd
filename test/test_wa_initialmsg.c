@@ -6,6 +6,8 @@
 #include <wasocket.h>
 #include "test.h"
 
+#define REQUIRE_VALID_CFG
+
 int test_main()
 {
     accent("MAIN RUNTIME START");
