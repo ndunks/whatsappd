@@ -5,6 +5,30 @@
 
 int CATCH_RET = 0;
 
+uint64_t helper_jid_to_num(const char *buf)
+{
+    int len;
+    char *end, tmp[21] = {0};
+    end = strrchr(buf, '@');
+
+    if (end == NULL)
+        len = strlen(buf);
+    else
+        len = end - buf;
+
+    if (len > 21)
+    {
+        err("JID too long");
+        return 0;
+    }
+    info("LEN: %d", len);
+    strncpy(tmp, buf, len);
+    tmp[len] = 0;
+    info("NUMbEr: %s", tmp);
+
+    return atoll(tmp);
+}
+
 int helper_qrcode_show(const char *src)
 {
     int size, border = 2;

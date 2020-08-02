@@ -1,6 +1,7 @@
 #pragma once
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "color.h"
 
 #define hexdump(buf, size)                            \
@@ -33,4 +34,5 @@ extern int CATCH_RET;
         exit(1);  \
     } while (0)
 
+uint64_t helper_jid_to_num(const char *buf);
 int helper_qrcode_show(const char *src);
