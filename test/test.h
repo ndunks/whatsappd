@@ -24,7 +24,7 @@
 #define TRUTHY(expression) NOTEQUAL(expression, 0)
 
 extern int ret_val;
-extern int load_sample(const char *name, const char *buf, size_t buf_size, size_t *read_size);
+extern int load_sample(const char *name, char *buf, size_t buf_size, size_t *read_size);
 extern int test_setup();
 extern int test_main();
 extern int test_cleanup();

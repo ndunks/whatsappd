@@ -25,6 +25,8 @@ int test_main()
     int files_idx;
     BINARY_NODE *node;
 
+    TRUTHY(handler_undread.from == NULL);
+
     /** Message sent after preempt is contain chats */
     files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
     while (files_idx--)

@@ -1,7 +1,7 @@
 #include "helper.h"
 #include "binary.h"
-const char *wa_host_short = "c.us",
-           *wa_host_long = "s.whatsapp.net";
+const char wa_host_short[5] = "c.us",
+           wa_host_long[15] = "s.whatsapp.net";
 
 const char *const DICTIONARY_SINGLEBYTE[] = {
     0, 0, 0, "200", "400", "404", "500", "501", "502", "action", "add", "after", "archive", "author", "available", "battery", "before", "body", "broadcast", "chat", "clear", "code", "composing", "contacts", "count", "create", "debug", "delete", "demote", "duplicate", "encoding", "error", "false", "filehash", "from", "g.us", "group", "groups_v2", "height", "id", "image", "in",

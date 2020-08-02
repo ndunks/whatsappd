@@ -4,11 +4,9 @@
 
 #include "binary_reader.h"
 
-
 static int IS_READING_ATTR = 0;
 
 char *read_string_tag(uint32_t bin_tag);
-
 
 char unpack_nibble(int e)
 {
@@ -392,7 +390,6 @@ BINARY_NODE *read_node()
 
     return node;
 }
-
 
 BINARY_NODE *binary_read(char *src, size_t src_len)
 {

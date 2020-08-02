@@ -5,7 +5,7 @@
 
 int ret_val;
 
-int load_sample(const char *name, const char *buf, size_t buf_size, size_t *read_size)
+int load_sample(const char *name, char *buf, size_t buf_size, size_t *read_size)
 {
     char path[64] = {0};
     FILE *fd;

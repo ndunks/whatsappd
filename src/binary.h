@@ -50,7 +50,7 @@ typedef enum BINARY_TAG
     PACKED_MAX = 254
 } BINARY_TAG;
 
-const char *wa_host_short, *wa_host_long;
+extern const char wa_host_short[5], wa_host_long[15];
 extern const char *const DICTIONARY_SINGLEBYTE[];
 extern int DICTIONARY_SINGLEBYTE_LEN;
 
