@@ -21,11 +21,8 @@ uint64_t helper_jid_to_num(const char *buf)
         err("JID too long");
         return 0;
     }
-    info("LEN: %d", len);
     strncpy(tmp, buf, len);
     tmp[len] = 0;
-    info("NUMbEr: %s", tmp);
-
     return atoll(tmp);
 }
 

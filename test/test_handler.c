@@ -19,13 +19,13 @@ int alphasort_r(const struct dirent **a, const struct dirent **b)
     return -strcoll((*a)->d_name, (*b)->d_name);
 }
 
-int test_main()
+int test_preempt()
 {
     struct dirent **ent;
     int files_idx;
     BINARY_NODE *node;
 
-    TRUTHY(handler_undread.from == NULL);
+    TRUTHY(handler_unread_chats == NULL);
 
     /** Message sent after preempt is contain chats */
     files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
@@ -33,7 +33,7 @@ int test_main()
     {
         switch (*ent[files_idx]->d_name)
         {
-        case '1':
+        //preempt
         case 'p':
             break;
         default:
@@ -49,16 +49,52 @@ int test_main()
         info("CHILDS: %d", node->child_len);
         ZERO(handler_handle(node));
 
-        // for (i = 0; i < node->child_len; i++)
-        // {
-        //     ptr = node->child.list[i];
-        //     info(" %3d: %s", i, ptr->tag);
-        // }
         binary_free();
         free(ent[files_idx]);
     }
     free(ent);
     return 0;
+}
+
+int test_messages()
+{
+    struct dirent **ent;
+    int files_idx;
+    BINARY_NODE *node;
+
+    TRUTHY(handler_unread_chats == NULL);
+
+    /** Message sent after preempt is contain chats */
+    files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
+    while (files_idx--)
+    {
+        switch (*ent[files_idx]->d_name)
+        {
+        case '1':
+            break;
+        default:
+            continue;
+        }
+
+        ZERO(load_sample(ent[files_idx]->d_name, read_buf, BUF_SIZE, &read_size));
+        node = binary_read(read_buf, read_size);
+        FALSY(node == NULL);
+
+        TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
+        FALSY(node->child.list == NULL);
+        info("CHILDS: %d", node->child_len);
+        ZERO(handler_handle(node));
+        binary_free();
+        free(ent[files_idx]);
+    }
+    ok("Unread chats %lu", handler_unread_count);
+    free(ent);
+    return 0;
+}
+
+int test_main()
+{
+    return test_preempt() || test_messages();
 }
 
 int test_setup()

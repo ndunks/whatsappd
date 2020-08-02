@@ -5,7 +5,7 @@
 #include "handler.h"
 
 size_t handler_unread_count = 0;
-UNREAD_MSG handler_undread = {NULL};
+CHAT *handler_unread_chats = NULL;
 
 static bool wid_is_user(char *jid)
 {
@@ -119,7 +119,7 @@ static int handle_response(BINARY_NODE *node)
         warn("handle_response unhandled: %s", child->tag);
         return 1;
     }
-    accent("handle_response: %u %ld", node->child_len, node->child_type);
+    //accent("handle_response: %s %u %ld", handle->tag, node->child_len, node->child_type);
     for (i = 0; i < node->child_len; i++)
     {
         (*handle->function)(node->child.list[i]);
@@ -164,16 +164,24 @@ static int handle_user(BINARY_NODE *node)
 
 static int handle_chat(BINARY_NODE *node)
 {
-    char *unread = binary_attr(node, "unread");
-    if(!wid_is_user(binary_attr(node,"jid"))){
+    char *jid, *name, *unread;
+
+    unread = binary_attr(node, "unread");
+    jid = binary_attr(node, "jid");
+    name = binary_attr(node, "name");
+
+    if (!wid_is_user(jid))
+    {
         info("Skip group chat");
         return 0;
     }
 
-    if(*unread == '1'){
+    //binary_print_attr(node);
+    if (unread != NULL && *unread == '1')
+    {
         ok("GOTTT UNREAD CHAT!");
+        handler_add_unread(jid, name, NULL, 0);
     }
-    binary_print_attr(node);
     return 0;
 }
 
@@ -200,8 +208,54 @@ HANDLE *handler_get(const char *tag)
     return NULL;
 }
 
-void handler_add_unread(char * jid, char *name){
+void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg_len)
+{
+    uint64_t jid_num;
+    int i;
+    CHAT *tail = NULL, *chat = handler_unread_chats;
+    jid_num = helper_jid_to_num(jid);
 
+    while (chat != NULL)
+    {
+        if (chat->jid_num == jid_num)
+            break;
+        tail = chat;
+        chat = chat->next;
+    }
+
+    if (chat == NULL)
+    {
+        chat = calloc(sizeof(CHAT), 1);
+        if (tail)
+        {
+            tail->next = chat;
+        }
+        handler_unread_count++;
+    }
+
+    if (name != NULL)
+        strcpy(chat->name, name);
+
+    if (msg != NULL)
+    {
+        if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
+        {
+            warn("Too many unread msg in chat, msg truncated.");
+            free(chat->msg[0]);
+            chat->msg_count = HANDLER_MAX_CHAT_MESSAGE - 1;
+
+            i = 0;
+
+            for (i = 0; i < HANDLER_MAX_CHAT_MESSAGE - 2; i++)
+            {
+                chat->msg[i] = chat->msg[i + 1];
+            }
+        }
+
+        chat->msg[chat->msg_count] = malloc(msg_len);
+        strncpy(chat->msg[chat->msg_count], msg, msg_len);
+        chat->msg_count++;
+    }
 }
 
 int handler_handle(BINARY_NODE *node)
@@ -215,8 +269,4 @@ int handler_handle(BINARY_NODE *node)
     }
 
     return (*handle->function)(node);
-}
-
-int handler_handle_first_preempt(char * buf, size_t buf_len){
-
 }
