@@ -6,8 +6,5 @@
         "**/build/": true,
         "**/tmp/": true,
         "**/lib/mbedtls": true
-    },
-    "files.associations": {
-        "*.function": "c"
     }
 }

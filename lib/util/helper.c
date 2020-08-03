@@ -1,9 +1,29 @@
 #include <locale.h>
+#include <sys/file.h>
 
 #include "helper.h"
 #include "qrcodegen.h"
 
 int CATCH_RET = 0;
+
+int helper_save_file(const char *path, const char *buf, size_t buf_len)
+{
+    int file = open(path, O_WRONLY | O_CREAT, 0644);
+    if (file < 0)
+    {
+        err("Fail open write %s", path);
+        return -1;
+    }
+
+    if (write(file, buf, buf_len) != buf_len)
+    {
+        err("Fail write %s", path);
+        close(file);
+        return 1;
+    };
+    close(file);
+    return 0;
+}
 
 uint64_t helper_jid_to_num(const char *buf)
 {

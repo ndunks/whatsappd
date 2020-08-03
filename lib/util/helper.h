@@ -33,6 +33,6 @@ extern int CATCH_RET;
         err(msg); \
         exit(1);  \
     } while (0)
-
+int helper_save_file(const char *path, const char *buf, size_t buf_len);
 uint64_t helper_jid_to_num(const char *buf);
 int helper_qrcode_show(const char *src);
