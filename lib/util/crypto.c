@@ -194,6 +194,19 @@ int crypto_sign(char *dst, char *src, size_t len)
         (uint8_t *)dst);
 }
 
+int crypto_unpadding(char *buf, size_t *len)
+{
+    int pad_len = buf[*len - 1];
+    if (pad_len > 16)
+    {
+        warn("Invalid pad len: %d", pad_len);
+        return 1;
+    }
+    *len -= pad_len;
+    buf[*len] = 0;
+    return 0;
+}
+
 int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *output_len)
 {
     uint8_t hmac_check[32], sign[32], iv[16];
@@ -224,7 +237,6 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
         return 1;
     }
 
-    *output_len = encrypted_len;
     CHECK(mbedtls_aes_crypt_cbc(
         crypto_aes_dec_ctx,
         MBEDTLS_AES_DECRYPT,
@@ -232,11 +244,10 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
         iv,
         input + (32 + 16),
         (uint8_t *)output));
-    // Padding
 
-    info("Decrypted %lu", encrypted_len);
-    fwrite(output, 1, encrypted_len, stderr);
-    info("---------------");
+    // Padding
+    *output_len = encrypted_len;
+    crypto_unpadding(output, output_len);
     return 0;
 }
 
