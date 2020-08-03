@@ -61,7 +61,7 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
     char *buf;
     int ret;
-    size_t buf_len, decrypted_len;
+    size_t buf_len, encrypted_len;
 
     if (wss_read(NULL) == NULL)
         return 1;
@@ -80,26 +80,21 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
 
     if (wss_frame_rx.opcode == WS_OPCODE_BINARY)
     {
-        WSS_NEED_BUF(*data_size);
+        encrypted_len = *data_size;
+        WSS_NEED_BUF(encrypted_len);
         buf = wss.buf + wss.buf_len;
-        memset(buf, 0, *data_size);
-        wss.buf_len += *data_size;
-        decrypted_len = *data_size;
+        wss.buf_len += encrypted_len;
 
-        info("TAG (%ld): %s: datasz: %lu", strlen(*tag), *tag, *data_size);
-        hexdump(*data, *data_size);
+        info("DECRYPT %s: datasz: %lu", *tag, encrypted_len);
+        hexdump(*data, encrypted_len);
         accent("-----------");
-        ret = crypto_decrypt_hmac(data, &decrypted_len, buf);
-        wss.buf_len -= (*data_size);
-        if (ret)
-        {
-            return ret;
-        };
-        info("Size dec %lu vs %lu", *data_size, decrypted_len);
-        (*data_size) = decrypted_len;
+        CHECK(crypto_decrypt_hmac(*data, encrypted_len, buf, data_size));
+        mempcpy(*data, buf, *data_size);
+        wss.buf_len -= encrypted_len;
+        hexdump(*data, *data_size);
     }
 
-    info("TAG (%ld): %s", *data - *tag - 1, *tag);
+    info("TAG (%ld): %s %lu bytes", *data - *tag - 1, *tag, *data_size);
     if (*data_size < 1024)
     {
         // if (wss_frame_rx.opcode == WS_OPCODE_TEXT)

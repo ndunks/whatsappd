@@ -233,6 +233,8 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
 
     if (memcmp(sign, hmac_check, 32) != 0)
     {
+        hexdump(sign, 32);
+        hexdump(hmac_check, 32);
         err("HMAC Not match!");
         return 1;
     }

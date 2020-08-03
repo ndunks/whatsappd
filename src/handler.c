@@ -121,7 +121,9 @@ static int handle_response(BINARY_NODE *node)
         warn("handle_response unhandled: %s", child->tag);
         return 1;
     }
-    //accent("handle_response: %s %u %ld", handle->tag, node->child_len, node->child_type);
+
+    accent("handle_response: %s %u %ld", handle->tag, node->child_len, node->child_type);
+
     for (i = 0; i < node->child_len; i++)
     {
         (*handle->function)(node->child.list[i]);
@@ -166,11 +168,22 @@ static int handle_user(BINARY_NODE *node)
 
 static int handle_chat(BINARY_NODE *node)
 {
-    char *jid, *name, *unread;
+    char *jid, *name, *unread, *count_str;
+    size_t unread_count = 0;
 
     unread = binary_attr(node, "unread");
     jid = binary_attr(node, "jid");
     name = binary_attr(node, "name");
+    count_str = binary_attr(node, "count");
+    if (count_str)
+    {
+        unread_count = atol(count_str);
+        if (unread_count)
+        {
+            handler_add_unread(jid, name, NULL, 0);
+            accent("%s: %lu unread!", jid, unread_count);
+        }
+    }
 
     if (!wid_is_user(jid))
     {
@@ -178,7 +191,7 @@ static int handle_chat(BINARY_NODE *node)
         return 0;
     }
 
-    //binary_print_attr(node);
+    binary_print_attr(node);
     if (unread != NULL && *unread == '1')
     {
         ok("GOTTT UNREAD CHAT!");
@@ -269,7 +282,7 @@ int handler_handle(BINARY_NODE *node)
         warn("Unhandled: %s", node->tag);
         return 1;
     }
-    info("HANDLE: %s", node->tag);
+    accent("handler_%s", node->tag);
 
     return (*handle->function)(node);
 }
@@ -293,6 +306,7 @@ int handler_preempt()
         CHECK(wasocket_read(&data, &tag, &size));
         if (wss_frame_rx.opcode != WS_OPCODE_BINARY)
         {
+            info("%s", data);
             warn("Not binary");
             continue;
         }
@@ -312,6 +326,8 @@ int handler_preempt()
         node = binary_read(data, size);
         if (node == NULL)
             return 1;
+
+        info("preempt Handle Node");
 
         handler_handle(node);
         preempt_count++;
