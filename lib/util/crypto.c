@@ -13,7 +13,7 @@
 mbedtls_ctr_drbg_context *crypto_p_rng;
 mbedtls_entropy_context *crypto_entropy;
 aes_keys crypto_aes_keys;
-static mbedtls_aes_context *crypto_aes_ctx;
+static mbedtls_aes_context *crypto_aes_dec_ctx;
 
 static mbedtls_ecp_group *grp;
 static const mbedtls_md_info_t *md_sha256;
@@ -194,49 +194,48 @@ int crypto_sign(char *dst, char *src, size_t len)
         (uint8_t *)dst);
 }
 
-int crypto_decrypt_hmac(char **data, size_t *len, char *buf)
+int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *output_len)
 {
-    uint8_t hmac_check[32], *sign, *iv, *input, *src = (uint8_t *)*data;
-    size_t check_len = 0, decrypted_len = 0;
-    memset(hmac_check, 0, 32);
-    //info("decrypt_hmac: before %lu", *len);
+    uint8_t hmac_check[32], sign[32], iv[16];
+    size_t check_len, encrypted_len;
 
-    if (*len <= 64)
+    if (input_len <= 64)
     {
         err("crypto_decrypt: to short");
         return 1;
     }
 
-    sign = src;
-    iv = src + 32;
-    input = src + 32 + 16;
-    check_len = (*len) - 32;        // hmac sign
-    decrypted_len = check_len - 16; // iv
+    memcpy(sign, input, 32);
+    memcpy(iv, input + 32, 16);
+    check_len = input_len - 32;            // hmac sign
+    encrypted_len = input_len - (32 + 16); // iv
 
     CHECK(mbedtls_md_hmac(
         md_sha256,
         (uint8_t *)crypto_aes_keys.mac,
         32,
-        iv, // -> src + 32
+        input + 32,
         check_len,
         hmac_check));
+
     if (memcmp(sign, hmac_check, 32) != 0)
     {
         err("HMAC Not match!");
         return 1;
     }
 
+    *output_len = encrypted_len;
     CHECK(mbedtls_aes_crypt_cbc(
-        crypto_aes_ctx,
+        crypto_aes_dec_ctx,
         MBEDTLS_AES_DECRYPT,
-        decrypted_len,
+        encrypted_len,
         iv,
-        input,
-        (uint8_t *)buf));
-    mempcpy(*data, buf, decrypted_len);
-    *len = decrypted_len;
-    info("Decrypted %lu", decrypted_len);
-    fwrite(*data, 1, decrypted_len, stderr);
+        input + (32 + 16),
+        (uint8_t *)output));
+    // Padding
+
+    info("Decrypted %lu", encrypted_len);
+    fwrite(output, 1, encrypted_len, stderr);
     info("---------------");
     return 0;
 }
@@ -316,8 +315,8 @@ int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
     // Fill the result
     memcpy(crypto_aes_keys.enc, decrypted, 32);
     memcpy(crypto_aes_keys.mac, decrypted + 32, 32);
-    mbedtls_aes_setkey_dec(crypto_aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
-    mbedtls_aes_setkey_enc(crypto_aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    mbedtls_aes_setkey_dec(crypto_aes_dec_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    //mbedtls_aes_setkey_enc(crypto_aes_dec_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
 
     info("Gained aes & mac key");
 
@@ -357,8 +356,8 @@ int crypto_init()
                               (const unsigned char *)pers,
                               sizeof pers));
 
-    crypto_aes_ctx = calloc(sizeof(mbedtls_aes_context), 1);
-    mbedtls_aes_init(crypto_aes_ctx);
+    crypto_aes_dec_ctx = calloc(sizeof(mbedtls_aes_context), 1);
+    mbedtls_aes_init(crypto_aes_dec_ctx);
     return 0;
 
 CATCH:
@@ -369,12 +368,12 @@ CATCH:
 void crypto_free()
 {
 
-    mbedtls_aes_free(crypto_aes_ctx);
+    mbedtls_aes_free(crypto_aes_dec_ctx);
     mbedtls_ecp_group_free(grp);
     mbedtls_ctr_drbg_free(crypto_p_rng);
     mbedtls_entropy_free(crypto_entropy);
 
-    free(crypto_aes_ctx);
+    free(crypto_aes_dec_ctx);
     free(grp);
     free(crypto_p_rng);
     free(crypto_entropy);

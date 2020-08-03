@@ -124,52 +124,68 @@ int test_main()
 {
     BINARY_NODE *node;
     int ret = 0;
-    u_char work_buf[256] = {0};
-    CFG *cfg = (void *)&_whatsappd_cfg[0];
-    u_char *res = &encrypted[0];
-    hexdump(cfg->serverSecret, 144);
+    CFG *cfg = (void *)_whatsappd_cfg;
+    u_char res[128];
+    size_t output_size;
+
     ZERO(crypto_parse_server_keys(cfg->serverSecret, cfg));
+    ret = crypto_decrypt_hmac(encrypted, encrypted_size, res, &output_size);
 
-    memset(work_buf, 0, 256);
-    //ret = crypto_decrypt_hmac(&res, &encrypted_size, work_buf);
     // ---------------
-    mbedtls_aes_context aes_ctx;
-    uint8_t hmac_check[32], *sign, *iv, *input;
-    size_t check_len = 0, decrypted_len = 0;
-    mbedtls_aes_init(&aes_ctx);
-    mbedtls_aes_setkey_dec(&aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
-    mbedtls_aes_setkey_enc(&aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
-    memset(hmac_check, 0, 32);
+    // //mbedtls_md_context_t sha_ctx;
+    // mbedtls_aes_context aes_ctx;
+    // uint8_t hmac_check[32], sign[32], iv[16], *input;
+    // size_t check_len = 0, encrypted_len = 0;
 
-    sign = encrypted;
-    iv = encrypted + 32;
-    input = encrypted + 32 + 16;
-    check_len = encrypted_size - 32; // hmac sign
-    decrypted_len = check_len - 16;  // iv
-    ZERO(mbedtls_md_hmac(
-        mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
-        (uint8_t *)crypto_aes_keys.mac,
-        32,
-        iv, // -> src + 32
-        check_len,
-        hmac_check));
-    if (memcmp(sign, hmac_check, 32) != 0)
-    {
-        err("HMAC Not match!");
-        return 1;
-    }
-    ZERO(mbedtls_aes_crypt_cbc(
-        &aes_ctx,
-        MBEDTLS_AES_DECRYPT,
-        decrypted_len,
-        iv,
-        input,
-        (uint8_t *)res));
+    // mbedtls_aes_init(&aes_ctx);
+    // //mbedtls_md_init(&sha_ctx);
+    // // ret = mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
+    // // if (ret != 0)
+    // // {
+    // //     err("  ! mbedtls_md_setup() returned -0x%04x\n", (unsigned int)-ret);
+    // //     return 1;
+    // // }
 
-    mbedtls_aes_free(&aes_ctx);
+    // mbedtls_aes_setkey_dec(&aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    // //mbedtls_aes_setkey_enc(&aes_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    // memset(hmac_check, 0, 32);
+
+    // mempcpy(sign, encrypted, 32);
+    // mempcpy(iv, encrypted + 32, 16);
+
+    // input = encrypted + 32 + 16;
+    // check_len = encrypted_size - 32;            // hmac sign
+    // encrypted_len = encrypted_size - (32 + 16); // iv
+
+    // ZERO(mbedtls_md_hmac(
+    //     mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
+    //     (uint8_t *)crypto_aes_keys.mac,
+    //     32,
+    //     encrypted + 32, // -> src + 32
+    //     check_len,
+    //     hmac_check));
+
+    // // mbedtls_md_hmac_starts(&sha_ctx, crypto_aes_keys.mac, 32);
+    // // mbedtls_md_hmac_update(&sha_ctx, encrypted + 32, check_len);
+    // // mbedtls_md_hmac_finish(&sha_ctx, hmac_check);
+
+    // if (memcmp(sign, hmac_check, 32) != 0)
+    // {
+    //     err("HMAC Not match!");
+    //     return 1;
+    // }
+    // ZERO(mbedtls_aes_crypt_cbc(
+    //     &aes_ctx,
+    //     MBEDTLS_AES_DECRYPT,
+    //     encrypted_len,
+    //     iv,
+    //     input,
+    //     res));
+
+    // mbedtls_aes_free(&aes_ctx);
     // ---------------
-
-    hexdump(res, encrypted_size);
+    info("Decrypted from %lu bytes to %lu bytes", encrypted_size, output_size);
+    hexdump(res, output_size);
     ZERO(memcmp(decrypted, res, decrypted_size));
     TRUTHY(decrypted_size == encrypted_size);
     node = binary_read(res, encrypted_size);
