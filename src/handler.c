@@ -26,16 +26,16 @@ static bool wid_is_user(char *jid)
     return false;
 }
 
-static bool wid_is_group(char *jid)
-{
-    char *host = strchr(jid, '@');
-    if (host++)
-    {
-        if (strcmp(host, "g.us") == 0)
-            return true;
-    }
-    return false;
-}
+// static bool wid_is_group(char *jid)
+// {
+//     char *host = strchr(jid, '@');
+//     if (host++)
+//     {
+//         if (strcmp(host, "g.us") == 0)
+//             return true;
+//     }
+//     return false;
+// }
 
 static int handle_action(BINARY_NODE *node)
 {
@@ -91,10 +91,7 @@ static int handle_action(BINARY_NODE *node)
             }
             msg_len = strlen(msg.message.conversation);
             if (msg_len)
-            {
-                info("msg: %s %s status: %d", msg.key.remoteJid, msg.message.conversation, msg.status);
                 handler_add_unread(msg.key.remoteJid, NULL, msg.message.conversation, msg_len);
-            }
             else
                 warn("Ignore zero-length last message");
         }
@@ -176,17 +173,16 @@ static int handle_response(BINARY_NODE *node)
 //     return 0;
 // }
 
-static int handle_user(BINARY_NODE *node)
-{
-    accent("handle_user: %s", node->tag);
-    return 0;
-}
+// static int handle_user(BINARY_NODE *node)
+// {
+//     accent("handle_user: %s", node->tag);
+//     return 0;
+// }
 
 static int handle_chat(BINARY_NODE *node)
 {
     char *jid, *name, *unread, *count_str;
     size_t unread_count = 0;
-    info("handle_chat");
 
     unread = binary_attr(node, "unread");
     jid = binary_attr(node, "jid");
@@ -209,11 +205,11 @@ static int handle_chat(BINARY_NODE *node)
         return 0;
     }
 
-    // if (unread != NULL && *unread == '1')
-    // {
-    //     ok("GOTTT UNREAD CHAT!");
-    //     handler_add_unread(jid, name, NULL, 0);
-    // }
+    if (unread != NULL && *unread == '1')
+    {
+        ok("GOTTT UNREAD CHAT!");
+        handler_add_unread(jid, name, NULL, 0);
+    }
     return 0;
 }
 
@@ -221,7 +217,7 @@ HANDLE handler_tag[] = {
     {.tag = "action", .function = handle_action},
     {.tag = "response", .function = handle_response},
     //{.tag = "message", .function = handle_message},
-    {.tag = "user", .function = handle_user},
+    //{.tag = "user", .function = handle_user},
     {.tag = "chat", .function = handle_chat},
     {NULL}};
 
@@ -258,15 +254,14 @@ void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg
     if (chat == NULL)
     {
         chat = calloc(sizeof(CHAT), 1);
-        ok("** New Unread %s %lu", jid, jid_num);
-        if (tail)
-        {
+        strcpy(chat->jid, jid);
+        chat->jid_num = jid_num;
+
+        if (tail != NULL)
             tail->next = chat;
-        }
         else
-        {
-            handler_unread_chats == chat;
-        }
+            handler_unread_chats = chat;
+
         handler_unread_count++;
     }
 
@@ -324,7 +319,7 @@ int handler_preempt()
         if (ret <= 0)
             break;
 
-        info("handler_preempt_read\n-------------------", ret);
+        info("handler_preempt_read\n-------------------");
         CHECK(wasocket_read(&data, &tag, &size));
 
         if (wss_frame_rx.opcode != WS_OPCODE_BINARY)

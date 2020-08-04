@@ -32,7 +32,7 @@ int test_main()
     {
         strcpy(file, encrypted_messages[i]);
 
-        accent("Decrypting %s", file);
+        accent(":: %s", file);
         load_sample(file, encrypted, 2248, &encrypted_size);
         *(strrchr(file, '.')) = 0;
         load_sample(file, decrypted, 2248, &decrypted_size);
@@ -43,7 +43,7 @@ int test_main()
         TRUTHY(decrypted_size == output_size);
         node = binary_read(output, encrypted_size);
         ZERO(handler_handle(node));
-        ok("%s: %s OK", file, node->tag);
+        ok(":: %s OK", node->tag);
     }
 
     info("handler_unread_count: %lu", handler_unread_count);
