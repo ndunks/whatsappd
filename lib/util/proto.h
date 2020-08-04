@@ -1,5 +1,6 @@
 #pragma once
 
+#include "helper.h"
 #include "buf.h"
 #include "binary.h"
 
@@ -96,4 +97,11 @@ typedef struct WebMessageInfo
     WEB_MESSAGE_INFO_STATUS status;
 } WebMessageInfo;
 
+uint write_varint(uint32_t num);
+uint32_t read_varint();
+int read_tag(PROTO *proto);
+int write_tag(PROTO *proto);
+
+int proto_write(PROTO *proto, size_t proto_len);
+int proto_scan(PROTO *proto, size_t proto_len, size_t max_field);
 int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size);

@@ -87,7 +87,7 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
         // info("DECRYPT %s: datasz: %lu", *tag, encrypted_len);
         // hexdump(*data, encrypted_len);
         // accent("-----------");
-        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, data_size));
+        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, (size_t *) data_size));
         mempcpy(*data, ptr, *data_size);
         wss.buf_len -= encrypted_len;
         //hexdump(*data, *data_size);

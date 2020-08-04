@@ -1,19 +1,38 @@
-#include "helper.h"
 #include "proto.h"
 
-// size_t get_tag_size(uint32_t number)
-// {
-// 	if (number < (1UL << 4))
-// 		return 1;
-// 	else if (number < (1UL << 11))
-// 		return 2;
-// 	else if (number < (1UL << 18))
-// 		return 3;
-// 	else if (number < (1UL << 25))
-// 		return 4;
-// 	else
-// 		return 5;
-// }
+uint write_varint(uint32_t num)
+{
+	uint32_t start = buf_idx;
+
+	while (num >= 0b10000000)
+	{
+		buf[buf_idx++] = num | 0b10000000;
+		num = num >> 7;
+	}
+	buf[buf_idx++] = num;
+	return buf_idx - start;
+}
+
+uint32_t read_varint()
+{
+	uint32_t val = 0lu;
+	int i = 0, shift = 0;
+	uint8_t *ptr = &buf[buf_idx];
+
+	do
+	{
+		val |= ((ptr[i] & 0b01111111UL) << shift);
+		shift += 7;
+		if (i >= 5)
+		{
+			err("read_var_length overflow");
+			break;
+		}
+	} while (ptr[i++] & 0b10000000);
+
+	buf_idx += i;
+	return val;
+}
 
 int read_tag(PROTO *proto)
 {
@@ -30,27 +49,76 @@ int read_tag(PROTO *proto)
 	return 0;
 }
 
-size_t read_varint()
+int write_tag(PROTO *proto)
 {
-	size_t val = 0;
-	int i = 0, shift = 0;
-	uint8_t *ptr = &buf[buf_idx];
+	uint32_t field = proto->field;
+	size_t start = buf_idx;
 
-	do
+	buf[buf_idx] = proto->type & 0b00000111;
+	buf[buf_idx++] |= (field & 0b1111) << 3;
+
+	if (field > 0b1111)
 	{
-		val |= ((ptr[i] & 0b01111111) << shift);
-		shift += 7;
-		if (i >= 5)
+		buf[buf_idx - 1] |= 0b10000000;
+		field = field >> 4;
+		while (field & 0b10000000)
 		{
-			err("read_var_length overflow");
-			break;
+			buf[buf_idx++] = field;
+			field = field >> 7;
 		}
-	} while (ptr[i++] & 0b10000000);
+		buf[buf_idx++] = field;
+	}
 
-	buf_idx += i;
-	return val;
+	return buf_idx - start;
 }
 
+int proto_write(PROTO *proto, size_t proto_len)
+{
+	int i = 0;
+	while (i++ < proto_len)
+	{
+		if (!buf_available())
+		{
+			err("proto_write: not enough buffer");
+			return BUF_ERR_NOT_ENOUGH;
+		}
+
+		write_tag(proto);
+
+		switch (proto->type)
+		{
+			// 	int32, int64, uint32, uint64, sint32, sint64, bool, enum
+		case WIRETYPE_VARINT:
+			write_varint(proto->value.num64);
+			break;
+
+			// fixed64, sfixed64, double
+		case WIRETYPE_FIXED64:
+			*(uint64_t *)&buf[buf_idx] = proto->value.num64;
+			buf_idx += 8;
+			break;
+
+			// string, bytes, embedded messages, packed repeated fields
+		case WIRETYPE_LENGTH_DELIMITED:
+			write_varint(proto->len);
+			memcpy(&buf[buf_idx], proto->value.buf, proto->len);
+			buf_idx += proto->len;
+			break;
+
+			//	fixed32, sfixed32, float
+		case WIRETYPE_FIXED32:
+			*(uint32_t *)&buf[buf_idx] = proto->value.num32;
+			buf_idx += 4;
+			break;
+
+		default:
+			warn("Unsupported wiretype: %d", proto->type);
+			break;
+		}
+		proto++;
+	}
+	return 0;
+}
 int proto_scan(PROTO *proto, size_t proto_len, size_t max_field)
 {
 	int i = 0;
@@ -59,12 +127,13 @@ int proto_scan(PROTO *proto, size_t proto_len, size_t max_field)
 	{
 		if (i == proto_len)
 		{
-			err("proto_scan: not enough arr");
+			err("proto_scan: not enough array storage");
 			return BUF_ERR_NOT_ENOUGH;
 		}
 
 		read_tag(proto);
-		//info("tag: %d, field: %d", proto->type, proto->field);
+		if (proto->field == 0)
+			break;
 
 		switch (proto->type)
 		{
@@ -141,6 +210,7 @@ int proto_parse_Message(Message *dst, char *buf, size_t buf_size)
 	}
 	return 0;
 }
+
 int proto_parse_MessageKey(MessageKey *dst, char *buf, size_t buf_size)
 {
 	PROTO *ptr, scan[4];
@@ -176,6 +246,39 @@ int proto_parse_MessageKey(MessageKey *dst, char *buf, size_t buf_size)
 
 	return 0;
 }
+
+// int proto_write_MessageKey(MessageKey *src, char * dst, size_t dst_len)
+// {
+// 	PROTO *ptr, scan[4];
+// 	size_t len = 0;
+
+// 	len = proto_scan(scan, 4, 4);
+
+// 	if (len < 0)
+// 		return 1;
+
+// 	if ((ptr = protos_get(1, scan, 4)) != NULL)
+// 	{
+// 		strncpy(dst->remoteJid, ptr->value.buf, ptr->len);
+// 		dst->remoteJid[ptr->len] = 0;
+// 	}
+// 	if ((ptr = protos_get(2, scan, 4)) != NULL)
+// 	{
+// 		dst->fromMe = ptr->value.num64 & 0b1;
+// 	}
+// 	if ((ptr = protos_get(3, scan, 4)) != NULL)
+// 	{
+// 		strncpy(dst->id, ptr->value.buf, ptr->len);
+// 		dst->id[ptr->len] = 0;
+// 	}
+// 	if ((ptr = protos_get(4, scan, 4)) != NULL)
+// 	{
+// 		strncpy(dst->participant, ptr->value.buf, ptr->len);
+// 		dst->participant[ptr->len] = 0;
+// 	}
+
+// 	return 0;
+// }
 
 int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 {
