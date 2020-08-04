@@ -26,17 +26,6 @@ static bool wid_is_user(char *jid)
     return false;
 }
 
-// static bool wid_is_group(char *jid)
-// {
-//     char *host = strchr(jid, '@');
-//     if (host++)
-//     {
-//         if (strcmp(host, "g.us") == 0)
-//             return true;
-//     }
-//     return false;
-// }
-
 static int handle_action(BINARY_NODE *node)
 {
     BINARY_NODE *child;
@@ -135,7 +124,7 @@ static int handle_response(BINARY_NODE *node)
         return 1;
     }
 
-    accent("handle_response: %s %d %d", handle->tag, node->child_len, node->child_type);
+    //accent("handle_response: %s %d %d", handle->tag, node->child_len, node->child_type);
 
     for (i = 0; i < node->child_len; i++)
     {
@@ -144,40 +133,6 @@ static int handle_response(BINARY_NODE *node)
 
     return 0;
 }
-
-// static int handle_message(BINARY_NODE *node)
-// {
-//     WebMessageInfo msg;
-//     // filter only unread received message
-//     if (node->child_type != BINARY_NODE_CHILD_BINARY)
-//     {
-//         warn("handle_message not binary type");
-//         return 0;
-//     }
-//     memset(&msg, 0, sizeof(WebMessageInfo));
-//     proto_parse_WebMessageInfo(&msg, node->child.data, node->child_len);
-//     if (!wid_is_user(msg.key.remoteJid))
-//     {
-//         //warn("Ignore non-user msg: %s", msg.key.remoteJid);
-//         return 0;
-//     }
-//     if (msg.key.fromMe)
-//     {
-//         //warn("Ignore self message");
-//         return 0;
-//     }
-
-//     //accent("MSG %s: " COL_YELL "%s " COL_GREEN "%s", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "");
-//     //accent("MSG %s:" COL_YELL "\n%s " COL_GREEN "%s\n" COL_NORM "%s\n---------", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "", msg.message.conversation);
-
-//     return 0;
-// }
-
-// static int handle_user(BINARY_NODE *node)
-// {
-//     accent("handle_user: %s", node->tag);
-//     return 0;
-// }
 
 static int handle_chat(BINARY_NODE *node)
 {
@@ -216,8 +171,6 @@ static int handle_chat(BINARY_NODE *node)
 HANDLE handler_tag[] = {
     {.tag = "action", .function = handle_action},
     {.tag = "response", .function = handle_response},
-    //{.tag = "message", .function = handle_message},
-    //{.tag = "user", .function = handle_user},
     {.tag = "chat", .function = handle_chat},
     {NULL}};
 
@@ -319,19 +272,13 @@ int handler_preempt()
         if (ret <= 0)
             break;
 
-        info("handler_preempt_read\n-------------------");
+        //info("handler_preempt_read\n-------------------");
         CHECK(wasocket_read(&data, &tag, &size));
 
         if (wss_frame_rx.opcode != WS_OPCODE_BINARY)
         {
             info("%s", data);
-            warn("Not binary");
-            continue;
-        }
-
-        if (strncmp("preempt-", tag, 8))
-        {
-            err("Not preempt tag, but: %s", tag);
+            warn("handler_preempt ignored non binary");
             continue;
         }
 
@@ -339,14 +286,14 @@ int handler_preempt()
         if (node == NULL)
             return 1;
 
-        info("preempt Handle Node: %s", node->tag);
-
         handler_handle(node);
-        preempt_count++;
+
+        if (strncmp("preempt-", tag, 8) == 0)
+        {
+            preempt_count++;
+        }
         binary_free();
     }
-
-    info("preempt handle count %d", preempt_count);
 
     return preempt_count != 2;
 }

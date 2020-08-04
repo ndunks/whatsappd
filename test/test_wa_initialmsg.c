@@ -4,13 +4,27 @@
 #include <wss.h>
 #include <session.h>
 #include <wasocket.h>
+#include <handler.h>
+
 #include "test.h"
 
 #define REQUIRE_VALID_CFG
 
 int test_main()
 {
+    CHAT *chat;
+
     ZERO(handler_preempt());
+    info("Unread count: %d", handler_unread_count);
+
+    chat = handler_unread_chats;
+    TRUTHY(chat != NULL);
+    do
+    {
+        info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
+        chat = chat->next;
+    } while (chat != NULL);
+    accent("-----------");
     // accent("MAIN RUNTIME START");
     // ZERO(wasocket_start());
     // sleep(10);

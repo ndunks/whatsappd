@@ -1,9 +1,3 @@
-#include <string.h>
-#include <helper.h>
-#include <wss.h>
-
-#include "session.h"
-#include "wasocket.h"
 #include "whatsappd.h"
 
 /**
@@ -11,31 +5,27 @@
  */
 int whatsappd_init(const char const *config_path)
 {
+    int cfg_status;
     CFG cfg;
 
     memset(&cfg, 0, sizeof(CFG));
 
-    CATCH_RET = cfg_file(config_path);
-    if (CATCH_RET < 0)
+    cfg_status = cfg_file(config_path);
+    if (cfg_status < 0)
     {
         err("Cannot Read/Write %s", cfg_file_get());
-        goto CATCH;
+        return 1;
     }
+    if (cfg_status == 1)
+        TRY(cfg_load(&cfg));
 
     TRY(crypto_init());
 
-    if (CATCH_RET == 1)
-    {
-        TRY(cfg_load(&cfg));
-        CATCH_RET = crypto_parse_server_keys(cfg.serverSecret, &cfg);
-        if (CATCH_RET)
-        {
-            err("Fail while parsing config: %s", config_path);
-            goto CATCH;
-        }
-    }
+    TRY(session_init(&cfg));
 
-    TRY(wss_connect(NULL, NULL, NULL));
+    cfg_save(&cfg);
+
+    TRY(handler_preempt());
 
     CATCH_RET = 0;
 
@@ -45,7 +35,7 @@ CATCH:
 
 void whatsappd_free()
 {
-    wss_disconnect();
+    session_free();
     crypto_free();
 }
 

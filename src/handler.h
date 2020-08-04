@@ -1,4 +1,6 @@
 #pragma once
+
+#include "binary.h"
 #define HANDLER_MAX_CHAT_MESSAGE 8
 
 typedef int (*BINARY_NODE_HANDLE)(BINARY_NODE *);
