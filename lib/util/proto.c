@@ -82,7 +82,7 @@ int proto_scan(PROTO *proto, size_t proto_len, size_t max_field)
 			// string, bytes, embedded messages, packed repeated fields
 		case WIRETYPE_LENGTH_DELIMITED:
 			proto->len = read_varint();
-			proto->value.buf = &buf[buf_idx];
+			proto->value.buf = (char *)&buf[buf_idx];
 			buf_idx += proto->len;
 			break;
 

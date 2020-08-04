@@ -15,14 +15,14 @@ int test_main()
     TRUTHY(msg.status == 1);
     TRUTHY(msg.messageTimestamp == 1589871077);
 
-    NOTEQUAL(*(char *)&msg.key, NULL);
+    FALSY(*(char *)&msg.key == 0);
     info("remoteJid: %s", msg.key.remoteJid);
     ZERO(strcmp(msg.key.remoteJid, "628997026464@s.whatsapp.net"));
     TRUTHY(msg.key.fromMe == true);
     // Where id come from?
     ZERO(strcmp(msg.key.id, "3EB082A541839959E947"));
 
-    NOTEQUAL(*(char *)&msg.message, NULL);
+    FALSY(*(char *)&msg.message == 0);
     // Content of the message
     ZERO(strcmp(msg.message.conversation, "tttest"));
     return 0;

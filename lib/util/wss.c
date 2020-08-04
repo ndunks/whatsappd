@@ -390,7 +390,7 @@ char *wss_read(size_t *data_len)
         }
         if (waiting_payload > 0)
         {
-            accent("   too many bytes, save it %d", waiting_payload);
+            accent("   too many bytes, save it %ld", waiting_payload);
             WSS_NEED_BUF(waiting_payload);
             // Copy it to our buffers
             memcpy(

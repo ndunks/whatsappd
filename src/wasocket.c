@@ -59,9 +59,8 @@ int wasocket_send_text(char *data, uint len, char *tag)
 // Read and remove tags
 int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
-    char *buf;
-    int ret;
-    size_t buf_len, encrypted_len;
+    char *ptr;
+    size_t encrypted_len;
 
     if (wss_read(NULL) == NULL)
         return 1;
@@ -82,31 +81,31 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
     {
         encrypted_len = *data_size;
         WSS_NEED_BUF(encrypted_len);
-        buf = wss.buf + wss.buf_len;
+        ptr = wss.buf + wss.buf_len;
         wss.buf_len += encrypted_len;
 
         // info("DECRYPT %s: datasz: %lu", *tag, encrypted_len);
         // hexdump(*data, encrypted_len);
         // accent("-----------");
-        CHECK(crypto_decrypt_hmac(*data, encrypted_len, buf, data_size));
-        mempcpy(*data, buf, *data_size);
+        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, data_size));
+        mempcpy(*data, ptr, *data_size);
         wss.buf_len -= encrypted_len;
         //hexdump(*data, *data_size);
     }
 
-    info("TAG (%ld): %s %lu bytes", *data - *tag - 1, *tag, *data_size);
-    if (*data_size < 1024)
-    {
-        // if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
-        // {
-        //accent("%s\n-----------", *data);
-        // }
-        // else
-        // {
-        //     hexdump(*data, *data_size);
-        //     accent("-----------");
-        // }
-    }
+    // info("TAG (%ld): %s %lu bytes", *data - *tag - 1, *tag, *data_size);
+    // if (*data_size < 1024)
+    // {
+    //     if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
+    //     {
+    //     accent("%s\n-----------", *data);
+    //     }
+    //     else
+    //     {
+    //         hexdump(*data, *data_size);
+    //         accent("-----------");
+    //     }
+    // }
 
     return 0;
 }

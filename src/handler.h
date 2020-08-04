@@ -31,3 +31,4 @@ CHAT *handler_unread_chats;
 void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg_len);
 HANDLE *handler_get(const char *tag);
 int handler_handle(BINARY_NODE *node);
+int handler_preempt();

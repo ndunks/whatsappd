@@ -227,7 +227,7 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
         md_sha256,
         (uint8_t *)crypto_aes_keys.mac,
         32,
-        input + 32,
+        (uint8_t * )input + 32,
         check_len,
         hmac_check));
 
@@ -244,7 +244,7 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
         MBEDTLS_AES_DECRYPT,
         encrypted_len,
         iv,
-        input + (32 + 16),
+        (uint8_t *)input + (32 + 16),
         (uint8_t *)output));
 
     // Padding

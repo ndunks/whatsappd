@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
+
 #include "color.h"
 
 #define hexdump(buf, size)                            \
