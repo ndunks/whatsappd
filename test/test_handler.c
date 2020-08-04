@@ -1,134 +1,73 @@
-#include <dirent.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <sys/file.h>
+#include <unistd.h>
 
+#include <cfg.h>
+#include <crypto.h>
+#include <binary_reader.h>
 #include <helper.h>
-#include "binary_reader.h"
-#include "handler.h"
+#include <handler.h>
 
 #include "test.h"
+#include "data_auth.h"
 
-#define BUF_SIZE 80000
-
-static char read_buf[BUF_SIZE];
-static size_t read_size;
-BINARY_NODE *node;
-struct dirent **ent;
-int files_idx;
-
-int alphasort_r(const struct dirent **a, const struct dirent **b)
-{
-    return -strcoll((*a)->d_name, (*b)->d_name);
-}
-
-int test_preempt()
-{
-
-    TRUTHY(handler_unread_chats == NULL);
-
-    /** Message sent after preempt is contain chats */
-    files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
-    while (files_idx--)
-    {
-        switch (*ent[files_idx]->d_name)
-        {
-        //preempt
-        case 'p':
-            break;
-        default:
-            continue;
-        }
-
-        ZERO(load_sample(ent[files_idx]->d_name, read_buf, BUF_SIZE, &read_size));
-        node = binary_read(read_buf, read_size);
-        FALSY(node == NULL);
-
-        TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
-        FALSY(node->child.list == NULL);
-        info("CHILDS: %d", node->child_len);
-        ZERO(handler_handle(node));
-
-        binary_free();
-        free(ent[files_idx]);
-    }
-    free(ent);
-    return 0;
-}
-
-int test_messages()
-{
-    TRUTHY(handler_unread_chats == NULL);
-
-    /** Message sent after preempt is contain chats */
-    files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
-    while (files_idx--)
-    {
-        switch (*ent[files_idx]->d_name)
-        {
-        case '1':
-            break;
-        default:
-            continue;
-        }
-
-        ZERO(load_sample(ent[files_idx]->d_name, read_buf, BUF_SIZE, &read_size));
-        node = binary_read(read_buf, read_size);
-        FALSY(node == NULL);
-
-        TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
-        FALSY(node->child.list == NULL);
-        info("CHILDS: %d", node->child_len);
-        ZERO(handler_handle(node));
-        binary_free();
-        free(ent[files_idx]);
-    }
-    ok("Unread chats %lu", handler_unread_count);
-    free(ent);
-    return 0;
-}
-
-int test_another_preempt()
-{
-    uint8_t preempt1[] = {
-        // first chat count = 1
-        // 0xf8, 0x04, 0x4d, 0x5b, 0x13, 0xf8, 0x02, 0xf8, 0x0b, 0x13, 0x2d, 0xfa, 0xff,
-        // 0x87, 0x62, 0x85, 0x72, 0x65, 0x01, 0x01, 0x7f, 0x50, 0x18, 0xff, 0x81, 0x1f,
-        // 0x57, 0xff, 0x05, 0x15, 0x94, 0x10, 0x09, 0x89, 0x63, 0xff, 0x81, 0x0f, 0x71,
-        // 0x20, 0xf8, 0x0b, 0x13, 0x2d, 0xfa, 0xff, 0x87, 0x62, 0x82, 0x31, 0x34, 0x39,
-        // 0x39, 0x3f, 0x50, 0x18, 0xff, 0x81, 0x0f, 0x57, 0xff, 0x05, 0x15, 0x94, 0x09,
-        // 0x71, 0x27, 0x63, 0xff, 0x81, 0x0f, 0x71, 0x20
-        0xf8, 0x04, 0x4d, 0x5b, 0x13, 0xf8, 0x02, 0xf8, 0x0d, 0x13, 0x2d, 0xfa, 0xff,
-        0x87, 0x62, 0x85, 0x72, 0x65, 0x01, 0x01, 0x7f, 0x50, 0x18, 0xff, 0x81, 0x2f,
-        0x57, 0xff, 0x05, 0x15, 0x96, 0x44, 0x26, 0x45, 0x63, 0xff, 0x81, 0x0f, 0x34,
-        0x5a, 0x71, 0x20, 0xf8, 0x0b, 0x13, 0x2d, 0xfa, 0xff, 0x87, 0x62, 0x82, 0x31,
-        0x34, 0x39, 0x39, 0x3f, 0x50, 0x18, 0xff, 0x81, 0x0f, 0x57, 0xff, 0x05, 0x15,
-        0x94, 0x09, 0x71, 0x27, 0x63, 0xff, 0x81, 0x0f, 0x71, 0x20};
-
-    node = binary_read(preempt1, 73);
-    FALSY(node == NULL);
-
-    TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
-    FALSY(node->child.list == NULL);
-    info("CHILDS: %d", node->child_len);
-    ZERO(handler_handle(node));
-    binary_free();
-    
-    return 0;
-}
+static char *encrypted_messages[] = {
+    "android/1_b3d5dd17d947a3f6.--10a.bin.enc",
+    "android/6_preempt-b3d5dd17d947a3f6.--10b.bin.enc",
+    "android/7_b3d5dd17d947a3f6.--10c.bin.enc",
+    "android/8_b3d5dd17d947a3f6.--10d.bin.enc",
+    "android/9_preempt-b3d5dd17d947a3f6.--10e.bin.enc",
+    NULL};
 
 int test_main()
 {
-    //return test_preempt() || test_messages() || test_another_preempt();
-    return test_another_preempt();
+    BINARY_NODE *node;
+    CHAT *chat;
+    int ret = 0, i;
+    CFG *cfg = (void *)data_android_cfg;
+    char file[256], output[2248], encrypted[2248], decrypted[2248];
+    size_t output_size, encrypted_size, decrypted_size;
+
+    ZERO(crypto_parse_server_keys(cfg->serverSecret, cfg));
+    for (i = 0; encrypted_messages[i] != NULL; i++)
+    {
+        strcpy(file, encrypted_messages[i]);
+
+        accent("Decrypting %s", file);
+        load_sample(file, encrypted, 2248, &encrypted_size);
+        *(strrchr(file, '.')) = 0;
+        load_sample(file, decrypted, 2248, &decrypted_size);
+
+        ret = crypto_decrypt_hmac(encrypted, encrypted_size, output, &output_size);
+        ZERO(ret);
+        ZERO(memcmp(decrypted, output, decrypted_size));
+        TRUTHY(decrypted_size == output_size);
+        node = binary_read(output, encrypted_size);
+        ZERO(handler_handle(node));
+        ok("%s: %s OK", file, node->tag);
+    }
+
+    info("handler_unread_count: %lu", handler_unread_count);
+    TRUTHY(handler_unread_count == 1);
+    chat = handler_unread_chats;
+    TRUTHY(chat != NULL);
+    do
+    {
+        info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
+        chat = chat->next;
+    } while (chat != NULL);
+    return 0;
 }
 
 int test_setup()
 {
+
+    ZERO(crypto_init());
     return 0;
 }
 
 int test_cleanup()
 {
+    warn("test_cleanup");
+    crypto_free();
     return 0;
 }

@@ -7,7 +7,9 @@
 #include "binary_reader.h"
 #include "wasocket.h"
 
+// Unread chats count
 size_t handler_unread_count = 0;
+// Get FIFO unread chats
 CHAT *handler_unread_chats = NULL;
 
 static bool wid_is_user(char *jid)
@@ -15,9 +17,9 @@ static bool wid_is_user(char *jid)
     char *host = strchr(jid, '@');
     if (host++)
     {
-        if (strncmp(host, wa_host_long, 15) == 0)
-            return true;
         if (strncmp(host, wa_host_short, 5) == 0)
+            return true;
+        if (strncmp(host, wa_host_long, 15) == 0)
             return true;
     }
 
@@ -37,58 +39,71 @@ static bool wid_is_group(char *jid)
 
 static int handle_action(BINARY_NODE *node)
 {
-    char *add = binary_attr(node, "add");
-    // switch (attr.add) {
-    //         // Realtime new message?
-    //         case "relay":
-    //         case "update":
-    //             msg = this.parseWebMessageInfo(childs[0], "relay") as WebMessageInfo.AsObject
-    //             if (!msg) {
-    //                 L(Color.r("<< Action IGNORED"), attr.add, attr, childs)
-    //                 return
-    //             }
-    //             if (!msg.key.fromme) {
-    //                 const jid = widHelper.parse(msg.key.remotejid)
-    //                 switch (jid.server) {
-    //                     case 'c.us':
-    //                         this.emit('new-user-message', msg)
-    //                         break;
+    BINARY_NODE *child;
+    //HANDLE *handle;
+    int msg_len;
+    BINARY_ACTION_ADD add = 0;
+    char *add_str;
+    WebMessageInfo msg;
 
-    //                     case 'g.us':
-    //                         this.emit('new-group-message', msg)
-    //                         break;
-    //                     case 'broadcast':
-    //                         if (jid.user == 'status') {
-    //                             this.emit('status-broadcast', msg)
-    //                             break;
-    //                         }
-    //                     default:
-    //                         L(Color.y('Unknown sender message'), jid, msg.message)
-    //                         break;
-    //                 }
-    //             } else {
-    //                 L(attr.add, msg.key, msg.message)
-    //             }
-    //             store.getChat(msg.key.remotejid).addMessage({
-    //                 key: msg.key,
-    //                 direction: msg.key.fromme ? 'out' : 'in',
-    //                 message: msg.message,
-    //             })
-    //             break
-
-    // if ((attr = binary_attr(node, "add")) != NULL)
-    // {
-    //     accent("handle_action: %s", attr);
-    // }
-    // else
-    // {
-    //     accent("handle_action: NULL");
-    // }
-    //binary_print_attr(node);
-    for (int i = 0; i < node->child_len; i++)
+    if (node->child_type != BINARY_NODE_CHILD_LIST)
     {
-        handler_handle(node->child.list[i]);
+        warn("handle_action not list type");
+        return 1;
     }
+
+    if (!node->child_len)
+    {
+        warn("handle_action no child");
+        return 1;
+    }
+
+    child = binary_child(node, 0);
+
+    if (strcmp("message", child->tag))
+    {
+        warn("handle_action: don't know to handle tag %s", child->tag);
+        return 0;
+    }
+
+    //handle = handler_get(child->tag);
+    add_str = binary_attr(node, "add");
+    add = binary_get_action_add(add_str);
+
+    info("handle_action add: %s", add_str);
+    switch (add)
+    {
+    //case BINARY_ACTION_ADD_BEFORE:
+    case BINARY_ACTION_ADD_LAST:
+        for (int i = 0; i < node->child_len; i++)
+        {
+            child = node->child.list[i];
+            proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
+            if (!wid_is_user(msg.key.remoteJid))
+            {
+                warn("Ignore non-user msg: %s", msg.key.remoteJid);
+                continue;
+            }
+            if (msg.key.fromMe)
+            {
+                warn("Ignore self message");
+                continue;
+            }
+            msg_len = strlen(msg.message.conversation);
+            if (msg_len)
+            {
+                info("msg: %s %s status: %d", msg.key.remoteJid, msg.message.conversation, msg.status);
+                handler_add_unread(msg.key.remoteJid, NULL, msg.message.conversation, msg_len);
+            }
+            else
+                warn("Ignore zero-length last message");
+        }
+        break;
+    default:
+        warn("handle_action: Ignored %s", add_str);
+        break;
+    }
+
     return 0;
 }
 
@@ -123,7 +138,7 @@ static int handle_response(BINARY_NODE *node)
         return 1;
     }
 
-    accent("handle_response: %s %u %ld", handle->tag, node->child_len, node->child_type);
+    accent("handle_response: %s %d %d", handle->tag, node->child_len, node->child_type);
 
     for (i = 0; i < node->child_len; i++)
     {
@@ -133,33 +148,33 @@ static int handle_response(BINARY_NODE *node)
     return 0;
 }
 
-static int handle_message(BINARY_NODE *node)
-{
-    WebMessageInfo msg;
-    // filter only unread received message
-    if (node->child_type != BINARY_NODE_CHILD_BINARY)
-    {
-        warn("handle_message not binary type");
-        return 0;
-    }
-    memset(&msg, 0, sizeof(WebMessageInfo));
-    proto_parse_WebMessageInfo(&msg, node->child.data, node->child_len);
-    if (!wid_is_user(msg.key.remoteJid))
-    {
-        //warn("Ignore non-user msg: %s", msg.key.remoteJid);
-        return 0;
-    }
-    if (msg.key.fromMe)
-    {
-        //warn("Ignore self message");
-        return 0;
-    }
+// static int handle_message(BINARY_NODE *node)
+// {
+//     WebMessageInfo msg;
+//     // filter only unread received message
+//     if (node->child_type != BINARY_NODE_CHILD_BINARY)
+//     {
+//         warn("handle_message not binary type");
+//         return 0;
+//     }
+//     memset(&msg, 0, sizeof(WebMessageInfo));
+//     proto_parse_WebMessageInfo(&msg, node->child.data, node->child_len);
+//     if (!wid_is_user(msg.key.remoteJid))
+//     {
+//         //warn("Ignore non-user msg: %s", msg.key.remoteJid);
+//         return 0;
+//     }
+//     if (msg.key.fromMe)
+//     {
+//         //warn("Ignore self message");
+//         return 0;
+//     }
 
-    //accent("MSG %s: " COL_YELL "%s " COL_GREEN "%s", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "");
-    //accent("MSG %s:" COL_YELL "\n%s " COL_GREEN "%s\n" COL_NORM "%s\n---------", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "", msg.message.conversation);
+//     //accent("MSG %s: " COL_YELL "%s " COL_GREEN "%s", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "");
+//     //accent("MSG %s:" COL_YELL "\n%s " COL_GREEN "%s\n" COL_NORM "%s\n---------", msg.key.id, msg.key.remoteJid, msg.key.fromMe ? "ME" : "", msg.message.conversation);
 
-    return 0;
-}
+//     return 0;
+// }
 
 static int handle_user(BINARY_NODE *node)
 {
@@ -171,11 +186,13 @@ static int handle_chat(BINARY_NODE *node)
 {
     char *jid, *name, *unread, *count_str;
     size_t unread_count = 0;
+    info("handle_chat");
 
     unread = binary_attr(node, "unread");
     jid = binary_attr(node, "jid");
     name = binary_attr(node, "name");
     count_str = binary_attr(node, "count");
+    //binary_print_attr(node);
     if (count_str)
     {
         unread_count = atol(count_str);
@@ -192,19 +209,18 @@ static int handle_chat(BINARY_NODE *node)
         return 0;
     }
 
-    binary_print_attr(node);
-    if (unread != NULL && *unread == '1')
-    {
-        ok("GOTTT UNREAD CHAT!");
-        handler_add_unread(jid, name, NULL, 0);
-    }
+    // if (unread != NULL && *unread == '1')
+    // {
+    //     ok("GOTTT UNREAD CHAT!");
+    //     handler_add_unread(jid, name, NULL, 0);
+    // }
     return 0;
 }
 
 HANDLE handler_tag[] = {
     {.tag = "action", .function = handle_action},
     {.tag = "response", .function = handle_response},
-    {.tag = "message", .function = handle_message},
+    //{.tag = "message", .function = handle_message},
     {.tag = "user", .function = handle_user},
     {.tag = "chat", .function = handle_chat},
     {NULL}};
@@ -242,9 +258,14 @@ void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg
     if (chat == NULL)
     {
         chat = calloc(sizeof(CHAT), 1);
+        ok("** New Unread %s %lu", jid, jid_num);
         if (tail)
         {
             tail->next = chat;
+        }
+        else
+        {
+            handler_unread_chats == chat;
         }
         handler_unread_count++;
     }
@@ -276,7 +297,6 @@ void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg
 
 int handler_handle(BINARY_NODE *node)
 {
-    accent("handler_%s", node->tag);
     const HANDLE *handle = handler_get(node->tag);
 
     if (handle == NULL)
@@ -285,6 +305,7 @@ int handler_handle(BINARY_NODE *node)
         return 1;
     }
 
+    info("* handler_%s()", node->tag);
     return (*handle->function)(node);
 }
 

@@ -50,10 +50,20 @@ typedef enum BINARY_TAG
     PACKED_MAX = 254
 } BINARY_TAG;
 
+typedef enum BINARY_ACTION_ADD {
+    BINARY_ACTION_ADD_NONE,
+    BINARY_ACTION_ADD_RELAY,
+    BINARY_ACTION_ADD_UPDATE,
+    BINARY_ACTION_ADD_LAST,
+    BINARY_ACTION_ADD_BEFORE,
+    BINARY_ACTION_ADD_AFTER,
+    BINARY_ACTION_ADD_UNREAD
+} BINARY_ACTION_ADD;
+
 extern const char wa_host_short[5], wa_host_long[15];
 extern const char *const DICTIONARY_SINGLEBYTE[];
 extern int DICTIONARY_SINGLEBYTE_LEN;
-
+BINARY_ACTION_ADD binary_get_action_add(const char * add);
 void *binary_alloc(size_t size);
 void binary_free();
 void binary_alloc_stat();

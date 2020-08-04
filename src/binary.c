@@ -97,3 +97,25 @@ BINARY_NODE *binary_child(BINARY_NODE *node, int index)
     }
     return *(node->child.list + index);
 }
+
+BINARY_ACTION_ADD binary_get_action_add(const char *add)
+{
+    if (add == NULL)
+        return BINARY_ACTION_ADD_NONE;
+
+    switch (add[0])
+    {
+    case 'r':
+        return BINARY_ACTION_ADD_RELAY;
+    case 'l':
+        return BINARY_ACTION_ADD_LAST;
+    case 'b':
+        return BINARY_ACTION_ADD_BEFORE;
+    case 'a':
+        return BINARY_ACTION_ADD_AFTER;
+    case 'u':
+        return add[1] == 'p' ? BINARY_ACTION_ADD_UPDATE : BINARY_ACTION_ADD_UNREAD;
+    default:
+        return BINARY_ACTION_ADD_NONE;
+    }
+}

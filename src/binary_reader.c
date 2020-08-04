@@ -324,7 +324,7 @@ BINARY_NODE *read_node()
     BINARY_NODE *node;
 
     bin_tag = buf_read_byte();
-    ok("read_node: %x %d", buf_idx - 1, bin_tag);
+    //ok("read_node: %x %d", buf_idx - 1, bin_tag);
     list_flag = read_list_flag(bin_tag);
     if (list_flag == LIST_EMPTY)
     {

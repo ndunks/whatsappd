@@ -23,6 +23,7 @@ typedef struct CHAT
     struct CHAT *next;
 } CHAT;
 
+
 size_t handler_unread_count;
 CHAT *handler_unread_chats;
 void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg_len);
