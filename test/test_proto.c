@@ -77,6 +77,7 @@ int test_write()
     TRUTHY(buf[0] == 0b00001101);
 
     buf_idx = 0;
+    proto.field = 0xffffff;
     proto_write(&proto, 1);
     proto_write(&proto, 1);
     buf_idx = 0;
@@ -151,7 +152,7 @@ int test_proto()
 int test_main()
 {
     // return test_varint() || test_write() || test_proto();
-    return test_varint() || test_write();
+    return test_proto();
 }
 
 int test_setup()

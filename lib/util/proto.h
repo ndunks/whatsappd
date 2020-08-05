@@ -102,6 +102,6 @@ uint32_t read_varint();
 int read_tag(PROTO *proto);
 int write_tag(PROTO *proto);
 
-int proto_write(PROTO *proto, size_t proto_len);
-int proto_scan(PROTO *proto, size_t proto_len, size_t max_field);
+int proto_write(PROTO *proto, int proto_len);
+int proto_scan(PROTO *proto, int proto_len, int max_field);
 int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size);
