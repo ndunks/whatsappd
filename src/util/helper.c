@@ -1,7 +1,7 @@
 #include <locale.h>
 #include <sys/file.h>
 
-#include "helper.h"
+#include "util.h"
 #include "qrcodegen.h"
 
 int CATCH_RET = 0;

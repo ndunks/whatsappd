@@ -1,6 +1,9 @@
 #pragma once
 
-#include <sys/types.h>
+#include <stdint.h>
+
+#include "util.h"
+#include "wss.h"
 
 void wasocket_setup();
 char *wasocket_short_tag();

@@ -1,7 +1,8 @@
 #pragma once
 #include <malloc.h>
 #include <string.h>
-#include <color.h>
+
+#include "util.h"
 
 #define SAMPLE_DIR "test/binary-sample/"
 

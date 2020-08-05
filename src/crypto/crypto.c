@@ -1,5 +1,6 @@
 #include <malloc.h>
 #include <string.h>
+
 #include <mbedtls/base64.h>
 #include <mbedtls/md.h>
 #include <mbedtls/hkdf.h>
@@ -7,62 +8,15 @@
 #include <mbedtls/aes.h>
 #include <mbedtls/error.h>
 
-#include "helper.h"
 #include "crypto.h"
 
 mbedtls_ctr_drbg_context *crypto_p_rng;
 mbedtls_entropy_context *crypto_entropy;
 aes_keys crypto_aes_keys;
+mbedtls_ecp_group *grp;
+
 static mbedtls_aes_context *crypto_aes_dec_ctx;
-
-static mbedtls_ecp_group *grp;
 static const mbedtls_md_info_t *md_sha256;
-
-void crypto_dump_mpi(mbedtls_mpi *mpi, const char *name)
-{
-    unsigned char buf[1024];
-    size_t size = mpi->n * sizeof(mbedtls_mpi_uint);
-
-    if (mbedtls_mpi_write_binary_le(mpi, buf, 1024) != 0)
-    {
-        err("mbedtls_mpi_write_binary");
-        return;
-    }
-    info("%s (%lu bytes):", name, size);
-    hexdump(buf, size);
-}
-
-void crypto_dump_point(mbedtls_ecp_point *P, const char *name)
-{
-    unsigned char buf[1024];
-    size_t size = 0;
-    // MBEDTLS_ECDH_VARIANT_MBEDTLS_2_0
-    mbedtls_ecp_point_write_binary(grp, P, MBEDTLS_ECP_PF_UNCOMPRESSED,
-                                   &size, buf, 1024);
-
-    info("%s (%lu bytes):", name, size);
-    hexdump(buf, size);
-}
-
-/* Generate private and public keys */
-crypto_keys *crypto_gen_keys()
-{
-    crypto_keys *ctx = crypto_keys_init(NULL, NULL);
-
-    // file://./../mbedtls/tests/suites/test_suite_ecdh.function
-
-    if (mbedtls_ecdh_gen_public(grp,
-                                &ctx->d,
-                                &ctx->Q,
-                                mbedtls_ctr_drbg_random,
-                                crypto_p_rng) != 0)
-    {
-        err("Crypto: Fail gen public keys");
-        crypto_keys_free(ctx);
-        return NULL;
-    };
-    return ctx;
-}
 
 int crypto_random(char *buf, size_t len)
 {
@@ -143,46 +97,6 @@ void crypto_keys_free(crypto_keys *ctx)
     free(ctx);
 }
 
-/** return positif int when OK **/
-size_t crypto_base64_encode(char *dst, size_t dst_len, const char *src, size_t src_len)
-{
-    size_t written;
-    int ret;
-
-    ret = mbedtls_base64_encode(
-        (unsigned char *)dst,
-        dst_len - 1,
-        &written,
-        (const unsigned char *)src,
-        src_len);
-
-    if (ret != 0)
-        return ret;
-
-    dst[written] = 0;
-
-    return written;
-}
-
-/** return positif int when OK **/
-size_t crypto_base64_decode(char *dst, size_t dst_len, const char *src, size_t src_len)
-{
-    size_t written;
-    int ret;
-
-    ret = mbedtls_base64_decode(
-        (unsigned char *)dst,
-        dst_len,
-        &written,
-        (const unsigned char *)src,
-        src_len);
-
-    if (ret != 0)
-        return ret;
-
-    return written;
-}
-
 int crypto_sign(char *dst, char *src, size_t len)
 {
     return mbedtls_md_hmac(
@@ -227,7 +141,7 @@ int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *out
         md_sha256,
         (uint8_t *)crypto_aes_keys.mac,
         32,
-        (uint8_t * )input + 32,
+        (uint8_t *)input + 32,
         check_len,
         hmac_check));
 

@@ -1,5 +1,5 @@
-#include "helper.h"
 #include "binary.h"
+
 const char wa_host_short[5] = "c.us",
            wa_host_long[15] = "s.whatsapp.net";
 

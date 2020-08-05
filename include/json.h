@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "util.h"
+
 #define JSON_MAX_FIELDS 100
 
 typedef struct JSON
@@ -11,8 +13,8 @@ typedef struct JSON
     char *key, *value;
 } JSON;
 
-JSON json[JSON_MAX_FIELDS];
-int json_len;
+extern JSON json[JSON_MAX_FIELDS];
+extern int json_len;
 
 char *json_parse_key(char **src);
 char *json_parse_value(char **src);

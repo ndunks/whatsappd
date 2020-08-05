@@ -1,11 +1,7 @@
-#include <stdint.h>
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
-
-#include <helper.h>
-#include <wss.h>
 
 #include "wasocket.h"
 

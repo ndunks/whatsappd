@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "util.h"
+
 #define BINARY_MALLOC_MAX 8000
 typedef enum BINARY_NODE_CHILD_TYPE
 {
@@ -70,3 +72,14 @@ void binary_alloc_stat();
 void binary_print_attr(BINARY_NODE *node);
 char *binary_attr(BINARY_NODE *node, const char *key);
 BINARY_NODE *binary_child(BINARY_NODE *node, int index);
+
+BINARY_NODE *read_node();
+BINARY_NODE *binary_read(char *src, size_t src_len);
+
+#ifdef TEST
+uint8_t read_byte();
+uint16_t read_int16();
+uint32_t read_int20();
+uint32_t read_int32();
+void binary_read_set(char *src, size_t src_len);
+#endif

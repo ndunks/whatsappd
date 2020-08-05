@@ -3,13 +3,14 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 
-#include "cfg.h"
+#include "util.h"
 
 #define CRYPTO_DUMP_MPI(var) crypto_dump_mpi(&var, #var)
 #define CRYPTO_DUMP_POINT(var) crypto_dump_point(&var, #var)
 
 mbedtls_ctr_drbg_context *crypto_p_rng;
 mbedtls_entropy_context *crypto_entropy;
+mbedtls_ecp_group *grp;
 
 typedef struct aes_keys
 {

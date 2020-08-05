@@ -3,9 +3,8 @@
 #include <stdint.h>
 #include <sys/file.h>
 
-#include <helper.h>
-#include <buf.h>
-#include "binary_reader.h"
+#include "util.h"
+#include "binary.h"
 
 #include "test.h"
 

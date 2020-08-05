@@ -2,9 +2,9 @@
     "files.watcherExclude": {
         "**/.git/objects/**": true,
         "**/.git/subtree-cache/**": true,
-        "**/node_modules/**": true,
-        "**/build/": true,
-        "**/tmp/": true,
-        "**/lib/mbedtls": true
+        "**/build/**": true,
+        "**/tmp/**": true,
+        "**/test/binary-sample/**": true,
+        "**/lib/mbedtls/**": true
     }
 }

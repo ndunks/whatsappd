@@ -4,8 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/lib/qrcode",
-                "${workspaceFolder}/lib/mbedtls/include"
+                "${workspaceFolder}/lib/mbedtls/include",
+                "${workspaceFolder}/lib"
             ],
             "defines": [
                 "_GNU_SOURCE",

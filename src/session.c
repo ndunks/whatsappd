@@ -1,11 +1,3 @@
-#include <fcntl.h>
-#include "cfg.h"
-#include "crypto.h"
-#include "helper.h"
-#include "json.h"
-#include "wss.h"
-#include "ssl.h"
-#include "wasocket.h"
 #include "session.h"
 
 Me session_me;

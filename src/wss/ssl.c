@@ -6,50 +6,19 @@
 #include <mbedtls/ssl.h>
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
+#include <mbedtls/net_sockets.h>
 
-#include "color.h"
-#include "ssl.h"
+#include "wss.h"
 
 static mbedtls_net_context ws_net;
 static mbedtls_ssl_config conf;
 mbedtls_ssl_context ssl;
-
-#ifdef MBEDTLS_DEBUG_C
-static char *levelColor[] = {
-    COL_RED,
-    COL_YELL,
-    COL_MAG,
-    COL_BLUE,
-    COL_CYN};
-static void ssl_debug(void *ctx, int level, const char *file, int line,
-                      const char *str)
-{
-    // const char *p, *basename;
-    // (void)ctx;
-    /* Extract basename from file */
-    // for (p = basename = file; *p != '\0'; p++)
-    // {
-    //     if (*p == '/' || *p == '\\')
-    //     {
-    //         basename = p + 1;
-    //     }
-    // }
-
-    //printf("%s%s:%04d: |%d| %s" COL_NORM, levelColor[level], basename, line, level, str);
-    printf("%s%s" COL_NORM, levelColor[level], str);
-}
-#endif
 
 static void ssl_init()
 {
     mbedtls_net_init(&ws_net);
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
-
-#ifdef MBEDTLS_DEBUG_C
-    mbedtls_ssl_conf_dbg(&conf, ssl_debug, NULL);
-    mbedtls_debug_set_threshold(4);
-#endif
 }
 
 static void ssl_free()

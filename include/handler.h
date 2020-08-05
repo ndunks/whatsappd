@@ -1,6 +1,10 @@
 #pragma once
-
+#include "util.h"
 #include "binary.h"
+#include "proto.h"
+#include "wss.h"
+#include "wasocket.h"
+
 #define HANDLER_MAX_CHAT_MESSAGE 8
 
 typedef int (*BINARY_NODE_HANDLE)(BINARY_NODE *);

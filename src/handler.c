@@ -1,11 +1,4 @@
-#include <helper.h>
-#include <binary.h>
-#include <proto.h>
-#include <wss.h>
-
 #include "handler.h"
-#include "binary_reader.h"
-#include "wasocket.h"
 
 // Unread chats count
 size_t handler_unread_count = 0;

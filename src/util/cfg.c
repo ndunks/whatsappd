@@ -1,16 +1,13 @@
-#include <sys/file.h>
-#include <sys/types.h>
 #include <pwd.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <malloc.h>
 #include <errno.h>
 #include <libgen.h>
 #include <fcntl.h>
+// #include <sys/file.h>
+// #include <sys/types.h>
 
-#include "color.h"
-#include "cfg.h"
+#include "util.h"
 
 static char cfg_config_file[255] = {0};
 

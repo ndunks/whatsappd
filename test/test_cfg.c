@@ -1,13 +1,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
-#include <cfg.h>
-#include <helper.h>
 #include <mbedtls/base64.h>
 #include <sys/types.h>
 #include <pwd.h>
 #include <stdlib.h>
 
+#include "util.h"
 #include "data_auth.h"
 #include "test.h"
 

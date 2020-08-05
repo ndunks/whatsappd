@@ -1,8 +1,6 @@
 #include <byteswap.h>
-#include <helper.h>
-#include <buf.h>
 
-#include "binary_reader.h"
+#include "binary.h"
 
 static int IS_READING_ATTR = 0;
 
