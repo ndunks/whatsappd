@@ -6,12 +6,14 @@ LDFLAGS         := -Lbuild
 
 SOURCES         := $(wildcard src/*.c)
 OBJECTS         := $(patsubst src/%.c, build/%.o, $(SOURCES))
+BIN_DEPS        := $(OBJECTS)
 
 MODULES         := $(shell find src/* -type d)
-MODULES_LIB     := build/modules.a
 MODULES_SOURCES := $(foreach f, $(MODULES), $(wildcard $(f)/*.c))
 MODULES_OBJECTS := $(patsubst src/%.c, build/%.o, $(MODULES_SOURCES))
+MODULES_FLAGS   := 
 MKDIRS          += $(patsubst src/%, build/%, $(MODULES))
+
 
 .DEFAULT_GOAL := all
 
@@ -24,12 +26,19 @@ include lib/lib.mk
 
 ifneq (,$(findstring test,$(MAKECMDGOALS)))
     include test/test.mk
-    LDFLAGS += -lmbedtls -lmbedcrypto -lpthread
-    export LD_LIBRARY_PATH := build/lib/mbedtls/library;
-    MBEDTLS_CFLAGS += -DTEST
     SHARED := 1
+endif
+
+ifdef SHARED
+    MODULES_LIB    := build/modules.so
+	LDFLAGS        += -l:modules.so -lmbedtls -lmbedcrypto -lpthread
+    MBEDTLS_CFLAGS += -DTEST
+	MODULES_FLAGS  += -fPIC
+    export LD_LIBRARY_PATH := build:build/lib/mbedtls/library
 else
-    LDFLAGS += -l:modules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
+    MODULES_LIB    := build/modules.a
+	BIN_DEPS       += $(MODULES_LIB)
+    LDFLAGS        += -l:modules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
 endif
 
 # define MODULE_template =
@@ -41,20 +50,27 @@ $(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))
 
 # $(foreach m, $(MODULES), $(eval $(call MODULE_template,$(m))))
 
-all: lib $(BUILD_BIN)
+all: lib $(MODULES_LIB) $(BUILD_BIN)
+ifdef SHARED
+	$(info Done build shared binary)
+endif
 
 run: all
 	./$(BUILD_BIN)
 
-$(BUILD_BIN): $(OBJECTS) $(MODULES_LIB)
+$(BUILD_BIN): $(BIN_DEPS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(OBJECTS) $(MODULES_OBJECTS) : build/%.o : src/%.c
-	$(CC) -c -o $@ $(CFLAGS) $<
+	$(CC) -c -o $@ $(CFLAGS) $(MODULES_FLAGS) $<
 
 $(MODULES_LIB): $(MODULES_OBJECTS)
-	$(info archiving $?)
+	$(info building $@)
+ifdef SHARED
+	$(CC) -shared $^ -o $@
+else
 	@$(AR) cr $@ $?
+endif
 
 modules: $(MODULES_LIB)
 

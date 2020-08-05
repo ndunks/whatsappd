@@ -1,7 +1,5 @@
 MKDIRS         += tmp build/lib/mbedtls
-# LIB_BUILD_DIRS := qrcode
 
-# LIB_OBJECTS    := $(patsubst %,build/lib/%.o, $(LIB_BUILD_DIRS))
 CFLAGS         += -Ilib/mbedtls/include
 LDFLAGS        += -Lbuild/lib/mbedtls/library
 
@@ -12,9 +10,6 @@ MBEDTLS_CFLAGS := -I$(PWD)/include -DMBEDTLS_CONFIG_FILE='<config.h>'
 LIBS           := $(MBEDTLS_LIB)
 
 lib: mbedtls
-
-# $(LIB_OBJECTS): build/lib/%.o: lib/%/
-# 	$(CC) $(CFLAGS) -c -o $@ $(wildcard $</*.c)
 
 mbedtls: lib/mbedtls build/lib/mbedtls/Makefile $(MBEDTLS_LIB)
 
