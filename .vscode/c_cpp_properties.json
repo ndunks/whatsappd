@@ -3,15 +3,21 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/lib/util",
-                "${workspaceFolder}/lib/mbedtls/include",
-                "${workspaceFolder}/src"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/lib/qrcode",
+                "${workspaceFolder}/lib/mbedtls/include"
             ],
-            "defines": ["_GNU_SOURCE","TEST=\"dummy\"","MBEDTLS_CONFIG_FILE=<config.h>"],
+            "defines": [
+                "_GNU_SOURCE",
+                "TEST=\"dummy\"",
+                "MBEDTLS_CONFIG_FILE=<config.h>"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "compilerArgs": ["-Wall"],
+            "compilerArgs": [
+                "-Wall"
+            ],
             "intelliSenseMode": "gcc-x64"
         }
     ],
