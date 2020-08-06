@@ -23,8 +23,8 @@ int test_write_chunk()
     int msg_len = strlen(msg);
     uint32_t mask = wss_mask();
     wss_frame(WS_OPCODE_TEXT, msg_len, mask);
-    wss_write(msg, 3, &mask);
-    wss_write_chunk(msg+3, 3, msg_len, &mask);
+    wss_write((uint8_t *)msg, 3, &mask);
+    wss_write_chunk((uint8_t *)msg + 3, 3, msg_len, &mask);
     wss_send();
 
     reply = wss_read(&recv_len);
@@ -33,6 +33,7 @@ int test_write_chunk()
     info("REPLY: %s", reply);
     ZERO(strcmp(msg, reply));
     ZERO(strncmp(msg, reply, msg_len));
+    return 0;
 }
 
 int test_size_7_bit()

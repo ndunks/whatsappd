@@ -16,11 +16,11 @@ test: lib modules $(TEST_BINS)
 
 test-watch: buildfs
 	nodemon --delay 0.5 \
-		-w lib -w src -w test \
+		-w include -w src -w test \
 		-e .c,.h,.mk \
 		-x "make --no-print-directory test || false"
 
 $(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS)
-	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: test test-watch

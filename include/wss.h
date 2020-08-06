@@ -3,15 +3,6 @@
 #include "crypto.h"
 #include "util.h"
 
-int ssl_connect(const char *host, const char *port);
-void ssl_disconnect();
-
-int ssl_random(char *buf, size_t len);
-int ssl_write(const char *buf, size_t size);
-int ssl_read(char *buf, size_t size);
-int ssl_check_read(uint32_t timeout_ms);
-void ssl_error(const char *msg, int errcode);
-
 #define WSS_NEED(len, x, x_len, x_size)            \
     while ((x_len + len) > x_size)                 \
     {                                              \
@@ -25,7 +16,6 @@ void ssl_error(const char *msg, int errcode);
 #define WSS_NEED_TX(len) WSS_NEED(len, wss.tx, wss.tx_len, wss.tx_size)
 #define WSS_NEED_RX(len) WSS_NEED(len, wss.rx, wss.rx_len, wss.rx_size)
 #define WSS_NEED_BUF(len) WSS_NEED(len, wss.buf, wss.buf_len, wss.buf_size)
-
 #define WSS_FRAGMENT_MAX 100
 
 enum WS_OPCODE
@@ -91,3 +81,12 @@ char *wss_read(size_t *data_len);
 size_t wss_send_buffer(char *msg, size_t len, enum WS_OPCODE opcode);
 size_t wss_send_binary(char *msg, size_t len);
 size_t wss_send_text(char *msg, size_t len);
+
+int wss_ssl_connect(const char *host, const char *port);
+void wss_ssl_disconnect();
+
+int wss_ssl_random(char *buf, size_t len);
+int wss_ssl_write(const char *buf, size_t size);
+int wss_ssl_read(char *buf, size_t size);
+int wss_ssl_check_read(uint32_t timeout_ms);
+void wss_ssl_error(const char *msg, int errcode);

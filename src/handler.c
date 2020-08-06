@@ -261,7 +261,7 @@ int handler_preempt()
     while (1)
     {
 
-        ret = ssl_check_read(500);
+        ret = wss_ssl_check_read(500);
         if (ret <= 0)
             break;
 

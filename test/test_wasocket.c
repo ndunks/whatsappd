@@ -1,6 +1,6 @@
-#include <crypto.h>
-#include <wss.h>
-#include <wasocket.h>
+#include "crypto.h"
+#include "wss.h"
+#include "wasocket.h"
 
 #include "test.h"
 
@@ -42,8 +42,8 @@ int test_send_init()
 
     ZERO(crypto_init());
     //ZERO(wss_connect(NULL, NULL, NULL));
-    ZERO(wss_connect("localhost", "8433", "/"));
-    //ZERO(wss_connect("echo.websocket.org", NULL, "/"));
+    //ZERO(wss_connect("localhost", "8433", "/"));
+    ZERO(wss_connect("echo.websocket.org", NULL, "/"));
 
     crypto_random(buf, 16);
 
@@ -57,12 +57,14 @@ int test_send_init()
                   client_id);
 
     sent = wasocket_send_text(buf, len, NULL);
+    TRUTHY(sent >= len);
     ZERO(wasocket_read(&reply, &reply_tag, &reply_len));
     TRUTHY(reply_len == len);
     ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
 
     accent("** with custom tag: %s", tag);
     sent = wasocket_send_text(buf, len, tag);
+    TRUTHY(sent >= len);
     ZERO(wasocket_read(&reply, &reply_tag, &reply_len));
     info("%ld, tag: %s, data: %s", reply_len, reply_tag, reply);
     TRUTHY(reply_len == len);

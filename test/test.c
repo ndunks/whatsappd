@@ -1,5 +1,4 @@
 #include "test.h"
-//#include <sys/time.h>
 #include <time.h>
 #define NANO_PER_SEC 1000000000.0
 

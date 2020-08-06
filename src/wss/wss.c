@@ -49,7 +49,7 @@ int wss_send()
 
     do
     {
-        sent = ssl_write(&wss.tx[total], wss.tx_len - total);
+        sent = wss_ssl_write(&wss.tx[total], wss.tx_len - total);
         warn(">> %lu bytes", sent);
         total += sent;
     } while (total < wss.tx_len && sent > 0);
@@ -112,7 +112,7 @@ static int wss_handshake(const char *host, const char *path)
                          path, host, host, ws_key);
     do
     {
-        size = ssl_write(&wss.tx[total], wss.tx_len - total);
+        size = wss_ssl_write(&wss.tx[total], wss.tx_len - total);
         total += size;
     } while (total < wss.tx_len);
 
@@ -125,7 +125,7 @@ static int wss_handshake(const char *host, const char *path)
     wss.rx_len = 0;
     do
     {
-        size = ssl_read(wss.rx, wss.rx_size);
+        size = wss_ssl_read(wss.rx, wss.rx_size);
         wss.rx[wss.rx_len + size] = 0;
         //fwrite(wss.rx + wss.rx_len, 1, size, stderr);
         cptr = strtok(wss.rx + wss.rx_len, "/");
@@ -179,7 +179,7 @@ int wss_connect(const char *host, const char *port, const char *path)
     if (port == NULL)
         port = "443";
 
-    TRY(ssl_connect(host, port));
+    TRY(wss_ssl_connect(host, port));
     TRY(wss_handshake(host, path));
 
     return 0;
@@ -199,7 +199,7 @@ void wss_disconnect()
     if (wss_send() != 6)
         warn("wss: Send shutdown fail");
 
-    ssl_disconnect();
+    wss_ssl_disconnect();
     free(wss.rx);
     free(wss.tx);
     free(wss.buf);
@@ -277,12 +277,12 @@ char *wss_read(size_t *data_len)
             wss.buf_len = 0;
         }
         else
-            recv = ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
+            recv = wss_ssl_read(wss.rx + wss.rx_len, wss.rx_size - wss.rx_len);
         ok("<< %d bytes", recv);
 
         if (recv < 0)
         {
-            ssl_error("wss_read", recv);
+            wss_ssl_error("wss_read", recv);
             return NULL;
         }
 

@@ -1,10 +1,9 @@
 #include <sys/file.h>
 #include <unistd.h>
 
-#include <cfg.h>
+#include <util.h>
 #include <crypto.h>
-#include <binary_reader.h>
-#include <helper.h>
+#include <binary.h>
 #include <handler.h>
 
 #include "test.h"

@@ -1,7 +1,6 @@
 #include <mbedtls/error.h>
 #include <crypto.h>
-#include <cfg.h>
-#include <helper.h>
+#include <util.h>
 
 #include "test.h"
 #include "data_auth.h"

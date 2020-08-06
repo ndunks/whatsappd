@@ -14,48 +14,48 @@ static mbedtls_net_context ws_net;
 static mbedtls_ssl_config conf;
 mbedtls_ssl_context ssl;
 
-static void ssl_init()
+static void wss_ssl_init()
 {
     mbedtls_net_init(&ws_net);
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
 }
 
-static void ssl_free()
+static void wss_ssl_free()
 {
     mbedtls_net_free(&ws_net);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
 }
 
-int ssl_write(const char *buf, size_t size)
+int wss_ssl_write(const char *buf, size_t size)
 {
     return mbedtls_ssl_write(&ssl, (const u_char *)buf, size);
 }
 
-int ssl_read(char *buf, size_t size)
+int wss_ssl_read(char *buf, size_t size)
 {
     return mbedtls_ssl_read(&ssl, (u_char *)buf, size);
 }
 
-int ssl_check_read(uint32_t timeout_ms)
+int wss_ssl_check_read(uint32_t timeout_ms)
 {
     return mbedtls_net_poll(&ws_net, MBEDTLS_NET_POLL_READ, timeout_ms);
 }
 
-void ssl_disconnect()
+void wss_ssl_disconnect()
 {
     mbedtls_ssl_close_notify(&ssl);
-    ssl_free();
+    wss_ssl_free();
 }
 
-int ssl_connect(const char *host, const char *port)
+int wss_ssl_connect(const char *host, const char *port)
 {
     struct addrinfo hints, *hostinfo = NULL, *ptr = NULL;
     struct timeval timeout;
     int ret = 1;
 
-    ssl_init();
+    wss_ssl_init();
     timeout.tv_sec = 7;
     timeout.tv_usec = 0;
 
@@ -133,13 +133,13 @@ int ssl_connect(const char *host, const char *port)
         return 0;
     }
 
-    ssl_error("SSL Handshake fail", ret);
+    wss_ssl_error("SSL Handshake fail", ret);
 exit:
-    ssl_free();
+    wss_ssl_free();
     return ret;
 }
 
-void ssl_error(const char *msg, int errcode)
+void wss_ssl_error(const char *msg, int errcode)
 {
     char buf[255];
     mbedtls_strerror(errcode, buf, 255);

@@ -114,7 +114,7 @@ int wasocket_read_all(uint32_t timeout_ms)
     accent("-------\nwasocket_read_all");
     do
     {
-        ret = ssl_check_read((ret > 1) ? 100 : timeout_ms);
+        ret = wss_ssl_check_read((ret > 1) ? 100 : timeout_ms);
         info("ssl_check_read: %d", ret);
         if (ret > 0)
         {

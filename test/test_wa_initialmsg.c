@@ -1,10 +1,5 @@
-#include <unistd.h>
-#include <cfg.h>
-#include <crypto.h>
-#include <wss.h>
-#include <session.h>
-#include <wasocket.h>
-#include <handler.h>
+#include "session.h"
+#include "handler.h"
 
 #include "test.h"
 

@@ -14,7 +14,6 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 		return 1;
 
 	if ((ptr = protos_get(1, scan, 19)) != NULL)
-
 		proto_parse_MessageKey(&dst->key, ptr->value.buf, ptr->len);
 
 	if ((ptr = protos_get(2, scan, 19)) != NULL)
@@ -31,12 +30,12 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 	// {
 	// 	info("msg field: %d, type %d", scan[i].field, scan[i].type);
 	// };
-
 	return 0;
 }
 int proto_write_WebMessageInfo(WebMessageInfo *src)
 {
-	PROTO *ptr, protos[4];
-	size_t len = 0;
-	memset(protos, 0, sizeof(protos));
+	// PROTO *ptr, protos[4];
+	// size_t len = 0;
+	// memset(protos, 0, sizeof(protos));
+	return 0;
 }

@@ -30,13 +30,14 @@ ifneq (,$(findstring test,$(MAKECMDGOALS)))
 endif
 
 ifdef SHARED
-    MODULES_LIB    := build/modules.so
-	LDFLAGS        += -l:modules.so -lmbedtls -lmbedcrypto -lpthread
+    MODULES_LIB    := build/libmodules.so
+	LDFLAGS        += -lmodules -lmbedtls -lmbedcrypto -lpthread \
+					  -Lbuild/lib/mbedtls/library
     MBEDTLS_CFLAGS += -DTEST
 	MODULES_FLAGS  += -fPIC
     export LD_LIBRARY_PATH := build:build/lib/mbedtls/library
 else
-    MODULES_LIB    := build/modules.a
+    MODULES_LIB    := build/libmodules.a
 	BIN_DEPS       += $(MODULES_LIB)
     LDFLAGS        += -l:modules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
 endif

@@ -259,7 +259,7 @@ static int session_login_new()
             }
         }
 
-        CATCH_RET = ssl_check_read(1000);
+        CATCH_RET = wss_ssl_check_read(1000);
 
         if (CATCH_RET < 0)
         {

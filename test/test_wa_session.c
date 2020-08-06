@@ -1,11 +1,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 
-#include <cfg.h>
-#include <crypto.h>
-#include <wss.h>
-#include <session.h>
-#include <wasocket.h>
+#include "session.h"
 
 #define REQUIRE_WA
 
