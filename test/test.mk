@@ -9,7 +9,7 @@ CFLAGS          += -Isrc "-DTEST=\"$(TEST)\""
 TEST_BINS       := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
 #OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
 
-test: lib $(TEST_BINS)
+test: lib modules $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \
 		./$$test_bin || exit 1;\
 	done || true
@@ -20,7 +20,7 @@ test-watch: buildfs
 		-e .c,.h,.mk \
 		-x "make --no-print-directory test || false"
 
-$(TEST_BINS): build/test_%: test/test.c test/test_%.c $(MODUlES_LIB) $(OBJECTS) $(BUILD_LIB)
+$(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS)
 	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: test test-watch
