@@ -40,7 +40,8 @@ int proto_write_MessageKey(MessageKey *src, PROTO *protos, int proto_len)
 {
 	PROTO *ptr;
 	int len = 0;
-	if(proto_len < 4 ){
+	if (proto_len < 4)
+	{
 		err("proto_write_MessageKey: not enough proto array");
 		return BUF_ERR_NOT_ENOUGH;
 	}
@@ -62,11 +63,14 @@ int proto_write_MessageKey(MessageKey *src, PROTO *protos, int proto_len)
 	ptr->len = strlen(src->id);
 	ptr->value.buf = src->id;
 
-	ptr = &protos[len++];
-	ptr->field = 4;
-	ptr->type = WIRETYPE_LENGTH_DELIMITED;
-	ptr->len = strlen(src->participant);
-	ptr->value.buf = src->participant;
+	if (src->participant[0] != 0)
+	{
+		ptr = &protos[len++];
+		ptr->field = 4;
+		ptr->type = WIRETYPE_LENGTH_DELIMITED;
+		ptr->len = strlen(src->participant);
+		ptr->value.buf = src->participant;
+	}
 	return len;
 }
 

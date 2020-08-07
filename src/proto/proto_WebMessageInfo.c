@@ -54,7 +54,7 @@ int proto_write_WebMessageInfo(WebMessageInfo *src)
 			return childs_len;
 		proto.field = 1;
 		proto.type = WIRETYPE_LENGTH_DELIMITED;
-		proto.len = proto_size(childs, childs_len);
+		size = proto_size(childs, childs_len);
 		proto_tag_write(&proto);
 		proto_varint_write(size);
 		proto_writes(childs, childs_len);
@@ -68,21 +68,30 @@ int proto_write_WebMessageInfo(WebMessageInfo *src)
 			return childs_len;
 		proto.field = 2;
 		proto.type = WIRETYPE_LENGTH_DELIMITED;
-		proto.len = proto_size(childs, childs_len);
+		size = proto_size(childs, childs_len);
 		proto_tag_write(&proto);
 		proto_varint_write(size);
 		proto_writes(childs, childs_len);
 	}
 
-	proto.field = 3;
-	proto.type = WIRETYPE_FIXED64;
-	proto.value.num64 = src->messageTimestamp;
-	proto_write(&proto);
+	if (src->messageTimestamp > 0)
+	{
+		proto.field = 3;
+		proto.type = WIRETYPE_VARINT;
+		proto.value.num64 = src->messageTimestamp;
+		info("TS %lu = %lu", proto.value.num64, src->messageTimestamp);
+		proto_write(&proto);
+		hexdump(&buf[buf_idx - 9], 9);
+	}
 
-	proto.field = 4;
-	proto.type = WIRETYPE_VARINT;
-	proto.value.num64 = src->status;
-	proto_write(&proto);
+	if (src->status > WEB_MESSAGE_INFO_STATUS_ERROR &&
+		src->status <= WEB_MESSAGE_INFO_STATUS_PLAYED)
+	{
+		proto.field = 4;
+		proto.type = WIRETYPE_VARINT;
+		proto.value.num32 = src->status;
+		proto_write(&proto);
+	}
 
 	return 0;
 }

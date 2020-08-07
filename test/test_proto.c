@@ -125,12 +125,26 @@ int test_write()
     TRUTHY(proto.len == ptr->len);
     ZERO(strncmp(proto.value.buf, ptr->value.buf, proto.len));
 
+    proto.field = 3;
+    proto.type = WIRETYPE_VARINT;
+    proto.value.num64 = 1589871077llu;
+    buf_idx = 0;
+    num = proto_write(&proto);
+    TRUTHY(num == 0);
+    buf_idx = 0;
+    proto_scan(scan, 1, 3);
+    ptr = &scan[0];
+
+    TRUTHY(proto.field == ptr->field);
+    TRUTHY(proto.type == ptr->type);
+    TRUTHY(proto.value.num64 == ptr->value.num64);
+
     return 0;
 }
 
 int test_proto()
 {
-    WebMessageInfo msg, msg2;
+    WebMessageInfo msg;
     char mybuff[800];
 
     memset(&msg, 0, sizeof(WebMessageInfo));
@@ -149,12 +163,15 @@ int test_proto()
     FALSY(msg.message == NULL);
     ZERO(strcmp(msg.message->conversation, "tttest"));
 
-    buf_set(&mybuff, 800);
+    buf_set(mybuff, 800);
     TRUTHY(proto_write_WebMessageInfo(&msg) >= 0);
-    info("ReadSize: %lu, WriteSize: %lu", read_size, buf_idx);
-    hexdump(mybuff, buf_idx);
-    fwrite(mybuff, 1, buf_idx, stderr);
-    info("------");
+    TRUTHY(read_size == buf_idx);
+    //info("ReadSize: %lu, WriteSize: %lu", read_size, buf_idx);
+    //helper_save_file("tmp/test-message.proto.bin", mybuff, buf_idx);
+    //hexdump(mybuff, buf_idx);
+    //fwrite(mybuff, 1, buf_idx, stderr);
+    //info("------");
+    ZERO(memcmp(mybuff, read_buf, buf_idx));
 
     proto_free_WebMessageInfo(&msg);
 
@@ -163,8 +180,8 @@ int test_proto()
 
 int test_main()
 {
-    //return test_varint() || test_write() || test_proto();
-    return test_proto();
+    return test_varint() || test_write() || test_proto();
+    //return test_proto();
 }
 
 int test_setup()
