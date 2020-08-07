@@ -5,6 +5,14 @@
 #include "test.h"
 #include "data_auth.h"
 
+static char *encrypted_messages[] = {
+    "android/1_b3d5dd17d947a3f6.--10a.bin.enc",
+    "android/6_preempt-b3d5dd17d947a3f6.--10b.bin.enc",
+    "android/7_b3d5dd17d947a3f6.--10c.bin.enc",
+    "android/8_b3d5dd17d947a3f6.--10d.bin.enc",
+    "android/9_preempt-b3d5dd17d947a3f6.--10e.bin.enc",
+    NULL};
+
 int test_random()
 {
     char buf[10], *rand1 = malloc(32), *null = calloc(32, 1);
@@ -127,10 +135,47 @@ int test_parse_server_keys()
     return 0;
 }
 
+int test_encrypt_decrypt()
+{
+    int ret = 0, i;
+    CFG *cfg = (void *)data_android_cfg;
+    char file[256], output[2248], encrypted[2248], decrypted[2248], re_encrypt[2248];
+    size_t output_size, encrypted_size, decrypted_size, re_encrypt_size;
+
+    ZERO(crypto_parse_server_keys(cfg->serverSecret, cfg));
+    for (i = 0; encrypted_messages[i] != NULL; i++)
+    {
+        strcpy(file, encrypted_messages[i]);
+
+        accent(":: %s", file);
+        load_sample(file, encrypted, 2248, &encrypted_size);
+        *(strrchr(file, '.')) = 0;
+        load_sample(file, decrypted, 2248, &decrypted_size);
+
+        ret = crypto_decrypt_hmac(encrypted, encrypted_size, output, &output_size);
+        ZERO(ret);
+        ZERO(memcmp(decrypted, output, decrypted_size));
+
+        // Encrypt it again
+        ZERO(crypto_encrypt_hmac(output, output_size, re_encrypt, &re_encrypt_size));
+        TRUTHY(re_encrypt_size == encrypted_size);
+        memset(output, 0, 2248);
+        ret = crypto_decrypt_hmac(re_encrypt, re_encrypt_size, output, &output_size);
+        ZERO(ret);
+        TRUTHY(output_size == decrypted_size);
+        ZERO(memcmp(decrypted, output, decrypted_size));
+    }
+    return 0;
+}
+
 int test_main()
 {
 
-    return test_keys() || test_random() || test_crypto_cfg() || test_parse_server_keys();
+    return test_keys() ||
+           test_random() ||
+           test_crypto_cfg() ||
+           test_parse_server_keys() ||
+           test_encrypt_decrypt();
 }
 
 int test_setup()

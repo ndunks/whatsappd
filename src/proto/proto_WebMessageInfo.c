@@ -26,7 +26,7 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 	}
 
 	if ((ptr = protos_get(3, scan, 19)) != NULL)
-		dst->messageTimestamp = ptr->value.num64;
+		dst->messageTimestamp = ptr->value.num32;
 
 	if ((ptr = protos_get(4, scan, 19)) != NULL)
 		dst->status = ptr->value.num64;

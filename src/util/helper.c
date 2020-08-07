@@ -4,7 +4,19 @@
 #include "util.h"
 #include "qrcodegen.h"
 
+static char helper_hex[] = "0123456789ABCDEF";
 int CATCH_RET = 0;
+
+void helper_buf_to_hex(const uint8_t *dst, uint8_t *buf, int buf_len)
+{
+    uint8_t *ptr = dst;
+    for (int i = 0; i < buf_len; i++)
+    {
+        *(ptr++) = helper_hex[ buf[i] >> 4 ];
+        *(ptr++) = helper_hex[buf[i] & 0b1111];
+    }
+    *ptr = 0;
+}
 
 int helper_save_file(const char *path, const char *buf, size_t buf_len)
 {

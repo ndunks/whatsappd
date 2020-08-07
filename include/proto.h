@@ -89,7 +89,7 @@ typedef struct WebMessageInfo
     // optional Message message = 2;
     Message *message;
     // optional uint64 messageTimestamp = 3
-    uint64_t messageTimestamp;
+    uint32_t messageTimestamp;
     // Status only filled when message is fromMe = true
     // optional WEB_MESSAGE_INFO_STATUS status = 4
     WEB_MESSAGE_INFO_STATUS status;

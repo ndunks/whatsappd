@@ -114,6 +114,8 @@ int cfg_load(CFG *cfg);
 int cfg_save(CFG *cfg);
 int cfg_has_credentials(CFG *cfg);
 
+// dst len must be buf_len * 2 + 1
+void helper_buf_to_hex(const uint8_t *dst, uint8_t *buf, int buf_len);
 int helper_save_file(const char *path, const char *buf, size_t buf_len);
 uint64_t helper_jid_to_num(const char *buf);
 int helper_qrcode_show(const char *src);

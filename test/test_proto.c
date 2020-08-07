@@ -181,7 +181,6 @@ int test_proto()
 int test_main()
 {
     return test_varint() || test_write() || test_proto();
-    //return test_proto();
 }
 
 int test_setup()

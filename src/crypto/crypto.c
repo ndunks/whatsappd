@@ -15,7 +15,7 @@ mbedtls_entropy_context *crypto_entropy;
 aes_keys crypto_aes_keys;
 mbedtls_ecp_group *grp;
 
-static mbedtls_aes_context *crypto_aes_dec_ctx;
+static mbedtls_aes_context *crypto_aes_dec_ctx, *crypto_aes_enc_ctx;
 static const mbedtls_md_info_t *md_sha256;
 
 int crypto_random(char *buf, size_t len)
@@ -108,6 +108,19 @@ int crypto_sign(char *dst, char *src, size_t len)
         (uint8_t *)dst);
 }
 
+int crypto_padding(char *buf, size_t *len)
+{
+    uint8_t pad, pad_len = 16 - (*len % 16);
+    pad = pad_len;
+
+    while (pad_len-- > 0)
+    {
+        buf[(*len)++] = pad;
+    }
+
+    return 0;
+}
+
 int crypto_unpadding(char *buf, size_t *len)
 {
     int pad_len = buf[*len - 1];
@@ -121,7 +134,39 @@ int crypto_unpadding(char *buf, size_t *len)
     return 0;
 }
 
-int crypto_decrypt_hmac(char *input, size_t input_len, char *output, size_t *output_len)
+// Input buffer must be enough to store 16 byte padding
+int crypto_encrypt_hmac(char *input, size_t input_len, char *output, size_t *output_len)
+{
+    uint8_t iv[16];
+    crypto_random((char *)iv, 16);
+
+    // padded, input_len adjusted
+    crypto_padding(input, &input_len);
+    *output_len = input_len + 32 + 16;
+
+    // store IV befor it changed by mbedtls encryption
+    memcpy(output + 32, iv, 16);
+
+    CHECK(mbedtls_aes_crypt_cbc(
+        crypto_aes_enc_ctx,
+        MBEDTLS_AES_ENCRYPT,
+        input_len,
+        iv,
+        (uint8_t *)input,
+        (uint8_t *)output + 32 + 16));
+
+    CHECK(mbedtls_md_hmac(
+        md_sha256,
+        (uint8_t *)crypto_aes_keys.mac,
+        32,
+        (uint8_t *)output + 32,
+        input_len + 16,
+        (uint8_t *)output));
+
+    return 0;
+}
+
+int crypto_decrypt_hmac(const char *const input, size_t input_len, char *output, size_t *output_len)
 {
     uint8_t hmac_check[32], sign[32], iv[16];
     size_t check_len, encrypted_len;
@@ -243,7 +288,7 @@ int crypto_parse_server_keys(const char server_secret[144], CFG *cfg)
     memcpy(crypto_aes_keys.enc, decrypted, 32);
     memcpy(crypto_aes_keys.mac, decrypted + 32, 32);
     mbedtls_aes_setkey_dec(crypto_aes_dec_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
-    //mbedtls_aes_setkey_enc(crypto_aes_dec_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
+    mbedtls_aes_setkey_enc(crypto_aes_enc_ctx, (uint8_t *)crypto_aes_keys.enc, 32 * 8);
 
     info("Gained aes & mac key");
 
@@ -284,7 +329,9 @@ int crypto_init()
                               sizeof pers));
 
     crypto_aes_dec_ctx = calloc(sizeof(mbedtls_aes_context), 1);
+    crypto_aes_enc_ctx = calloc(sizeof(mbedtls_aes_context), 1);
     mbedtls_aes_init(crypto_aes_dec_ctx);
+    mbedtls_aes_init(crypto_aes_enc_ctx);
     return 0;
 
 CATCH:
