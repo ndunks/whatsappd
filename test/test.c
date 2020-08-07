@@ -2,7 +2,7 @@
 #include <time.h>
 #define NANO_PER_SEC 1000000000.0
 
-int ret_val;
+int ret_val = 0, skip_test = 0;
 
 int load_sample(const char *name, char *buf, size_t buf_size, size_t *read_size)
 {
@@ -36,11 +36,17 @@ int main(int argc, char const *argv[])
     //long secs_used, micros_used;
 
     info("** TEST: %s **", test_name);
-
-    if (test_setup())
+    ret_val = test_setup();
+    if (ret_val != 0)
     {
+        if (ret_val == TEST_SKIP)
+        {
+            warn("Skipped..");
+            return 0;
+        }
+
         err("Error in test_setup");
-        return 1;
+        return ret_val;
     }
 
     clock_gettime(CLOCK_REALTIME, &start);

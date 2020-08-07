@@ -1,24 +1,28 @@
 #include "proto.h"
 #include "whatsappd.h"
 
+#define TEST_REQUIRE_VALID_CFG
 #include "test.h"
-
-#define REQUIRE_VALID_CFG
 
 int test_main()
 {
-    
+
     return 0;
 }
 
 int test_setup()
 {
-    CHAT *chat;
 
+#ifdef HEADLESS
+    err("This test require working .cfg");
+    return TEST_SKIP;
+#endif
+
+    CHAT *chat;
     ZERO(whatsappd_init(NULL));
     ok("Ready to handle messages!");
     chat = handler_unread_chats;
-    
+
     TRUTHY(chat != NULL);
     do
     {
@@ -32,6 +36,6 @@ int test_setup()
 int test_cleanup()
 {
     accent("CLEANING UP..");
-    whatsappd_free();
+    //whatsappd_free();
     return 0;
 }

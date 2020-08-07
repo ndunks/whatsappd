@@ -9,17 +9,17 @@ int test_random()
 {
     char buf[10], *rand1 = malloc(32), *null = calloc(32, 1);
     memset(buf, 0x0, 10);
-    info("rand: buf");
-    hexdump(buf, 10);
+    // info("rand: buf");
+    // hexdump(buf, 10);
     ZERO(crypto_random(buf, 10));
-    info("rand: buf");
-    hexdump(buf, 10);
+    // info("rand: buf");
+    // hexdump(buf, 10);
     TRUTHY(memcmp(buf, null, 10) != 0);
 
     memset(rand1, 0, 32);
     ZERO(crypto_random(rand1, 32));
-    info("rand: rand1");
-    hexdump(rand1, 32);
+    // info("rand: rand1");
+    // hexdump(rand1, 32);
     TRUTHY(memcmp(rand1, null, 32) != 0);
 
     free(rand1);
@@ -97,7 +97,6 @@ int test_parse_server_keys()
     CFG cfg;
     char null[160],
         *clientId = DATA_AUTH_CLIENT_ID,
-        *keys_secret = DATA_AUTH_KEYS_SECRET,
         *keys_private = DATA_AUTH_KEYS_PRIVATE,
         *keys_public = DATA_AUTH_KEYS_PUBLIC,
         *serverSecret = DATA_AUTH_SERVER_SECRET,

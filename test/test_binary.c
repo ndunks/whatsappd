@@ -25,10 +25,10 @@ int test_buf()
                  "\x0a\xbb\x0c"      // int 20
                  "\xaa\xbb\xcc\xdd"; // int32
     buf_set(local_buf, 9);
-    accent("int8  0x%02x", buf_read_byte());
-    accent("int16 0x%04x", buf_read_int16());
-    accent("int20 0x%06x", buf_read_int20());
-    accent("int32 0x%08x", buf_read_int32());
+    //accent("int8  0x%02x", buf_read_byte());
+    //accent("int16 0x%04x", buf_read_int16());
+    //accent("int20 0x%06x", buf_read_int20());
+    //accent("int32 0x%08x", buf_read_int32());
 
     // reset index, keep old data
     buf_set(local_buf, 9);
@@ -145,12 +145,12 @@ int test_read_message()
         ZERO(strcmp(node->tag, "action"));
         TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
         FALSY(node->child.list == NULL);
-        info("CHILDS: %d", node->child_len);
+        //info("CHILDS: %d", node->child_len);
 
         for (i = 0; i < node->child_len; i++)
         {
             ptr = node->child.list[i];
-            info(" %3d: %s", i, ptr->tag);
+            //info(" %3d: %s", i, ptr->tag);
         }
         binary_free();
         free(ent[files_idx]);

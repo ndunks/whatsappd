@@ -18,35 +18,35 @@ int test_json_field()
     ZERO(strcmp(json[i].key, "fie\"ld1"));
     TRUTHY(json[i].value != NULL);
     ZERO(strcmp(json[i].value, "1234"));
-    info("%s\t-> %s", json[i].key, json[i].value);
+    //info("%s\t-> %s", json[i].key, json[i].value);
     i++;
 
     TRUTHY(json[i].key != NULL);
     ZERO(strcmp(json[i].key, "field2"));
     TRUTHY(json[i].value != NULL);
     ZERO(strcmp(json[i].value, "[1,2,3,4]"));
-    info("%s\t-> %s", json[i].key, json[i].value);
+    //info("%s\t-> %s", json[i].key, json[i].value);
     i++;
 
     TRUTHY(json[i].key != NULL);
     ZERO(strcmp(json[i].key, "field3"));
     TRUTHY(json[i].value != NULL);
     ZERO(strcmp(json[i].value, "true"));
-    info("%s\t-> %s", json[i].key, json[i].value);
+    //info("%s\t-> %s", json[i].key, json[i].value);
     i++;
 
     TRUTHY(json[i].key != NULL);
     ZERO(strcmp(json[i].key, "field4"));
     TRUTHY(json[i].value != NULL);
     ZERO(strcmp(json[i].value, "{ \"ch\":[\"123\",\"\"] }"));
-    info("%s\t-> %s", json[i].key, json[i].value);
+    //info("%s\t-> %s", json[i].key, json[i].value);
     i++;
 
     TRUTHY(json[i].key != NULL);
     ZERO(strcmp(json[i].key, "field5"));
     TRUTHY(json[i].value != NULL);
     ZERO(strcmp(json[i].value, "123456789"));
-    info("%s\t-> %s", json[i].key, json[i].value);
+    //info("%s\t-> %s", json[i].key, json[i].value);
     i++;
 
     TRUTHY(json_find("field5") == 4);

@@ -2,9 +2,6 @@
 #include <unistd.h>
 
 #include "session.h"
-
-#define REQUIRE_WA
-
 #include "test.h"
 
 static char *test_cfg_file = "tmp/test_session_whatsappd.cfg";
@@ -86,6 +83,11 @@ int test_main()
 
 int test_setup()
 {
+#ifdef HEADLESS
+    err("This test require user to scan qrcode");
+    return TEST_SKIP;
+#endif
+
     ZERO(crypto_init());
     return 0;
 }

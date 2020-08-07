@@ -1,16 +1,15 @@
 #include "session.h"
 #include "handler.h"
 
-#include "test.h"
 
-#define REQUIRE_VALID_CFG
+#include "test.h"
 
 int test_main()
 {
     CHAT *chat;
 
     ZERO(handler_preempt());
-    info("Unread count: %d", handler_unread_count);
+    info("Unread count: %lu", handler_unread_count);
 
     chat = handler_unread_chats;
     TRUTHY(chat != NULL);
@@ -30,6 +29,12 @@ int test_main()
 
 int test_setup()
 {
+
+#ifdef HEADLESS
+    err("This test require working .cfg");
+    return TEST_SKIP;
+#endif
+
     CFG cfg;
     ZERO(crypto_init());
 

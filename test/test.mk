@@ -7,7 +7,10 @@ endif
 TEST            ?= $*
 CFLAGS          += -Isrc "-DTEST=\"$(TEST)\""
 TEST_BINS       := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
-#OBJECTS_NO_MAIN := $(filter-out build/whatsappd.o, $(OBJECTS))
+
+ifdef HEADLESS
+    CFLAGS      += -DHEADLESS
+endif
 
 test: lib modules $(TEST_BINS)
 	@for test_bin in $(TEST_BINS); do \

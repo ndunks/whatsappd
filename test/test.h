@@ -23,6 +23,7 @@
 #define ZERO(expression) EQUAL(expression, 0)
 #define FALSY(expression) EQUAL(expression, 0)
 #define TRUTHY(expression) NOTEQUAL(expression, 0)
+#define TEST_SKIP -255
 
 extern int ret_val;
 extern int load_sample(const char *name, char *buf, size_t buf_size, size_t *read_size);
