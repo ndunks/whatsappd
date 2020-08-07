@@ -68,7 +68,7 @@ $(OBJECTS) $(MODULES_OBJECTS) : build/%.o : src/%.c
 $(MODULES_LIB): $(MODULES_OBJECTS)
 	$(info building $@)
 ifdef SHARED
-	$(CC) -shared $^ -o $@
+	@$(CC) -shared $^ -o $@
 else
 	@$(AR) cr $@ $?
 endif

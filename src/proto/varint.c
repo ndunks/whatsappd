@@ -1,6 +1,6 @@
 #include "proto.h"
 
-uint len_varint(uint64_t num)
+uint proto_varint_size(uint64_t num)
 {
 	uint len = 1;
 	while (num >= 0b10000000)
@@ -11,7 +11,7 @@ uint len_varint(uint64_t num)
 	return len;
 }
 
-uint write_varint(uint32_t num)
+uint proto_varint_write(uint32_t num)
 {
 	uint32_t start = buf_idx;
 
@@ -24,7 +24,7 @@ uint write_varint(uint32_t num)
 	return buf_idx - start;
 }
 
-uint32_t read_varint()
+uint32_t proto_varint_read()
 {
 	uint32_t val = 0lu;
 	int i = 0, shift = 0;

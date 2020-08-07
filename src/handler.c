@@ -60,22 +60,22 @@ static int handle_action(BINARY_NODE *node)
         for (int i = 0; i < node->child_len; i++)
         {
             child = node->child.list[i];
+            
             proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
-            if (!wid_is_user(msg.key.remoteJid))
-            {
-                warn("Ignore non-user msg: %s", msg.key.remoteJid);
-                continue;
-            }
-            if (msg.key.fromMe)
-            {
-                warn("Ignore self message");
-                continue;
-            }
-            msg_len = strlen(msg.message.conversation);
-            if (msg_len)
-                handler_add_unread(msg.key.remoteJid, NULL, msg.message.conversation, msg_len);
+            
+            if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
+                warn("Ignore non user or self message");
             else
-                warn("Ignore zero-length last message");
+            {
+
+                msg_len = strlen(msg.message->conversation);
+                if (msg_len)
+                    handler_add_unread(msg.key->remoteJid, NULL, msg.message->conversation, msg_len);
+                else
+                    warn("Ignore zero-length last message");
+            }
+
+            proto_free_WebMessageInfo(&msg);
         }
         break;
     default:

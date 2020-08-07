@@ -1,6 +1,6 @@
 #include "proto.h"
 
-size_t len_tag(uint32_t field)
+size_t proto_tag_size(uint32_t field)
 {
 	if (field < (1UL << 4))
 		return 1;
@@ -14,7 +14,7 @@ size_t len_tag(uint32_t field)
 		return 5;
 }
 
-int read_tag(PROTO *proto)
+int proto_tag_read(PROTO *proto)
 {
 	uint shift = 4;
 
@@ -29,7 +29,7 @@ int read_tag(PROTO *proto)
 	return 0;
 }
 
-int write_tag(PROTO *proto)
+int proto_tag_write(PROTO *proto)
 {
 	uint32_t field = proto->field;
 	size_t start = buf_idx;

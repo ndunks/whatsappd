@@ -85,30 +85,38 @@ typedef enum WEB_MESSAGE_INFO_STATUS
 typedef struct WebMessageInfo
 {
     // required MessageKey key = 1
-    MessageKey key;
+    MessageKey *key;
     // optional Message message = 2;
-    Message message;
+    Message *message;
     // optional uint64 messageTimestamp = 3
     uint64_t messageTimestamp;
-    // optional WEB_MESSAGE_INFO_STATUS status = 4
     // Status only filled when message is fromMe = true
+    // optional WEB_MESSAGE_INFO_STATUS status = 4
     WEB_MESSAGE_INFO_STATUS status;
 } WebMessageInfo;
 
-uint write_varint(uint32_t num);
-uint32_t read_varint();
-int read_tag(PROTO *proto);
-int write_tag(PROTO *proto);
+uint proto_varint_write(uint32_t num);
+uint32_t proto_varint_read();
+uint proto_varint_size(uint64_t num);
+
+int proto_tag_read(PROTO *proto);
+int proto_tag_write(PROTO *proto);
+size_t proto_tag_size(uint32_t field);
 
 PROTO *protos_get(uint32_t field, PROTO *proto, size_t max);
 size_t proto_size(PROTO *proto, int proto_len);
-int proto_write(PROTO *proto, int proto_len);
+int proto_write(PROTO *proto);
+int proto_writes(PROTO *proto, int proto_len);
 int proto_scan(PROTO *proto, int proto_len, int max_field);
 
 int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size);
 int proto_write_WebMessageInfo(WebMessageInfo *src);
+void proto_free_WebMessageInfo(WebMessageInfo *src);
 
 int proto_parse_MessageKey(MessageKey *dst, char *buf, size_t buf_size);
-int proto_write_MessageKey(MessageKey *src);
+int proto_write_MessageKey(MessageKey *src, PROTO *protos, int proto_len);
+void proto_free_MessageKey(MessageKey *src);
 
 int proto_parse_Message(Message *dst, char *buf, size_t buf_size);
+int proto_write_Message(Message *src, PROTO *protos, int proto_len);
+void proto_free_Message(Message *src);

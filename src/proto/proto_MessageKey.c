@@ -36,11 +36,14 @@ int proto_parse_MessageKey(MessageKey *dst, char *buf, size_t buf_size)
 	return 0;
 }
 
-int proto_write_MessageKey(MessageKey *src)
+int proto_write_MessageKey(MessageKey *src, PROTO *protos, int proto_len)
 {
-	PROTO *ptr, protos[4];
-	size_t len = 0;
-	memset(protos, 0, sizeof(protos));
+	PROTO *ptr;
+	int len = 0;
+	if(proto_len < 4 ){
+		err("proto_write_MessageKey: not enough proto array");
+		return BUF_ERR_NOT_ENOUGH;
+	}
 
 	ptr = &protos[len++];
 	ptr->field = 1;
@@ -64,6 +67,9 @@ int proto_write_MessageKey(MessageKey *src)
 	ptr->type = WIRETYPE_LENGTH_DELIMITED;
 	ptr->len = strlen(src->participant);
 	ptr->value.buf = src->participant;
+	return len;
+}
 
-	return proto_write(protos, len);
+void proto_free_MessageKey(MessageKey *src)
+{
 }

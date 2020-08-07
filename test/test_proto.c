@@ -13,45 +13,45 @@ int test_varint()
     buf_set(buf, 64);
 
     num = 1;
-    TRUTHY(write_varint(num) == 1);
+    TRUTHY(proto_varint_write(num) == 1);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0x7f;
-    TRUTHY(write_varint(num) == 1);
+    TRUTHY(proto_varint_write(num) == 1);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0x80;
-    TRUTHY(write_varint(num) == 2);
+    TRUTHY(proto_varint_write(num) == 2);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0xfaba;
-    TRUTHY(write_varint(num) == 3);
+    TRUTHY(proto_varint_write(num) == 3);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0xffff80;
-    TRUTHY(write_varint(num) == 4);
+    TRUTHY(proto_varint_write(num) == 4);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0xfaba0000u;
-    TRUTHY(write_varint(num) == 5);
+    TRUTHY(proto_varint_write(num) == 5);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     num = 0xffffffffu;
-    TRUTHY(write_varint(num) == 5);
+    TRUTHY(proto_varint_write(num) == 5);
     buf_idx = 0;
-    TRUTHY(read_varint() == num);
+    TRUTHY(proto_varint_read() == num);
     buf_idx = 0;
 
     return 0;
@@ -72,14 +72,14 @@ int test_write()
     proto.type = WIRETYPE_FIXED32;
     proto.value.num32 = 0xfaab;
 
-    num = write_tag(&proto);
+    num = proto_tag_write(&proto);
     TRUTHY(num == 1);
     TRUTHY(buf[0] == 0b00001101);
 
     buf_idx = 0;
     proto.field = 0xffffff;
-    proto_write(&proto, 1);
-    proto_write(&proto, 1);
+    proto_write(&proto);
+    proto_write(&proto);
     buf_idx = 0;
     proto_scan(scan, 5, 5);
     ptr = &scan[0];
@@ -98,18 +98,18 @@ int test_write()
     proto.len = 14;
     proto.value.buf = "THIS_MY_BUFFER";
     buf_idx = 0;
-    num = write_tag(&proto);
+    num = proto_tag_write(&proto);
     TRUTHY(num == 2);
     TRUTHY((uint8_t)buf[0] == 0b11111010u);
     buf_idx = 0;
-    read_tag(&scan[0]);
+    proto_tag_read(&scan[0]);
     ptr = &scan[0];
     TRUTHY(proto.field == ptr->field);
     TRUTHY(proto.type == ptr->type);
 
     buf_idx = 0;
-    proto_write(&proto, 1);
-    proto_write(&proto, 1);
+    proto_write(&proto);
+    proto_write(&proto);
     hexdump(buf, 16);
 
     buf_idx = 0;
@@ -130,7 +130,10 @@ int test_write()
 
 int test_proto()
 {
-    WebMessageInfo msg;
+    WebMessageInfo msg, msg2;
+    char mybuff[800];
+
+    memset(&msg, 0, sizeof(WebMessageInfo));
     memset(&msg, 0, sizeof(WebMessageInfo));
 
     ZERO(load_sample("sent-message.proto.bin", read_buf, BUF_SIZE, &read_size));
@@ -138,20 +141,30 @@ int test_proto()
     TRUTHY(msg.status == 1);
     TRUTHY(msg.messageTimestamp == 1589871077);
 
-    FALSY(*(char *)&msg.key == 0);
-    info("remoteJid: %s", msg.key.remoteJid);
-    ZERO(strcmp(msg.key.remoteJid, "628997026464@s.whatsapp.net"));
-    TRUTHY(msg.key.fromMe == true);
-    ZERO(strcmp(msg.key.id, "3EB082A541839959E947"));
-    FALSY(*(char *)&msg.message == 0);
-    ZERO(strcmp(msg.message.conversation, "tttest"));
+    FALSY(msg.key == NULL);
+    info("remoteJid: %s", msg.key->remoteJid);
+    ZERO(strcmp(msg.key->remoteJid, "628997026464@s.whatsapp.net"));
+    TRUTHY(msg.key->fromMe == true);
+    ZERO(strcmp(msg.key->id, "3EB082A541839959E947"));
+    FALSY(msg.message == NULL);
+    ZERO(strcmp(msg.message->conversation, "tttest"));
+
+    buf_set(&mybuff, 800);
+    TRUTHY(proto_write_WebMessageInfo(&msg) >= 0);
+    info("ReadSize: %lu, WriteSize: %lu", read_size, buf_idx);
+    hexdump(mybuff, buf_idx);
+    fwrite(mybuff, 1, buf_idx, stderr);
+    info("------");
+
+    proto_free_WebMessageInfo(&msg);
 
     return 0;
 }
 
 int test_main()
 {
-    return test_varint() || test_write() || test_proto();
+    //return test_varint() || test_write() || test_proto();
+    return test_proto();
 }
 
 int test_setup()
