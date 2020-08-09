@@ -75,6 +75,8 @@ BINARY_NODE *binary_child(BINARY_NODE *node, int index);
 
 BINARY_NODE *read_node();
 BINARY_NODE *binary_read(char *src, size_t src_len);
+size_t write_node(BINARY_NODE *node);
+size_t binary_write(BINARY_NODE *node, char *dst, size_t dst_len);
 
 #ifdef TEST
 uint8_t read_byte();

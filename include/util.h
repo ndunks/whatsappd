@@ -67,7 +67,11 @@ uint16_t buf_read_int16();
 uint32_t buf_read_int20();
 // Big-endian read
 uint32_t buf_read_int32();
-
+size_t buf_write_bytes(char *src, size_t len);
+size_t buf_write_byte(uint8_t byte);
+size_t buf_write_int16(uint16_t value);
+size_t buf_write_int20(uint32_t value);
+size_t buf_write_int32(uint32_t value);
 uint32_t buf_read_var_int32(unsigned len, const uint8_t *data);
 void buf_read_bytes(char *dst, size_t len);
 bool buf_available();

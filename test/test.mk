@@ -24,6 +24,6 @@ test-watch: buildfs
 		-x "make --no-print-directory test || false"
 
 $(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS)
-	$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: test test-watch

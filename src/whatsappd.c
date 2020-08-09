@@ -53,6 +53,7 @@ int whatsappd_send_text(const char *number, const char *text)
     proto_write_WebMessageInfo( &info );
     //crypto_decrypt_hmac();
     free(bin_buf);
+    return 0;
 }
 
 /**

@@ -17,10 +17,9 @@ MKDIRS          += $(patsubst src/%, build/%, $(MODULES))
 
 .DEFAULT_GOAL := all
 
-# $(info MKDIRS: $(MKDIRS))
-# $(info MODULES: $(MODULES))
-# $(info SOURCES: $(MODULES_SOURCES))
-# $(info OBJECTS: $(MODULES_OBJECTS))
+ifdef DEBUG
+    CFLAGS += -g
+endif
 
 include lib/lib.mk
 

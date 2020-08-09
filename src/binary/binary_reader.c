@@ -2,7 +2,7 @@
 
 #include "binary.h"
 
-static int IS_READING_ATTR = 0;
+//static int IS_READING_ATTR = 0;
 
 char *read_string_tag(uint32_t bin_tag);
 
@@ -157,6 +157,7 @@ char *read_string_tag_jid_pair()
     warn("invalid jid");
     return NULL;
 }
+
 char *read_string_tag_jid_ad()
 {
     char *user, *str;
@@ -216,23 +217,23 @@ char *read_string_tag(uint32_t bin_tag)
         return NULL;
     case BINARY_8:
         str = read_string_len(buf_read_byte());
-        if (IS_READING_ATTR)
-            return str;
-        else
-            return NULL;
+        //if (IS_READING_ATTR)
+        return str;
+        // else
+        //     return NULL;
     case BINARY_20:
         str = read_string_len(buf_read_int20());
-        if (IS_READING_ATTR)
-            return str;
-        else
-            return NULL;
+        //if (IS_READING_ATTR)
+        return str;
+        // else
+        //     return NULL;
 
     case BINARY_32:
         str = read_string_len(buf_read_int32());
-        if (IS_READING_ATTR)
-            return str;
-        else
-            return NULL;
+        //if (IS_READING_ATTR)
+        return str;
+        // else
+        //     return NULL;
 
     case JID_PAIR:
         return read_string_tag_jid_pair();
@@ -270,7 +271,7 @@ void read_attributes(BINARY_NODE *node)
 {
     int i;
     BINARY_NODE_ATTR *attr = NULL;
-    IS_READING_ATTR = 1;
+    //IS_READING_ATTR = 1;
     //ok("read_attributes: %d", node->attr_len);
 
     for (i = 0; i < node->attr_len; i++)
@@ -284,7 +285,7 @@ void read_attributes(BINARY_NODE *node)
 
         //accent("  attr %s:%s", attr->key, attr->value);
     }
-    IS_READING_ATTR = 0;
+    //IS_READING_ATTR = 0;
 }
 
 void read_list(BINARY_NODE *node, uint8_t bin_tag)
@@ -328,6 +329,7 @@ BINARY_NODE *read_node()
     {
         return NULL;
     }
+
     bin_tag = buf_read_byte();
 
     if (bin_tag == STREAM_END)
@@ -342,11 +344,14 @@ BINARY_NODE *read_node()
 
     if (list_flag == 0 || node->tag == NULL)
     {
-        err("Invalid node");
-        hexdump(buf, buf_len);
-        warn("-------------------");
-        fwrite(buf, 1, buf_len, stderr);
-        warn("\n-------------------");
+        err("Invalid node, size %lu", buf_len);
+        if (buf_len < 256)
+        {
+            hexdump(buf, buf_len);
+            warn("-------------------");
+            fwrite(buf, 1, buf_len, stderr);
+            warn("\n-------------------");
+        }
         return NULL;
     }
 

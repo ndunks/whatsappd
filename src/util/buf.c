@@ -1,3 +1,7 @@
+/**
+ * BIG-Endian to/from LITTLE-Endian read write buffer helpers
+ */
+
 #include "util.h"
 
 uint8_t *buf = NULL;
@@ -21,15 +25,35 @@ void buf_read_bytes(char *dst, size_t len)
 	buf_idx += len;
 }
 
+size_t buf_write_bytes(char *src, size_t len)
+{
+	memcpy(buf + buf_idx, src, len);
+	buf_idx += len;
+	return len;
+}
+
 uint8_t buf_read_byte()
 {
 	return buf[buf_idx++];
+}
+
+size_t buf_write_byte(uint8_t byte)
+{
+	buf[buf_idx++] = byte;
+	return 1;
 }
 
 uint16_t buf_read_int16()
 {
 	buf_idx += 2;
 	return be16toh(*(uint16_t *)&buf[buf_idx - 2]);
+}
+
+size_t buf_write_int16(uint16_t value)
+{
+	*(uint16_t *)&buf[buf_idx] = htobe16(value);
+	buf_idx += 2;
+	return 2;
 }
 
 uint32_t buf_read_int20()
@@ -40,10 +64,26 @@ uint32_t buf_read_int20()
 	return value;
 }
 
+size_t buf_write_int20(uint32_t value)
+{
+	buf[buf_idx++] = (value >> 16) & 0xfu;
+	buf[buf_idx++] = (value >> 8) & 0xffu;
+	buf[buf_idx++] = (value)&0xffu;
+
+	return 3;
+}
+
 uint32_t buf_read_int32()
 {
 	buf_idx += 4;
 	return be32toh(*(uint32_t *)&buf[buf_idx - 4]);
+}
+
+size_t buf_write_int32(uint32_t value)
+{
+	*(uint32_t *)&buf[buf_idx] = htobe32(value);
+	buf_idx += 4;
+	return 4;
 }
 
 uint32_t buf_read_var_int32(unsigned len, const uint8_t *data)

@@ -1,5 +1,6 @@
 #include <locale.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #include "util.h"
 #include "qrcodegen.h"
@@ -9,10 +10,10 @@ int CATCH_RET = 0;
 
 void helper_buf_to_hex(const uint8_t *dst, uint8_t *buf, int buf_len)
 {
-    uint8_t *ptr = dst;
+    uint8_t *ptr = (uint8_t *)dst;
     for (int i = 0; i < buf_len; i++)
     {
-        *(ptr++) = helper_hex[ buf[i] >> 4 ];
+        *(ptr++) = helper_hex[buf[i] >> 4];
         *(ptr++) = helper_hex[buf[i] & 0b1111];
     }
     *ptr = 0;

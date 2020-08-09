@@ -80,8 +80,7 @@ int test_send_init()
 
 int test_main()
 {
-    //return test_tags();
-    return test_send_init();
+    return test_tags() || test_send_init();
 }
 
 int test_setup()

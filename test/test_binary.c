@@ -21,9 +21,9 @@ int alphasort_r(const struct dirent **a, const struct dirent **b)
 int test_buf()
 {
     char local_buf[] = "\xcd"              // int8
-                 "\xf0\x0f"          // int16
-                 "\x0a\xbb\x0c"      // int 20
-                 "\xaa\xbb\xcc\xdd"; // int32
+                       "\xf0\x0f"          // int16
+                       "\x0a\xbb\x0c"      // int 20
+                       "\xaa\xbb\xcc\xdd"; // int32
     buf_set(local_buf, 9);
     //accent("int8  0x%02x", buf_read_byte());
     //accent("int16 0x%04x", buf_read_int16());
@@ -125,11 +125,45 @@ int test_preempt()
     return 0;
 }
 
-int test_read_message()
+int test_read_write()
+{
+    char binbuf[256];
+    size_t len;
+    BINARY_NODE node, *node2;
+    node.tag = "response";
+    node.attr_len = 2;
+    node.attrs[0].key = "recent";
+    node.attrs[0].value = "200";
+    node.attrs[1].key = "hello";
+    node.attrs[1].value = "world";
+    node.child_len = 5;
+    node.child_type = BINARY_NODE_CHILD_BINARY;
+    node.child.data = "ABCD";
+
+    len = binary_write(&node, binbuf, 256);
+    hexdump(binbuf, len + 2);
+    node2 = binary_read(binbuf, len);
+    ZERO(strcmp(node.tag, node2->tag));
+    TRUTHY(node.attr_len == node2->attr_len);
+    TRUTHY(node.child_len == node2->child_len);
+    TRUTHY(node.child_type == node2->child_type);
+
+    ZERO(strcmp(node.attrs[0].key, node2->attrs[0].key));
+    ZERO(strcmp(node.attrs[0].value, node2->attrs[0].value));
+    ZERO(strcmp(node.attrs[1].key, node2->attrs[1].key));
+    ZERO(strcmp(node.attrs[1].value, node2->attrs[1].value));
+    ZERO(strcmp(node.child.data, node2->child.data));
+
+    return 0;
+}
+
+int test_real_message()
 {
     struct dirent **ent;
     int files_idx, i;
-    BINARY_NODE *ptr, *node;
+    char re_build[80000] = {0};
+    BINARY_NODE *ptr, *ptr2, *node, *node2;
+    size_t re_build_size;
 
     /** Message sent after preempt is contain chats */
     files_idx = scandir(SAMPLE_DIR, &ent, NULL, alphasort_r);
@@ -145,13 +179,35 @@ int test_read_message()
         ZERO(strcmp(node->tag, "action"));
         TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
         FALSY(node->child.list == NULL);
-        //info("CHILDS: %d", node->child_len);
+
+        re_build_size = binary_write(node, re_build, 80000);
+        //info(" rebuild %lu vs %lu", read_size, re_build_size);
+        TRUTHY(re_build_size >= read_size);
+
+        node2 = binary_read(re_build, re_build_size);
+        FALSY(node2 == NULL);
+        ZERO(strcmp(node->tag, node2->tag));
+
+        // info("ATTRS : %d vs %d", node->attr_len, node2->attr_len);
+        // info("CHILDS: %d vs %d", node->child_len, node2->child_len);
+        TRUTHY(node->attr_len == node2->attr_len);
+        TRUTHY(node->child_len == node2->child_len);
+        for (i = 0; i < node->attr_len; i++)
+        {
+            ZERO(strcmp(node->attrs[i].key, node2->attrs[i].key));
+            ZERO(strcmp(node->attrs[i].value, node2->attrs[i].value));
+        }
 
         for (i = 0; i < node->child_len; i++)
         {
             ptr = node->child.list[i];
-            //info(" %3d: %s", i, ptr->tag);
+            ptr2 = node2->child.list[i];
+            TRUTHY(ptr->attr_len == ptr2->attr_len);
+            TRUTHY(ptr->child_len == ptr2->child_len);
+            TRUTHY(ptr->child_type == ptr2->child_type);
+            ZERO(strcmp(ptr->tag, ptr2->tag));
         }
+
         binary_free();
         free(ent[files_idx]);
     }
@@ -161,7 +217,7 @@ int test_read_message()
 
 int test_main()
 {
-    return test_buf() || test_preempt() || test_read_message();
+    return test_buf() || test_preempt() || test_read_write() || test_real_message();
 }
 
 int test_setup()
