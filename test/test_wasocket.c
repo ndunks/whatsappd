@@ -12,14 +12,14 @@ int test_tags()
     tag = wasocket_short_tag();
     info("short_tag: %s", tag);
     TRUTHY(strlen(tag) > 0);
-    TRUTHY(strlen(tag) <= 7);
+    TRUTHY(strlen(tag) <= 8);
 
     counter = atoi(strrchr(tag, '-') + 1);
     TRUTHY(counter == 0);
 
     tag = wasocket_short_tag();
     TRUTHY(strlen(tag) > 0);
-    TRUTHY(strlen(tag) <= 7);
+    TRUTHY(strlen(tag) <= 8);
     counter = atoi(strrchr(tag, '-') + 1);
     TRUTHY(counter == 1);
 
@@ -27,7 +27,7 @@ int test_tags()
     tag = wasocket_tag();
     info("long_tag: %s", tag);
     TRUTHY(strlen(tag) > 0);
-    EQUAL(strlen(tag), 14);
+    EQUAL(strlen(tag), 15);
     counter = atoi(strrchr(tag, '-') + 1);
     TRUTHY(counter == 2);
 

@@ -39,7 +39,7 @@ void wss_write(uint8_t *src, size_t len, const uint32_t *const mask)
     wss_write_chunk(src, 0, len, mask);
 }
 
-int wss_send()
+size_t wss_send()
 {
     size_t sent, total = 0;
     // if (wss.tx_len < 255)

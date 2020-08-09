@@ -2,13 +2,17 @@
 
 #include <stdint.h>
 
-#include "util.h"
 #include "wss.h"
+#include "binary.h"
 
 void wasocket_setup();
 char *wasocket_short_tag();
 char *wasocket_tag();
-int wasocket_send_text(char *data, uint len, char *tag);
+
+size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode);
+size_t wasocket_send_text(char *data, uint len, char *tag);
+size_t wasocket_send_binary(char *data, uint len, char *tag);
+
 int wasocket_read(char **data, char **tag, ssize_t *data_size);
 int wasocket_read_all(uint32_t timeout_ms);
 

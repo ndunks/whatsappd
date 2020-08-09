@@ -8,7 +8,7 @@
             "name": "gcc-6 debug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/test_binary",
+            "program": "${workspaceFolder}/build/test_wa_send",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

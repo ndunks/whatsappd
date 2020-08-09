@@ -33,7 +33,7 @@ char *wasocket_tag()
 }
 
 /* null custom_tag will auto create tag */
-int wasocket_send_text(char *data, uint len, char *tag)
+size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode)
 {
     if (tag == NULL)
     {
@@ -45,12 +45,24 @@ int wasocket_send_text(char *data, uint len, char *tag)
     }
 
     mask = wss_mask();
-    wss_frame(WS_OPCODE_TEXT, tag_len + len, mask);
+    wss_frame(opcode, tag_len + len, mask);
     wss_write_chunk((uint8_t *)tag, 0, tag_len, &mask);
     wss_write_chunk((uint8_t *)data, tag_len, len + tag_len, &mask);
     info("---\n%s%s\n---", tag, data);
     return wss_send();
 }
+
+/* null custom_tag will auto create tag */
+size_t wasocket_send_text(char *data, uint len, char *tag)
+{
+    return wasocket_send(data, len, tag, WS_OPCODE_TEXT);   
+}
+
+size_t wasocket_send_binary(char *data, uint len, char *tag)
+{
+    return wasocket_send(data, len, tag, WS_OPCODE_BINARY);   
+}
+
 
 // Read and remove tags
 int wasocket_read(char **data, char **tag, ssize_t *data_size)

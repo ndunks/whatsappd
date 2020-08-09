@@ -39,18 +39,18 @@ int test_setup()
     err("This test require working .cfg");
     return TEST_SKIP;
 #endif
-    crypto_init();
-    // CHAT *chat;
-    // ZERO(whatsappd_init(NULL));
-    // ok("Ready to handle messages!");
-    // chat = handler_unread_chats;
+    //crypto_init();
+    CHAT *chat;
+    ZERO(whatsappd_init(NULL));
+    ok("Ready to handle messages!");
+    chat = handler_unread_chats;
 
-    // TRUTHY(chat != NULL);
-    // do
-    // {
-    //     info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
-    //     chat = chat->next;
-    // } while (chat != NULL);
+    TRUTHY(chat != NULL);
+    do
+    {
+        info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
+        chat = chat->next;
+    } while (chat != NULL);
 
     return 0;
 }

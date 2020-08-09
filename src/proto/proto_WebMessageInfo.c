@@ -43,7 +43,7 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 int proto_write_WebMessageInfo(WebMessageInfo *src)
 {
 	PROTO proto, childs[4];
-	int len = 0, ret, childs_len;
+	int childs_len;
 	size_t size;
 
 	if (src->key != NULL)
@@ -79,7 +79,7 @@ int proto_write_WebMessageInfo(WebMessageInfo *src)
 		proto.field = 3;
 		proto.type = WIRETYPE_VARINT;
 		proto.value.num64 = src->messageTimestamp;
-		info("TS %lu = %lu", proto.value.num64, src->messageTimestamp);
+		info("TS %lu = %u", proto.value.num64, src->messageTimestamp);
 		proto_write(&proto);
 		hexdump(&buf[buf_idx - 9], 9);
 	}

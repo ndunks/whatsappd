@@ -10,7 +10,7 @@ void whatsappd_create_msg_id(const char *str)
     helper_buf_to_hex((uint8_t *)str, (uint8_t *)randBytes, 10);
 }
 
-void whatsappd_sanitize_jid(const char *dst, const char *number)
+void whatsappd_sanitize_jid(char *dst, const char *number)
 {
     char *at;
     strcpy(dst, number);
@@ -29,13 +29,23 @@ void whatsappd_sanitize_jid(const char *dst, const char *number)
     strcat(dst, wa_host_long);
 }
 
-int whatsappd_send_text(const char *number, const char *text)
+int whatsappd_send_text(const char *number, const char *const text)
 {
     MessageKey key;
     Message msg;
     WebMessageInfo info;
-    size_t text_len = strlen(text);
-    char *bin_buf = malloc(text_len + 256);
+    size_t buf_len, node_size, text_len = strlen(text);
+    char *bin_buf, *node_buf;
+    BINARY_NODE node_action, node_message;
+    BINARY_NODE_ATTR *attr;
+    buf_len = text_len + 512;
+
+    memset(&node_action, 0, sizeof(BINARY_NODE));
+    memset(&node_message, 0, sizeof(BINARY_NODE));
+    //node_message = childs;
+
+    bin_buf = malloc(buf_len);
+    node_buf = malloc(buf_len);
 
     key.fromMe = 1;
     whatsappd_create_msg_id(key.id);
@@ -48,11 +58,49 @@ int whatsappd_send_text(const char *number, const char *text)
     info.status = WEB_MESSAGE_INFO_STATUS_PENDING;
     info.messageTimestamp = time(NULL);
 
-    // todo: binary writer
     buf_set(bin_buf, text_len + 256);
-    proto_write_WebMessageInfo( &info );
+    proto_write_WebMessageInfo(&info);
+
+    node_action.tag = "action";
+
+    attr = &node_action.attrs[node_action.attr_len++];
+    attr->key = "type";
+    attr->value = "relay";
+
+    attr = &node_action.attrs[node_action.attr_len++];
+    attr->key = "epoch";
+    attr->value = "1";
+
+    node_message.tag = "message";
+    node_message.child_type = BINARY_NODE_CHILD_BINARY;
+    node_message.child_len = buf_idx;
+    node_message.child.data = bin_buf;
+
+    node_action.child_type = BINARY_NODE_CHILD_LIST;
+    node_action.child_len = 1;
+    node_action.child.list = malloc(sizeof(void *));
+    node_action.child.list[0] = &node_message;
+    
+    node_size = binary_write(&node_action, node_buf, buf_len);
+    info("node_size %lu", node_size);
+    TRY(node_size == 0);
+    memset(bin_buf, 0, buf_len);
+    CHECK(crypto_encrypt_hmac(node_buf, node_size, bin_buf, &buf_len));
+    info("crypted_size %lu", buf_len);
+
+    buf_set(node_buf, buf_len);
+
+    buf_write_byte(BINARY_METRIC_MESSAGE);
+    // EphemeralFlag Ignore
+    buf_write_byte(1U << 7);
+    buf_write_bytes(node_buf, buf_len);
+    wasocket_send_binary(bin_buf, buf_idx, key.id);
+
+CATCH:
     //crypto_decrypt_hmac();
     free(bin_buf);
+    free(node_buf);
+    return CATCH_RET;
     return 0;
 }
 
