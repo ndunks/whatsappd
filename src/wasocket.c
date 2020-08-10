@@ -48,7 +48,18 @@ size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode)
     wss_frame(opcode, tag_len + len, mask);
     wss_write_chunk((uint8_t *)tag, 0, tag_len, &mask);
     wss_write_chunk((uint8_t *)data, tag_len, len + tag_len, &mask);
-    info("---\n%s%s\n---", tag, data);
+
+#ifdef DEBUG
+    warn("SEND: %s (%s) ", tag, opcode == WS_OPCODE_BINARY ? "BIN" : "TXT");
+    if (len < 256)
+    {
+        if (opcode == WS_OPCODE_TEXT)
+            fwrite(data, 1, len, stderr);
+        else
+            hexdump(data, len);
+        warn("------- ");
+    }
+#endif
     return wss_send();
 }
 
@@ -67,11 +78,13 @@ size_t wasocket_send_binary(char *data, uint len, char *tag, BINARY_METRIC metri
     data_ptr = &wss.buf[wss.buf_idx];
     wss.buf_idx += req_buffer;
 
+    if (tag == NULL)
+        tag = wasocket_short_tag();
+
     if (metric)
     {
-        // EphemeralFlag Ignore
         if (flag == 0)
-            flag = 1U << 7;
+            flag = EPHEMERAL_IGNORE;
 
         data_ptr[0] = metric;
         data_ptr[1] = flag;
@@ -122,30 +135,56 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
         ptr = wss.buf + wss.buf_len;
         wss.buf_len += encrypted_len;
 
-        // info("DECRYPT %s: datasz: %lu", *tag, encrypted_len);
-        // hexdump(*data, encrypted_len);
-        // accent("-----------");
         CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, (size_t *)data_size));
         mempcpy(*data, ptr, *data_size);
         wss.buf_len -= encrypted_len;
-        //hexdump(*data, *data_size);
     }
 
-    // info("TAG (%ld): %s %lu bytes", *data - *tag - 1, *tag, *data_size);
-    // if (*data_size < 1024)
-    // {
-    //     if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
-    //     {
-    //     accent("%s\n-----------", *data);
-    //     }
-    //     else
-    //     {
-    //         hexdump(*data, *data_size);
-    //         accent("-----------");
-    //     }
-    // }
+#ifdef DEBUG
+    ok("READ (%s): %s %lu bytes", wss_frame_rx.opcode == WS_OPCODE_TEXT ? "TXT" : "BIN", *tag, *data_size);
+    if (*data_size < 256)
+    {
+        if (wss_frame_rx.opcode == WS_OPCODE_TEXT)
+        {
+            accent("%s\n-----------", *data);
+        }
+        else
+        {
+            hexdump(*data, *data_size);
+            accent("-----------");
+        }
+    }
+#endif
 
     return 0;
+}
+
+// Read until specified tag received
+char *wasocket_read_reply(char *req_tag)
+{
+    ssize_t size;
+    char *msg, *tag;
+    int ret = 1, tag_len;
+
+    if (req_tag == NULL)
+        req_tag = tag_buf;
+
+    tag_len = strlen(req_tag) - 1;
+    if (req_tag[tag_len - 1] == ',')
+        tag_len -= 1;
+    accent("-------\nwasocket_read_reply %s", req_tag);
+    do
+    {
+        ret = wss_ssl_check_read(500);
+        if (ret > 0)
+        {
+            if (wasocket_read(&msg, &tag, &size))
+                return 1;
+            if (size > 0 && strncmp(tag, req_tag, tag_len) == 0)
+                return msg;
+        }
+    } while (ret > 0);
+    return NULL;
 }
 
 int wasocket_read_all(uint32_t timeout_ms)
@@ -156,23 +195,13 @@ int wasocket_read_all(uint32_t timeout_ms)
     accent("-------\nwasocket_read_all");
     do
     {
-        ret = wss_ssl_check_read((ret > 1) ? 100 : timeout_ms);
+        ret = wss_ssl_check_read(timeout_ms);
         info("ssl_check_read: %d", ret);
         if (ret > 0)
         {
             info("%p == %ld", &size, size);
             if (wasocket_read(&msg, &tag, &size))
                 return 1;
-
-            info("%p == %ld", &size, size);
-            info("Got %ld bytes", size);
-            if (size < 256)
-            {
-                hexdump(msg, size);
-                warn("-------------------");
-                fwrite(msg, 1, size, stderr);
-                warn("\n-------------------");
-            }
         }
     } while (ret > 0);
     return 0;
