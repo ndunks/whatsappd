@@ -79,7 +79,7 @@ size_t write_node(BINARY_NODE *node)
     }
 
     if (!node->child_len)
-        return 0;
+        return size;
 
     // Children
     switch (node->child_type)

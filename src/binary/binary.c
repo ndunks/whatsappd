@@ -49,14 +49,14 @@ void *binary_alloc(size_t size)
 
 void binary_alloc_stat()
 {
-    accent("BINARY allocated %d times.", malloc_idx);
+    accent("binary_alloc_stat: %d times.", malloc_idx);
 }
 
 void binary_free()
 {
-    while (malloc_idx--)
+    while (malloc_idx)
     {
-        free(malloc_stacks[malloc_idx]);
+        free(malloc_stacks[--malloc_idx]);
     }
 }
 

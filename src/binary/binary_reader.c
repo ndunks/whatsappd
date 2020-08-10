@@ -2,8 +2,6 @@
 
 #include "binary.h"
 
-//static int IS_READING_ATTR = 0;
-
 char *read_string_tag(uint32_t bin_tag);
 
 char unpack_nibble(int e)
@@ -61,13 +59,12 @@ char unpack_byte(uint8_t tag, int val)
 char *read_packed8(uint8_t tag)
 {
     char *str;
-    int i, flag, len; // odd;
+    int i, flag, len;
+
     flag = buf_read_byte();
-    //odd = flag >> 7;
     len = 127 & flag;
     str = binary_alloc(len * 2 + 1);
     memset(str, 0, len * 2 + 1);
-    //accent("read_packed8: %p %u %d", str, tag, len * 2 + 1);
 
     for (i = 0; i < len; i++)
     {
@@ -75,28 +72,8 @@ char *read_packed8(uint8_t tag)
         str[i * 2] = unpack_byte(tag, (0xf0 & flag) >> 4);
         str[i * 2 + 1] = unpack_byte(tag, 0x0f & flag);
     }
-    //info("PACKED: %1$d %2$p %2$s", strlen(str), str);
-    // if (odd)
-    // {
-    //     //r = r.substring(0, r.length - 1)
-    //     str[len * 2 - 1] = 0;
-    // }
-    return str;
-}
 
-uint read_list_flag(uint8_t bin_tag)
-{
-    switch (bin_tag)
-    {
-    case LIST_8:
-        return buf_read_byte();
-    case LIST_16:
-        return buf_read_int16();
-    default:
-        warn("invalid list size: %d", bin_tag);
-    case LIST_EMPTY:
-        return 0;
-    }
+    return str;
 }
 
 char *read_token(uint8_t no)
@@ -138,10 +115,9 @@ char *read_string_tag_jid_pair()
 {
     char *user = NULL, *host = NULL, *str = NULL;
     int len;
+
     user = read_string_tag(buf_read_byte());
-    //info("jid_pair %s %s", user, host);
     host = read_string_tag(buf_read_byte());
-    //info("jid_pair %p %p", user, host);
 
     if (user != NULL && host != NULL)
     {
@@ -195,15 +171,18 @@ char *read_string_tag(uint32_t bin_tag)
 {
     int len;
     char *str;
-    //accent("read_string_tag: %d", bin_tag);
 
     if (bin_tag > 2 && bin_tag < 236)
     {
         str = read_token(bin_tag);
-        //info("Single token: %s", str);
         return str;
     }
-    //info("read_str_tag: %d", bin_tag);
+
+    if (!buf_available())
+    {
+        warn("read_string_tag EOF");
+        return NULL;
+    }
 
     switch (bin_tag)
     {
@@ -213,27 +192,21 @@ char *read_string_tag(uint32_t bin_tag)
     case DICTIONARY_3:
         len = buf_read_byte();
         return read_token_double(bin_tag - DICTIONARY_0, len);
+
     case LIST_EMPTY:
         return NULL;
+
     case BINARY_8:
         str = read_string_len(buf_read_byte());
-        //if (IS_READING_ATTR)
         return str;
-        // else
-        //     return NULL;
+
     case BINARY_20:
         str = read_string_len(buf_read_int20());
-        //if (IS_READING_ATTR)
         return str;
-        // else
-        //     return NULL;
 
     case BINARY_32:
         str = read_string_len(buf_read_int32());
-        //if (IS_READING_ATTR)
         return str;
-        // else
-        //     return NULL;
 
     case JID_PAIR:
         return read_string_tag_jid_pair();
@@ -251,41 +224,22 @@ char *read_string_tag(uint32_t bin_tag)
     }
 }
 
-int read_list_size(uint8_t tag)
-{
-    switch (tag)
-    {
-    case LIST_EMPTY:
-        return 0;
-    case LIST_8:
-        return buf_read_byte();
-    case LIST_16:
-        return buf_read_int16();
-    default:
-        warn("invalid list size. tag %d", tag);
-        return 0;
-    }
-}
-
 void read_attributes(BINARY_NODE *node)
 {
     int i;
     BINARY_NODE_ATTR *attr = NULL;
-    //IS_READING_ATTR = 1;
-    //ok("read_attributes: %d", node->attr_len);
 
     for (i = 0; i < node->attr_len; i++)
     {
+        if (!buf_available())
+        {
+            warn("read_attributes: EOF");
+            break;
+        }
         attr = &node->attrs[i];
-        //ok("attrs[%d]: %p", i, attr->value);
         attr->key = read_string_tag(buf_read_byte());
-        //ok("attrs KEY: %s", attr->key);
         attr->value = read_string_tag(buf_read_byte());
-        //ok("attrs[%d]: %p", i, attr->value);
-
-        //accent("  attr %s:%s", attr->key, attr->value);
     }
-    //IS_READING_ATTR = 0;
 }
 
 void read_list(BINARY_NODE *node, uint8_t bin_tag)
@@ -294,25 +248,36 @@ void read_list(BINARY_NODE *node, uint8_t bin_tag)
     BINARY_NODE **ptr = NULL;
     size_t size;
 
-    len = read_list_size(bin_tag);
-    size = sizeof(void *) * (len + 1);
+    switch (bin_tag)
+    {
+    case LIST_EMPTY:
+        return;
+    case LIST_8:
+        len = buf_read_byte();
+        break;
+    case LIST_16:
+        len = buf_read_int16();
+        break;
+    default:
+        warn("invalid list size. tag %d", bin_tag);
+        return;
+    }
 
-    //ok("Read list: %d %d", size, len);
+    size = sizeof(void *) * (len + 1);
     node->child.list = binary_alloc(size);
     memset(node->child.list, 0, size);
+
     for (i = 0; i < len; i++)
     {
-        //info("CHILD: %p %p", node->child, ptr);
-        //ptr = binary_child(node, i);
-        ptr = (&node->child.list[i]);
-        //info("CHILD: %p %p %p", node->child, ptr, *ptr);
+        if (!buf_available())
+        {
+            warn("read_list: EOF");
+            break;
+        }
+        ptr = &node->child.list[i];
         *ptr = read_node();
-        //info("CHILD: %p %p %p", node->child.list[i], ptr, *ptr);
         node->child_len++;
-        //info("-------");
         ptr = NULL;
-        // if (i == 1)
-        //     break;
     }
 }
 
@@ -323,20 +288,30 @@ BINARY_NODE *read_node()
     BINARY_NODE *node;
 
     bin_tag = buf_read_byte();
-    //ok("read_node: %x %d", buf_idx - 1, bin_tag);
-    list_flag = read_list_flag(bin_tag);
-    if (list_flag == LIST_EMPTY)
+
+    if (!buf_available())
     {
+        warn("read_node: EOF");
+        return NULL;
+    }
+
+    switch (bin_tag)
+    {
+    case LIST_8:
+        list_flag = buf_read_byte();
+        break;
+    case LIST_16:
+        list_flag = buf_read_int16();
+        break;
+    case LIST_EMPTY:
+        list_flag = 0;
+        break;
+    default:
+        warn("invalid list size: %d", bin_tag);
         return NULL;
     }
 
     bin_tag = buf_read_byte();
-
-    if (bin_tag == STREAM_END)
-    {
-        err("Unexpected end tag");
-        return NULL;
-    }
 
     node = binary_alloc(sizeof(BINARY_NODE));
     memset(node, 0, sizeof(BINARY_NODE));
@@ -356,19 +331,14 @@ BINARY_NODE *read_node()
     }
 
     node->attr_len = ((list_flag - 2) + (list_flag % 2)) >> 1;
-    //info("read_node, tag: %s, list_flag: %d, attr_len: %d", node->tag, list_flag, node->attr_len);
     if (node->attr_len > 0)
-    {
         read_attributes(node);
-    }
 
     if ((list_flag % 2) == 1)
     {
-        //accent("Node nochild");
         node->child_type = BINARY_NODE_CHILD_EMPTY;
         return node;
     }
-    //ok("node: Read child");
 
     bin_tag = buf_read_byte();
     switch (bin_tag)

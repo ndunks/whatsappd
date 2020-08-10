@@ -62,6 +62,6 @@ int test_setup()
 int test_cleanup()
 {
     accent("CLEANING UP..");
-    //whatsappd_free();
+    whatsappd_free();
     return 0;
 }

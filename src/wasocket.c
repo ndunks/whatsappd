@@ -51,7 +51,7 @@ size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode)
 
 #ifdef DEBUG
     warn("SEND: %s (%s) ", tag, opcode == WS_OPCODE_BINARY ? "BIN" : "TXT");
-    if (len < 256)
+    if (len < 90)
     {
         if (opcode == WS_OPCODE_TEXT)
             fwrite(data, 1, len, stderr);
@@ -172,10 +172,10 @@ char *wasocket_read_reply(char *req_tag)
     tag_len = strlen(req_tag) - 1;
     if (req_tag[tag_len - 1] == ',')
         tag_len -= 1;
-    accent("-------\nwasocket_read_reply %s", req_tag);
+    accent("wasocket_read_reply %s", req_tag);
     do
     {
-        ret = wss_ssl_check_read(500);
+        ret = wss_ssl_check_read(900);
         if (ret > 0)
         {
             if (wasocket_read(&msg, &tag, &size))
@@ -192,14 +192,12 @@ int wasocket_read_all(uint32_t timeout_ms)
     int ret = 1;
     ssize_t size;
     char *msg, *tag;
-    accent("-------\nwasocket_read_all");
+    accent("wasocket_read_all");
     do
     {
         ret = wss_ssl_check_read(timeout_ms);
-        info("ssl_check_read: %d", ret);
         if (ret > 0)
         {
-            info("%p == %ld", &size, size);
             if (wasocket_read(&msg, &tag, &size))
                 return 1;
         }

@@ -42,11 +42,6 @@ void wss_write(uint8_t *src, size_t len, const uint32_t *const mask)
 size_t wss_send()
 {
     size_t sent, total = 0;
-    // if (wss.tx_len < 255)
-    // {
-    //     hexdump(wss.tx, wss.tx_len);
-    // }
-
     do
     {
         sent = wss_ssl_write(&wss.tx[total], wss.tx_len - total);
@@ -84,11 +79,10 @@ size_t wss_frame(enum WS_OPCODE op_code, uint64_t payload_len, uint32_t mask)
         *((uint64_t *)&wss.tx[wss.tx_len]) = htobe64(payload_len);
         wss.tx_len += 8;
     }
-    warn("   payload %lu bytes", wss.tx_len - 2);
 
     // Masking
     *((uint32_t *)(&wss.tx[wss.tx_len])) = mask;
-    //memcpy(wss.tx + wss.tx_len, &mask, 4);
+
     wss.tx_len += 4;
     return wss.tx_len;
 }
@@ -226,30 +220,6 @@ size_t wss_send_text(char *msg, size_t len)
 size_t wss_send_binary(char *msg, size_t len)
 {
     return wss_send_buffer(msg, len, WS_OPCODE_BINARY);
-}
-
-void dump_frame()
-{
-    struct PAYLOAD *payload;
-    info("   Frame %lu bytes, opcode: %d,payloads: %d",
-         wss_frame_rx.payload_size,
-         wss_frame_rx.opcode,
-         wss_frame_rx.payload_count);
-
-    for (int i = 0; i < wss_frame_rx.payload_count; i++)
-    {
-        payload = &wss_frame_rx.payloads[i];
-        info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
-        // if (payload->size < 1024)
-        // {
-        //     fwrite(payload->data, 1, payload->size, stderr);
-        //     fprintf(stderr, "\n");
-        //     hexdump(payload->data, payload->size);
-        // }
-    }
-    warn("\n------------------");
-    // hexdump(wss.rx, wss.rx_len);
-    // warn("\n==================");
 }
 
 char *wss_read(size_t *data_len)
@@ -426,7 +396,19 @@ char *wss_read(size_t *data_len)
 
     } while (!fin || waiting_payload);
 
-    dump_frame();
+#ifdef DEBUG
+    info("   Frame %lu bytes, opcode: %d,payloads: %d",
+         wss_frame_rx.payload_size,
+         wss_frame_rx.opcode,
+         wss_frame_rx.payload_count);
+
+    for (int i = 0; i < wss_frame_rx.payload_count; i++)
+    {
+        payload = &wss_frame_rx.payloads[i];
+        info("** payloads[%1$d]: size: %2$lu (0x%2$lx), frame: %3$d ", i, payload->size, payload->frame_size);
+    }
+    info("\n------------------");
+#endif
 
     // Merge payload into straight rx, removed the wss_frame_rx.
     offset = 0;

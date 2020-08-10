@@ -24,7 +24,7 @@ int test_buf()
                        "\xf0\x0f"          // int16
                        "\x0a\xbb\x0c"      // int 20
                        "\xaa\xbb\xcc\xdd"; // int32
-    buf_set(local_buf, 9);
+    // buf_set(local_buf, 9);
     //accent("int8  0x%02x", buf_read_byte());
     //accent("int16 0x%04x", buf_read_int16());
     //accent("int20 0x%06x", buf_read_int20());
@@ -37,9 +37,6 @@ int test_buf()
     TRUTHY(buf_read_int16() == 0xf00f);
     TRUTHY(buf_read_int20() == 0x0abb0c);
     TRUTHY(buf_read_int32() == 0xaabbccdd);
-    // TRUTHY(read_int16() == 0x0ff0);
-    // TRUTHY(read_int20() == 0x0cbbaa);
-    // TRUTHY(read_int32() == 0xaabbccdd);
     return 0;
 }
 
