@@ -5,8 +5,16 @@
 #include "util.h"
 #include "qrcodegen.h"
 
-static char helper_hex[] = "0123456789ABCDEF";
+static char helper_hex[] = "0123456789ABCDEF", helper_epoch_str[9] = "";
+static uint32_t helper_epoch_num = 0;
+
 int CATCH_RET = 0;
+
+char *helper_epoch()
+{
+    sprintf(helper_epoch_str, "%u", ++helper_epoch_num);
+    return helper_epoch_str;
+}
 
 void helper_buf_to_hex(const uint8_t *dst, uint8_t *buf, int buf_len)
 {
