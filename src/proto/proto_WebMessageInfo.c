@@ -10,7 +10,7 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 	buf_set(buf, buf_size);
 	len = proto_scan(scan, 19, 0);
 
-	if (len < 0)
+	if (len <= 0)
 		return 1;
 
 	if ((ptr = protos_get(1, scan, 19)) != NULL)
