@@ -1,6 +1,6 @@
 #include <time.h>
 #include "whatsappd.h"
-
+static unsigned whatsappd_epoch = 0;
 // 20 bytes msg id + 1 for NULL. not support image id 16 bytes
 void whatsappd_create_msg_id(const char *str)
 {
@@ -34,8 +34,8 @@ int whatsappd_send_text(const char *number, const char *const text)
     MessageKey key;
     Message msg;
     WebMessageInfo info;
-    size_t buf_len, node_size, text_len = strlen(text);
-    char *bin_buf, *node_buf;
+    size_t buf_len, node_size, text_len = strlen(text), sent_size;
+    char *bin_buf, *node_buf, epoch[10] = {0}, tag[16] = {0};
     BINARY_NODE node_action, node_message;
     BINARY_NODE_ATTR *attr;
     buf_len = text_len + 512;
@@ -58,7 +58,7 @@ int whatsappd_send_text(const char *number, const char *const text)
     info.status = WEB_MESSAGE_INFO_STATUS_PENDING;
     info.messageTimestamp = time(NULL);
 
-    buf_set(bin_buf, text_len + 256);
+    buf_set(bin_buf, buf_len);
     proto_write_WebMessageInfo(&info);
 
     node_action.tag = "action";
@@ -67,9 +67,10 @@ int whatsappd_send_text(const char *number, const char *const text)
     attr->key = "type";
     attr->value = "relay";
 
+    sprintf(epoch, "%u", whatsappd_epoch++);
     attr = &node_action.attrs[node_action.attr_len++];
     attr->key = "epoch";
-    attr->value = "1";
+    attr->value = epoch;
 
     node_message.tag = "message";
     node_message.child_type = BINARY_NODE_CHILD_BINARY;
@@ -80,21 +81,13 @@ int whatsappd_send_text(const char *number, const char *const text)
     node_action.child_len = 1;
     node_action.child.list = malloc(sizeof(void *));
     node_action.child.list[0] = &node_message;
-    
+
     node_size = binary_write(&node_action, node_buf, buf_len);
-    info("node_size %lu", node_size);
-    TRY(node_size == 0);
-    memset(bin_buf, 0, buf_len);
-    CHECK(crypto_encrypt_hmac(node_buf, node_size, bin_buf, &buf_len));
-    info("crypted_size %lu", buf_len);
 
-    buf_set(node_buf, buf_len);
-
-    buf_write_byte(BINARY_METRIC_MESSAGE);
-    // EphemeralFlag Ignore
-    buf_write_byte(1U << 7);
-    buf_write_bytes(node_buf, buf_len);
-    wasocket_send_binary(bin_buf, buf_idx, key.id);
+    sprintf(tag, "%s,", key.id);
+    sent_size = wasocket_send_binary(node_buf, node_size, tag, BINARY_METRIC_MESSAGE, 0);
+    TRY(sent_size == 0);
+    wasocket_read_all(500);
 
 CATCH:
     //crypto_decrypt_hmac();

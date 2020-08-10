@@ -55,14 +55,44 @@ size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode)
 /* null custom_tag will auto create tag */
 size_t wasocket_send_text(char *data, uint len, char *tag)
 {
-    return wasocket_send(data, len, tag, WS_OPCODE_TEXT);   
+    return wasocket_send(data, len, tag, WS_OPCODE_TEXT);
 }
 
-size_t wasocket_send_binary(char *data, uint len, char *tag)
+size_t wasocket_send_binary(char *data, uint len, char *tag, BINARY_METRIC metric, uint8_t flag)
 {
-    return wasocket_send(data, len, tag, WS_OPCODE_BINARY);   
-}
+    char *data_ptr, *encrypted_ptr;
+    size_t data_size = 0, encrypted_size, sent_size = 0, req_buffer;
+    req_buffer = len + 64;
+    WSS_NEED_BUF(req_buffer);
+    data_ptr = &wss.buf[wss.buf_idx];
+    wss.buf_idx += req_buffer;
 
+    if (metric)
+    {
+        // EphemeralFlag Ignore
+        if (flag == 0)
+            flag = 1U << 7;
+
+        data_ptr[0] = metric;
+        data_ptr[1] = flag;
+        encrypted_ptr = data_ptr + 2;
+        data_size += 2;
+    }
+    else
+    {
+        encrypted_ptr = data_ptr;
+    }
+
+    TRY(crypto_encrypt_hmac(data, len, encrypted_ptr, &encrypted_size));
+
+    data_size += encrypted_size;
+
+    sent_size = wasocket_send(data_ptr, data_size, tag, WS_OPCODE_BINARY);
+
+CATCH:
+    wss.buf_idx -= req_buffer;
+    return sent_size;
+}
 
 // Read and remove tags
 int wasocket_read(char **data, char **tag, ssize_t *data_size)
@@ -95,7 +125,7 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
         // info("DECRYPT %s: datasz: %lu", *tag, encrypted_len);
         // hexdump(*data, encrypted_len);
         // accent("-----------");
-        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, (size_t *) data_size));
+        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, (size_t *)data_size));
         mempcpy(*data, ptr, *data_size);
         wss.buf_len -= encrypted_len;
         //hexdump(*data, *data_size);

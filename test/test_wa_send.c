@@ -28,7 +28,7 @@ int test_functions()
 int test_main()
 {
     CHECK(test_functions());
-    ZERO(whatsappd_send_text("6285726501017", "whatsappd test"));
+    ZERO(whatsappd_send_text("6285726501017", "Hello from wa daemon"));
     return 0;
 }
 
@@ -51,7 +51,7 @@ int test_setup()
         info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
         chat = chat->next;
     } while (chat != NULL);
-
+    accent("------------------------------");
     return 0;
 }
 
