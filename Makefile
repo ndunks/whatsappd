@@ -18,7 +18,7 @@ MKDIRS          += $(patsubst src/%, build/%, $(MODULES))
 .DEFAULT_GOAL := all
 
 ifdef DEBUG
-    CFLAGS += -g
+    CFLAGS += -g -DDEBUG=$(DEBUG)
 endif
 
 include lib/lib.mk

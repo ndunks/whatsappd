@@ -10,7 +10,8 @@
             "defines": [
                 "_GNU_SOURCE",
                 "TEST=\"dummy\"",
-                "MBEDTLS_CONFIG_FILE=<config.h>"
+                "MBEDTLS_CONFIG_FILE=<config.h>",
+                "DEBUG=1"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
