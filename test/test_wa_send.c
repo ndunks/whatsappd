@@ -27,8 +27,12 @@ int test_functions()
 }
 int test_main()
 {
+    char rand_str[11], rand_bytes[5], msg[128];
+    crypto_random(rand_bytes, 5);
+    helper_buf_to_hex((uint8_t *)rand_str, (uint8_t *)rand_bytes, 5);
+    sprintf(msg, "%s Hello from whatsapp daemon", rand_str);
     CHECK(test_functions());
-    ZERO(whatsappd_send_text("6285726501017", "Hello from wa daemon"));
+    ZERO(whatsappd_send_text("6285726501017", msg));
     return 0;
 }
 

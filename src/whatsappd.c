@@ -1,6 +1,6 @@
 #include <time.h>
 #include "whatsappd.h"
-static unsigned whatsappd_epoch = 0;
+
 // 20 bytes msg id + 1 for NULL. not support image id 16 bytes
 void whatsappd_create_msg_id(const char *str)
 {
@@ -29,13 +29,52 @@ void whatsappd_sanitize_jid(char *dst, const char *number)
     strcat(dst, wa_host_long);
 }
 
+int whatsappd_presence(int available)
+{
+    BINARY_NODE node, *childs, child;
+    BINARY_NODE_ATTR *attr;
+    size_t node_size, sent_size;
+    char *node_buf = malloc(256), *reply;
+
+    memset(&node, 0, sizeof(BINARY_NODE));
+    memset(&child, 0, sizeof(BINARY_NODE));
+
+    node.tag = "action";
+    attr = &node.attrs[node.attr_len++];
+    attr->key = "type";
+    attr->value = "set";
+    attr = &node.attrs[node.attr_len++];
+    attr->key = "epoch";
+    attr->value = helper_epoch();
+
+    child.tag = "presence";
+    attr = &child.attrs[child.attr_len++];
+    attr->key = "type";
+    attr->value = available ? "available" : "unavailable";
+
+    node.child_len = 1;
+    node.child_type = BINARY_NODE_CHILD_LIST;
+    node.child.list = &childs;
+    childs = &child;
+
+    node_size = binary_write(&node, node_buf, 256);
+
+    sent_size = wasocket_send_binary(node_buf, node_size, NULL, BINARY_METRIC_PRESENCE, EPHEMERAL_IGNORE | EPHEMERAL_AVAILABLE);
+    free(node_buf);
+
+    CHECK(sent_size == 0);
+    reply = wasocket_read_reply(NULL);
+    CHECK(json_parse_object(&reply));
+    return strncmp(json_get("status"), "200", 3);
+}
+
 int whatsappd_send_text(const char *number, const char *const text)
 {
     MessageKey key;
     Message msg;
     WebMessageInfo info;
     size_t buf_len, node_size, text_len = strlen(text), sent_size;
-    char *bin_buf, *node_buf, epoch[10] = {0}, tag[16] = {0};
+    char *bin_buf, *node_buf, tag[16] = {0};
     BINARY_NODE node_action, node_message;
     BINARY_NODE_ATTR *attr;
     buf_len = text_len + 512;
@@ -51,7 +90,7 @@ int whatsappd_send_text(const char *number, const char *const text)
     whatsappd_create_msg_id(key.id);
     whatsappd_sanitize_jid(key.remoteJid, number);
 
-    msg.conversation = text;
+    msg.conversation = (char *)text;
 
     info.key = &key;
     info.message = &msg;
@@ -67,10 +106,9 @@ int whatsappd_send_text(const char *number, const char *const text)
     attr->key = "type";
     attr->value = "relay";
 
-    sprintf(epoch, "%u", whatsappd_epoch++);
     attr = &node_action.attrs[node_action.attr_len++];
     attr->key = "epoch";
-    attr->value = epoch;
+    attr->value = helper_epoch();
 
     node_message.tag = "message";
     node_message.child_type = BINARY_NODE_CHILD_BINARY;
@@ -90,11 +128,10 @@ int whatsappd_send_text(const char *number, const char *const text)
     wasocket_read_all(500);
 
 CATCH:
-    //crypto_decrypt_hmac();
+    free(node_action.child.list);
     free(bin_buf);
     free(node_buf);
     return CATCH_RET;
-    return 0;
 }
 
 /**
@@ -123,7 +160,7 @@ int whatsappd_init(const char *config_path)
     cfg_save(&cfg);
 
     TRY(handler_preempt());
-
+    TRY(whatsappd_presence(1));
     CATCH_RET = 0;
 
 CATCH:
