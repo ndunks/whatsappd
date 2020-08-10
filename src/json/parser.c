@@ -204,6 +204,12 @@ int json_parse_object(char **src)
     char *key;
     json_len = 0;
 
+    if (src == NULL || *src == NULL)
+    {
+        err("json_parse_object of NULL");
+        return 1;
+    }
+
     *src = strchr(*src, '{');
 
     if (*src == NULL)
