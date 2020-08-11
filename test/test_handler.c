@@ -43,16 +43,17 @@ int test_main()
         node = binary_read(output, encrypted_size);
         ZERO(handler_handle(node));
         ok(":: %s OK", node->tag);
+        binary_free();
     }
 
-    info("handler_unread_count: %lu", handler_unread_count);
-    TRUTHY(handler_unread_count == 1);
-    chat = handler_unread_chats;
-    TRUTHY(chat != NULL);
+    info("chats_count: %lu", chats_count);
+    TRUTHY(chats_count == 1);
+
+    chat = chats;
     do
     {
         info("UNREAD MESSAGE: %s %s %d %d", chat->jid, chat->name, chat->msg_count, chat->unread_count);
-        for (i = 0; i < chat->unread_count; i++)
+        for (i = 0; i < chat->msg_count; i++)
         {
             info(" %-2d: %s", i, chat->msg[i]);
         }

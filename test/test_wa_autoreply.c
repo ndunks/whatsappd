@@ -7,9 +7,6 @@ int test_main()
 {
     CHAT *chat;
 
-    ZERO(handler_preempt());
-    info("Unread count: %lu", chats_count);
-
     chat = chats;
     do
     {
@@ -47,7 +44,8 @@ int test_setup()
     ZERO(cfg_load(&cfg));
     ZERO(session_init(&cfg));
     ZERO(cfg_save(&cfg));
-
+    ZERO(handler_preempt());
+    info("Unread count: %lu", chats_count);
     return 0;
 }
 

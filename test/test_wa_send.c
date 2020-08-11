@@ -47,7 +47,7 @@ int test_setup()
     CHAT *chat;
     ZERO(whatsappd_init(NULL));
     ok("Ready to handle messages!");
-    chat = handler_unread_chats;
+    chat = chats;
 
     TRUTHY(chat != NULL);
     do
