@@ -55,14 +55,40 @@ static int handle_action(BINARY_NODE *node)
     info("handle_action add: %s", add_str);
     switch (add)
     {
-    //case BINARY_ACTION_ADD_BEFORE:
+    case BINARY_ACTION_ADD_BEFORE:
+        accent("BINARY_ACTION_ADD_BEFORE: %d", node->child_len);
+        // todo: how to check is unread message? which flag?
+        for (int i = 0; i < node->child_len; i++)
+        {
+            child = node->child.list[i];
+
+            proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
+
+            if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
+                warn("Ignore non user or self message");
+            else
+            {
+                accent("[%02d] child len: %s", i, msg.key->id);
+                msg_len = strlen(msg.message->conversation);
+                if (msg_len)
+                    info("%s: %s", msg.key->remoteJid, msg.message->conversation);
+                else
+                    warn("Ignore zero-length last message");
+            }
+
+            proto_free_WebMessageInfo(&msg);
+        }
+
+        break;
+    // AFAIK, is unread message that not been synced to this WA Web
+    // so it sent just once!
     case BINARY_ACTION_ADD_LAST:
         for (int i = 0; i < node->child_len; i++)
         {
             child = node->child.list[i];
-            
+
             proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
-            
+
             if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
                 warn("Ignore non user or self message");
             else
