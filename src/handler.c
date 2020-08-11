@@ -19,14 +19,85 @@ static bool wid_is_user(char *jid)
     return false;
 }
 
+// static int handle_contacts(BINARY_NODE *node)
+// {
+//     BINARY_NODE *child;
+//     accent("handle_contacts: %s %d %d", node->tag, node->child_len, node->attr_len);
+//     for (int i = 0; i < node->attr_len; i++)
+//     {
+//         info("%s: %s", node->attrs[i].key, node->attrs[i].value);
+//     }
+//     for (int i = 0; i < node->child_len; i++)
+//     {
+//         child = node->child.list[i];
+//         accent(" %s %d %d", child->tag, child->child_len, child->attr_len);
+//         for (int i = 0; i < child->attr_len; i++)
+//         {
+//             info("%s: %s", child->attrs[i].key, child->attrs[i].value);
+//         }
+//     accent("----------==");
+//     }
+//     return 0;
+// }
+
+static int handle_action_add_before(BINARY_NODE **nodes, int node_count)
+{
+    int i;
+    BINARY_NODE *child;
+    WebMessageInfo msg;
+    CHAT *chat;
+
+    for (i = node_count - 1; i >= 0; i--)
+    {
+        child = nodes[i];
+
+        proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
+
+        if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
+            warn("Ignore non user or self message");
+        else
+        {
+            info("add before msg %d: %s", i, msg.message->conversation);
+            chat = handler_get_chat(msg.key->remoteJid);
+            if (chat != NULL && chat->unread_count > 0 &&
+                chat->msg_count < chat->unread_count)
+            {
+                handler_chat_add_msg(chat, msg.message);
+            }
+        }
+
+        proto_free_WebMessageInfo(&msg);
+    }
+    return 0;
+}
+
+static int handle_action_add_last(BINARY_NODE **nodes, int node_count)
+{
+    int i;
+    BINARY_NODE *child;
+    WebMessageInfo msg;
+
+    for (i = 0; i < node_count; i++)
+    {
+        child = nodes[i];
+
+        proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
+
+        if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
+            warn("Ignore non user or self message");
+        else
+            handler_add_unread(msg.key->remoteJid, NULL, msg.message);
+
+        proto_free_WebMessageInfo(&msg);
+    }
+    return 0;
+}
+
 static int handle_action(BINARY_NODE *node)
 {
     BINARY_NODE *child;
-    //HANDLE *handle;
-    int msg_len;
     BINARY_ACTION_ADD add = 0;
     char *add_str;
-    WebMessageInfo msg;
 
     if (node->child_type != BINARY_NODE_CHILD_LIST)
     {
@@ -48,7 +119,6 @@ static int handle_action(BINARY_NODE *node)
         return 0;
     }
 
-    //handle = handler_get(child->tag);
     add_str = binary_attr(node, "add");
     add = binary_get_action_add(add_str);
 
@@ -56,54 +126,11 @@ static int handle_action(BINARY_NODE *node)
     switch (add)
     {
     case BINARY_ACTION_ADD_BEFORE:
-        accent("BINARY_ACTION_ADD_BEFORE: %d", node->child_len);
-        // todo: how to check is unread message? which flag?
-        for (int i = 0; i < node->child_len; i++)
-        {
-            child = node->child.list[i];
-
-            proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
-
-            if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
-                warn("Ignore non user or self message");
-            else
-            {
-                accent("[%02d] child len: %s", i, msg.key->id);
-                msg_len = strlen(msg.message->conversation);
-                if (msg_len)
-                    info("%s: %s", msg.key->remoteJid, msg.message->conversation);
-                else
-                    warn("Ignore zero-length last message");
-            }
-
-            proto_free_WebMessageInfo(&msg);
-        }
-
-        break;
+        return handle_action_add_before(node->child.list, node->child_len);
     // AFAIK, is unread message that not been synced to this WA Web
     // so it sent just once!
     case BINARY_ACTION_ADD_LAST:
-        for (int i = 0; i < node->child_len; i++)
-        {
-            child = node->child.list[i];
-
-            proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
-
-            if (!wid_is_user(msg.key->remoteJid) || msg.key->fromMe)
-                warn("Ignore non user or self message");
-            else
-            {
-
-                msg_len = strlen(msg.message->conversation);
-                if (msg_len)
-                    handler_add_unread(msg.key->remoteJid, NULL, msg.message->conversation, msg_len);
-                else
-                    warn("Ignore zero-length last message");
-            }
-
-            proto_free_WebMessageInfo(&msg);
-        }
-        break;
+        return handle_action_add_last(node->child.list, node->child_len);
     default:
         warn("handle_action: Ignored %s", add_str);
         break;
@@ -143,8 +170,6 @@ static int handle_response(BINARY_NODE *node)
         return 1;
     }
 
-    //accent("handle_response: %s %d %d", handle->tag, node->child_len, node->child_type);
-
     for (i = 0; i < node->child_len; i++)
     {
         (*handle->function)(node->child.list[i]);
@@ -156,7 +181,8 @@ static int handle_response(BINARY_NODE *node)
 static int handle_chat(BINARY_NODE *node)
 {
     char *jid, *name, *unread, *count_str;
-    size_t unread_count = 0;
+    CHAT *chat;
+    int unread_count = 0;
 
     unread = binary_attr(node, "unread");
     jid = binary_attr(node, "jid");
@@ -165,11 +191,12 @@ static int handle_chat(BINARY_NODE *node)
     //binary_print_attr(node);
     if (count_str)
     {
-        unread_count = atol(count_str);
-        if (unread_count)
+        unread_count = atoi(count_str);
+        if (unread_count > 0)
         {
-            handler_add_unread(jid, name, NULL, 0);
-            accent("%s: %lu unread!", jid, unread_count);
+            chat = handler_add_unread(jid, name, NULL);
+            chat->unread_count = unread_count;
+            accent("%s: %u unread!", jid, unread_count);
         }
     }
 
@@ -182,7 +209,7 @@ static int handle_chat(BINARY_NODE *node)
     if (unread != NULL && *unread == '1')
     {
         ok("GOTTT UNREAD CHAT!");
-        handler_add_unread(jid, name, NULL, 0);
+        handler_add_unread(jid, name, NULL);
     }
     return 0;
 }
@@ -208,10 +235,25 @@ HANDLE *handler_get(const char *tag)
     return NULL;
 }
 
-void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg_len)
+CHAT *handler_get_chat(const char *jid)
 {
     uint64_t jid_num;
-    int i;
+    CHAT *chat = handler_unread_chats;
+    jid_num = helper_jid_to_num(jid);
+
+    while (chat != NULL)
+    {
+        if (chat->jid_num == jid_num)
+            return chat;
+        chat = chat->next;
+    }
+
+    return NULL;
+}
+
+CHAT *handler_add_unread(const char *jid, const char *name, const Message *msg)
+{
+    uint64_t jid_num;
     CHAT *tail = NULL, *chat = handler_unread_chats;
     jid_num = helper_jid_to_num(jid);
 
@@ -241,25 +283,48 @@ void handler_add_unread(const char *jid, const char *name, char *msg, size_t msg
         strcpy(chat->name, name);
 
     if (msg != NULL)
+        handler_chat_add_msg(chat, msg);
+
+    return chat;
+}
+
+void handler_chat_add_msg(CHAT *chat, const Message *msg)
+{
+    int i;
+    char *msg_txt = NULL;
+    size_t msg_len = 0;
+
+    if (msg == NULL)
     {
-        if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
-        {
-            warn("Too many unread msg in chat, msg truncated.");
-            free(chat->msg[0]);
-            chat->msg_count = HANDLER_MAX_CHAT_MESSAGE - 1;
-
-            i = 0;
-
-            for (i = 0; i < HANDLER_MAX_CHAT_MESSAGE - 2; i++)
-            {
-                chat->msg[i] = chat->msg[i + 1];
-            }
-        }
-
-        chat->msg[chat->msg_count] = malloc(msg_len);
-        strncpy(chat->msg[chat->msg_count], msg, msg_len);
-        chat->msg_count++;
+        warn("handler_chat_add_msg: NULL msg");
+        return;
     }
+
+    // Keep add it even is null, so the unread count keep match
+    // NULL conversation mean an media item, we don't care.
+    if (msg->conversation == NULL)
+    {
+        warn("handler_chat_add_msg: NULL conversation");
+    }
+    else
+    {
+        msg_len = strlen(msg->conversation);
+        msg_txt = malloc(msg_len);
+        strncpy(msg_txt, msg->conversation, msg_len);
+        msg_txt[msg_len] = 0;
+    }
+
+    if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
+    {
+        warn("Too many unread msg in chat, msg truncated.");
+        free(chat->msg[0]);
+        chat->msg_count = HANDLER_MAX_CHAT_MESSAGE - 1;
+        for (i = 0; i < HANDLER_MAX_CHAT_MESSAGE - 2; i++)
+        {
+            chat->msg[i] = chat->msg[i + 1];
+        }
+    }
+    chat->msg[chat->msg_count++] = msg_txt;
 }
 
 int handler_handle(BINARY_NODE *node)

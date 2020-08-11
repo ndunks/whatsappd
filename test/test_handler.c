@@ -51,7 +51,12 @@ int test_main()
     TRUTHY(chat != NULL);
     do
     {
-        info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
+        info("UNREAD MESSAGE: %s %s %d %d", chat->jid, chat->name, chat->msg_count, chat->unread_count);
+        for (i = 0; i < chat->unread_count; i++)
+        {
+            info(" %-2d: %s", i, chat->msg[i]);
+        }
+
         chat = chat->next;
     } while (chat != NULL);
     return 0;
