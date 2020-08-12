@@ -21,7 +21,7 @@ CHAT *chats_get(const char *jid)
     return NULL;
 }
 
-CHAT *chats_add_unread(const char *jid, const char *name, const Message *msg)
+CHAT *chats_add_unread(const char *jid, const Message *msg)
 {
     uint64_t jid_num;
     CHAT *tail = NULL, *chat = chats;
@@ -48,10 +48,7 @@ CHAT *chats_add_unread(const char *jid, const char *name, const Message *msg)
 
         chats_count++;
     }
-
-    if (name != NULL)
-        strcpy(chat->name, name);
-
+    
     if (msg != NULL)
         chats_add_msg(chat, msg);
 

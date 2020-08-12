@@ -45,6 +45,8 @@ int test_main()
         ok(":: %s OK", node->tag);
         binary_free();
     }
+    
+    handler_preempt_post();
 
     info("chats_count: %lu", chats_count);
     TRUTHY(chats_count == 1);

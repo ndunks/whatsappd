@@ -7,6 +7,13 @@
 
 typedef int (*BINARY_NODE_HANDLE)(BINARY_NODE *);
 
+typedef struct CONTACT_NAME
+{
+    uint64_t jid_num;
+    char *name;
+    struct CONTACT_NAME *next;
+} CONTACT_NAME;
+
 typedef struct HANDLE
 {
     const char *tag;
@@ -16,3 +23,4 @@ typedef struct HANDLE
 HANDLE *handler_get(const char *tag);
 int handler_handle(BINARY_NODE *node);
 int handler_preempt();
+void handler_preempt_post();
