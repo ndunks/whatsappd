@@ -4,7 +4,6 @@
 
 #include "test.h"
 #include "data_auth.h"
-#define BINARY_SAMPLE_MAX_SIZE 80000
 
 static char file[256], output[BINARY_SAMPLE_MAX_SIZE], encrypted[BINARY_SAMPLE_MAX_SIZE],
     decrypted[BINARY_SAMPLE_MAX_SIZE], re_encrypt[BINARY_SAMPLE_MAX_SIZE];

@@ -5,6 +5,8 @@
  * more: https://github.com/ndunks/WaJs
  */
 
+#define BINARY_SAMPLE_MAX_SIZE 80000
+
 #define DATA_AUTH_CLIENT_ID "ATTyiDDmnvAS3EJ8ULl+bA=="
 #define DATA_AUTH_KEYS_SECRET "LVCE8LsrgypcTAWmZ7ibIxXFuDRpl5YycuIKnBAvvLU="
 #define DATA_AUTH_KEYS_PRIVATE "KFCE8LsrgypcTAWmZ7ibIxXFuDRpl5YycuIKnBAvvHU="
