@@ -1,12 +1,14 @@
 ifdef TEST
     TEST_SOURCES:= test/test_$(TEST).c
+	TEST_BINS   := build/test
+	SINGLE_TEST := 1
 else
     TEST_SOURCES:= $(wildcard test/test_*.c)
+	TEST_BINS   := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
 endif
 
 TEST            ?= $*
 CFLAGS          += -Isrc "-DTEST=\"$(TEST)\""
-TEST_BINS       := $(patsubst test/%.c, build/%, $(TEST_SOURCES))
 
 ifdef HEADLESS
     CFLAGS      += -DHEADLESS
@@ -23,7 +25,14 @@ test-watch: buildfs
 		-e .c,.h,.mk \
 		-x "make --no-print-directory test || false"
 
+ifdef SINGLE_TEST
+build/test: test/test.c $(TEST_SOURCES) $(OBJECTS)
+	$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
+
+else
+# multiple test mode
 $(TEST_BINS): build/test_%: test/test.c test/test_%.c $(OBJECTS)
-	@$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(TEST_CFLAGS) -o $@ $^ $(LDFLAGS)
+endif
 
 .PHONY: test test-watch
