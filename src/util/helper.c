@@ -45,10 +45,10 @@ int helper_save_file(const char *path, const char *buf, size_t buf_len)
     close(file);
     return 0;
 }
-
+// don't pass group jid here. only for user JID!
 uint64_t helper_jid_to_num(const char *buf)
 {
-    int len;
+    size_t len;
     char *end, tmp[21] = {0};
     end = strrchr(buf, '@');
 
@@ -59,7 +59,10 @@ uint64_t helper_jid_to_num(const char *buf)
 
     if (len > 21)
     {
-        err("JID too long");
+        err("JID too long: %lu", len);
+        if (len < 256)
+            warn("%s", buf);
+
         return 0;
     }
     strncpy(tmp, buf, len);

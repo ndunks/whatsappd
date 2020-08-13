@@ -168,6 +168,9 @@ static int handle_user(BINARY_NODE *node)
     if ((val = binary_attr(node, "jid")) == NULL)
         return 0;
 
+    if (!wid_is_user(val))
+        return 0;
+
     jid_num = helper_jid_to_num(val);
 
     if ((val = binary_attr(node, "name")) == NULL &&
@@ -209,9 +212,13 @@ static int handle_chat(BINARY_NODE *node)
     CHAT *chat;
     int unread_count = 0;
 
-    unread = binary_attr(node, "unread");
     jid = binary_attr(node, "jid");
+    unread = binary_attr(node, "unread");
     count_str = binary_attr(node, "count");
+
+    if (!wid_is_user(jid))
+        return 0;
+
     //binary_print_attr(node);
     if (count_str)
     {
@@ -281,6 +288,7 @@ int handler_preempt()
     int preempt_count = 0;
     int ret;
 
+    info("handler_preempt_read\n-------------------");
     while (1)
     {
 
@@ -288,12 +296,14 @@ int handler_preempt()
         if (ret <= 0)
             break;
 
-        //info("handler_preempt_read\n-------------------");
         CHECK(wasocket_read(&data, &tag, &size));
 
         if (wss_frame_rx.opcode != WS_OPCODE_BINARY)
         {
-            info("%s", data);
+            if (size < 64)
+            {
+                info("%s", data);
+            }
             warn("handler_preempt ignored non binary");
             continue;
         }
@@ -310,6 +320,8 @@ int handler_preempt()
         }
         binary_free();
     }
+    info("handler_preempt_read: %d\n-------------------", preempt_count);
+    handler_preempt_post();
 
     return preempt_count != 2;
 }
