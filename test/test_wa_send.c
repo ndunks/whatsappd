@@ -10,7 +10,7 @@ int test_main()
     helper_buf_to_hex((uint8_t *)rand_str, (uint8_t *)rand_bytes, 5);
     sprintf(msg, "%s Hello from whatsapp daemon", rand_str);
 
-    ZERO(whatsappd_send_text("6285726501017", msg));
+    ZERO(wa_send_text("6285726501017", msg));
     return 0;
 }
 
@@ -33,7 +33,7 @@ int test_setup()
         info("UNREAD MESSAGE: %s %s %d\n%s", chat->jid, chat->name, chat->msg_count, chat->msg[0]);
         chat = chat->next;
     } while (chat != NULL);
-    accent("------------------------------");
+    accent("SETUP DONE -----------------------");
     return 0;
 }
 
