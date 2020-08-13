@@ -22,3 +22,5 @@ int json_parse_object(char **src);
 int json_find(char *key);
 int json_has(char *key);
 char *json_get(char *key);
+int64_t json_get_number(char *key);
+bool json_get_bool(char *key);

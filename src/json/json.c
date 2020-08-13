@@ -25,3 +25,20 @@ char *json_get(char *key)
         return NULL;
     return json[i].value;
 }
+
+int64_t json_get_number(char *key)
+{
+    char *val;
+    if ((val = json_get(key)) != NULL)
+        return atoll(val);
+
+    return 0;
+}
+
+bool json_get_bool(char *key)
+{
+    char *val;
+    if ((val = json_get(key)) != NULL)
+        return *val == 't'; //true
+    return 0;
+}
