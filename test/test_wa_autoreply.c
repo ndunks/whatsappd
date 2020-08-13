@@ -30,18 +30,13 @@ int test_setup()
 #endif
 
     CFG cfg;
+    memset(&cfg, 0, sizeof(CFG));
+
     ZERO(crypto_init());
 
-    if (cfg_file(NULL) != 1)
-    {
-        warn("Require valid credentials. skipped.");
-        return 0;
-    }
+    if (cfg_file(NULL) == 1)
+        ZERO(cfg_load(&cfg));
 
-    memset(&cfg, 0, sizeof(CFG));
-    accent("SETUP..");
-
-    ZERO(cfg_load(&cfg));
     ZERO(session_init(&cfg));
     ZERO(cfg_save(&cfg));
     ZERO(handler_preempt());
