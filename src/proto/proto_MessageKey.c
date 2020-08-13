@@ -6,6 +6,7 @@ int proto_parse_MessageKey(MessageKey *dst, char *buf, size_t buf_size)
 	size_t len = 0;
 
 	memset(scan, 0, sizeof(PROTO) * 4);
+	memset(dst, 0, sizeof(MessageKey));
 
 	buf_set(buf, buf_size);
 	len = proto_scan(scan, 4, 4);

@@ -6,12 +6,16 @@ int proto_parse_WebMessageInfo(WebMessageInfo *dst, char *buf, size_t buf_size)
 	size_t len = 0;
 
 	memset(scan, 0, sizeof(PROTO) * 19);
+	memset(dst, 0, sizeof(WebMessageInfo));
 
 	buf_set(buf, buf_size);
 	len = proto_scan(scan, 19, 0);
 
 	if (len <= 0)
+	{
+		err("proto_parse_WebMessageInfo: proto_scan too short");
 		return 1;
+	}
 
 	if ((ptr = protos_get(1, scan, 19)) != NULL)
 	{
