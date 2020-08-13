@@ -8,7 +8,7 @@ int test_real_presence()
     int i;
     uint8_t node_buf[] = {248, 6, 9, 91, 82, 107, 252, 1, 50, 248, 1, 248, 3, 65, 91, 93};
 
-    node = binary_read(node_buf, sizeof(node_buf));
+    node = binary_read((char *)node_buf, sizeof(node_buf));
     binary_alloc_stat();
     TRUTHY(node != NULL);
     TRUTHY(node->child_len == 1);
@@ -30,26 +30,20 @@ int test_real_presence()
 
     binary_free();
     binary_alloc_stat();
+    ok("test_real_presence OK");
     return 0;
 }
 
 int test_rw()
 {
-    BINARY_NODE node, *childs, child, *node2, *child2;
+    BINARY_NODE *node, child, *node2, *child2;
     BINARY_NODE_ATTR *attr;
-    size_t node_size, sent_size;
+    size_t node_size;
     char *node_buf = malloc(256), available;
     int i;
 
-    memset(&node, 0, sizeof(BINARY_NODE));
+    //memset(&node, 0, sizeof(BINARY_NODE));
     memset(&child, 0, sizeof(BINARY_NODE));
-
-    attr = &node.attrs[node.attr_len++];
-    attr->key = "type";
-    attr->value = "set";
-    attr = &node.attrs[node.attr_len++];
-    attr->key = "epoch";
-    attr->value = helper_epoch();
 
     child.tag = "presence";
     attr = &child.attrs[child.attr_len++];
@@ -58,27 +52,24 @@ int test_rw()
     available = available % 1;
     attr->value = available ? "available" : "unavailable";
 
-    node.tag = "action";
-    node.child_len = 1;
-    node.child_type = BINARY_NODE_CHILD_LIST;
-    node.child.list = &childs;
-    childs = &child;
+    node = binary_node_action("set", &child);
+
     binary_alloc_stat();
-    node_size = binary_write(&node, node_buf, 256);
+    node_size = binary_write(node, node_buf, 256);
     binary_alloc_stat();
     info("node_size: %lu", node_size);
     TRUTHY(node_size);
     node2 = binary_read(node_buf, node_size);
     binary_alloc_stat();
     TRUTHY(node2 != NULL);
-    TRUTHY(node2->attr_len == node.attr_len);
-    for (i = 0; i < node.attr_len; i++)
+    TRUTHY(node2->attr_len == node->attr_len);
+    for (i = 0; i < node->attr_len; i++)
     {
-        ZERO(strcmp(node2->attrs[i].key, node.attrs[i].key));
-        ZERO(strcmp(node2->attrs[i].value, node.attrs[i].value));
+        ZERO(strcmp(node2->attrs[i].key, node->attrs[i].key));
+        ZERO(strcmp(node2->attrs[i].value, node->attrs[i].value));
     }
-    TRUTHY(node2->child_len == node.child_len);
-    TRUTHY(node2->child_type == node.child_type);
+    TRUTHY(node2->child_len == node->child_len);
+    TRUTHY(node2->child_type == node->child_type);
     child2 = node2->child.list[0];
 
     TRUTHY(child2 != NULL);
@@ -90,7 +81,7 @@ int test_rw()
     }
     TRUTHY(child2->child_len == child.child_len);
     TRUTHY(child2->child_type == child.child_type);
-
+    binary_node_action_free(node);
     binary_free();
     free(node_buf);
     binary_alloc_stat();

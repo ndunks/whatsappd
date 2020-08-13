@@ -133,7 +133,7 @@ int test_read_write()
     node.attrs[0].value = "200";
     node.attrs[1].key = "hello";
     node.attrs[1].value = "world";
-    node.child_len = 5;
+    node.child_len = 4;
     node.child_type = BINARY_NODE_CHILD_BINARY;
     node.child.data = "ABCD";
 

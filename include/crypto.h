@@ -1,6 +1,7 @@
 #pragma once
 #include <mbedtls/ecdh.h>
 #include <mbedtls/entropy.h>
+#include <mbedtls/base64.h>
 #include <mbedtls/ctr_drbg.h>
 
 #include "util.h"

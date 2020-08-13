@@ -124,3 +124,6 @@ uint32_t read_int20();
 uint32_t read_int32();
 void binary_read_set(char *src, size_t src_len);
 #endif
+
+BINARY_NODE *binary_node_action(char *type, BINARY_NODE *child);
+void binary_node_action_free(BINARY_NODE *node);
