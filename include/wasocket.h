@@ -23,6 +23,7 @@ size_t wasocket_send_binary(char *data, uint len, char *tag, BINARY_METRIC metri
 int wasocket_read(char **data, char **tag, ssize_t *data_size);
 int wasocket_read_all(uint32_t timeout_ms);
 char *wasocket_read_reply(char *req_tag);
+size_t wasocket_read_command_reply(const char *type, char *buf, size_t buf_len);
 
 int wasocket_start();
 int wasocket_stop();

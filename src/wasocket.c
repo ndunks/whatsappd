@@ -107,7 +107,7 @@ CATCH:
     return sent_size;
 }
 
-// Read and remove tags
+// Read and split tag
 int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
     char *decrypted;
@@ -188,13 +188,55 @@ char *wasocket_read_reply(char *req_tag)
         ret = wss_ssl_check_read(900);
         if (ret > 0)
         {
-            if (wasocket_read(&msg, &tag, &size))
+            if (wasocket_read(&msg, &tag, &size) != 0)
                 return NULL;
             if (size > 0 && strncmp(tag, req_tag, tag_len) == 0)
                 return msg;
         }
     } while (ret > 0);
     return NULL;
+}
+
+// Read command tag reply s12,...
+size_t wasocket_read_command_reply(const char *type, char *buf, size_t buf_len)
+{
+    ssize_t size;
+    char *last_command = NULL, *msg, *tag;
+    int ret = 1;
+    size_t tag_len, num_len, len;
+    len = strlen(type);
+
+    accent("wasocket_read_command_reply");
+    do
+    {
+        ret = wss_ssl_check_read(1000);
+        if (ret <= 0)
+            return 0;
+
+        if (wasocket_read(&msg, &tag, &size) != 0)
+            return 0;
+
+        if (*tag != 's' || size <= 0)
+            continue;
+
+        tag_len = strlen(tag);
+        num_len = strspn(tag + 1, "1234567890");
+        if (tag_len != num_len + 1)
+            continue;
+
+        if (msg[0] == '[' && msg[1] == '"' && strncmp(&msg[2], type, len) == 0)
+        {
+            if (size + 1 > buf_len)
+            {
+                warn("Truncated command reply %lu > %lu", size, buf_len);
+                size = buf_len;
+            }
+            memcpy(buf, msg, size);
+            buf[size - 1] = 0;
+            return size;
+        }
+
+    } while (1);
 }
 
 int wasocket_read_all(uint32_t timeout_ms)
@@ -208,7 +250,7 @@ int wasocket_read_all(uint32_t timeout_ms)
         ret = wss_ssl_check_read(timeout_ms);
         if (ret > 0)
         {
-            if (wasocket_read(&msg, &tag, &size))
+            if (wasocket_read(&msg, &tag, &size) != 0)
                 return 1;
         }
     } while (ret > 0);
@@ -222,7 +264,7 @@ static void *wasocket_run()
 
     do
     {
-        if (wasocket_read(&msg, &tag, &size))
+        if (wasocket_read(&msg, &tag, &size) != 0)
             break;
 
         info("Got %ld bytes\n%s", size, tag);
