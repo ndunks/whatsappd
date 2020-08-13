@@ -110,7 +110,7 @@ CATCH:
 // Read and remove tags
 int wasocket_read(char **data, char **tag, ssize_t *data_size)
 {
-    char *ptr;
+    char *decrypted;
     size_t encrypted_len;
 
     if (wss_read(NULL) == NULL)
@@ -132,13 +132,23 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
     {
         encrypted_len = *data_size;
         WSS_NEED_BUF(encrypted_len);
-        ptr = wss.buf + wss.buf_len;
+        decrypted = wss.buf + wss.buf_len;
         wss.buf_len += encrypted_len;
 
-        CHECK(crypto_decrypt_hmac(*data, encrypted_len, ptr, (size_t *)data_size));
-        mempcpy(*data, ptr, *data_size);
+        CHECK(crypto_decrypt_hmac(*data, encrypted_len, decrypted, (size_t *)data_size));
+
+#ifdef SAVE_MSG
+        util_save_msg(*tag, decrypted, *data_size, *data, encrypted_len, true);
+#endif
+        mempcpy(*data, decrypted, *data_size);
         wss.buf_len -= encrypted_len;
     }
+#ifdef SAVE_MSG
+    else
+    {
+        util_save_msg(*tag, *data, *data_size, NULL, 0, false);
+    }
+#endif
 
 #ifdef DEBUG
     ok("READ (%s): %s %lu bytes", wss_frame_rx.opcode == WS_OPCODE_TEXT ? "TXT" : "BIN", *tag, *data_size);
@@ -179,7 +189,7 @@ char *wasocket_read_reply(char *req_tag)
         if (ret > 0)
         {
             if (wasocket_read(&msg, &tag, &size))
-                return 1;
+                return NULL;
             if (size > 0 && strncmp(tag, req_tag, tag_len) == 0)
                 return msg;
         }

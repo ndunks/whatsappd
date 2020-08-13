@@ -14,11 +14,14 @@ MODULES_OBJECTS := $(patsubst src/%.c, build/%.o, $(MODULES_SOURCES))
 MODULES_FLAGS   := 
 MKDIRS          += $(patsubst src/%, build/%, $(MODULES))
 
-
 .DEFAULT_GOAL := all
 
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
+endif
+
+ifdef SAVE_MSG
+    CFLAGS += "-DSAVE_MSG=\"$(SAVE_MSG)\""
 endif
 
 include lib/lib.mk
@@ -41,14 +44,7 @@ else
     LDFLAGS        += -l:modules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
 endif
 
-# define MODULE_template =
-# build/src_$(1).o: $(wildcard src/$(1)/*.c)
-# 	$(CC) -c $(CFLAGS) $$^ -o $$@
-# endef
-
 $(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))
-
-# $(foreach m, $(MODULES), $(eval $(call MODULE_template,$(m))))
 
 all: lib $(MODULES_LIB) $(BUILD_BIN)
 ifdef SHARED
@@ -77,7 +73,11 @@ modules: $(MODULES_LIB)
 watch: buildfs
 	nodemon --delay 0.5 -w Makefile -w src -e .c,.h,.mk -x "make run || false"
 
+# Clean build without lib
 clean:
+	@find build -mindepth 1 -maxdepth 1 -not -name lib -exec rm -rf \{\} \;
+
+clean_all:
 	@test -d build && rm -rf build/*
 
 buildfs:
@@ -89,5 +89,5 @@ else
 	@echo "Already mounted"
 endif
 
-.PHONY: all run watch clean buildfs modules
+.PHONY: all run watch clean clean_all buildfs modules
 

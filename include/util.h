@@ -59,6 +59,10 @@ extern int CATCH_RET;
 extern uint8_t *buf;
 extern size_t buf_idx, buf_len;
 
+#ifdef SAVE_MSG
+void util_save_msg(char *tag, char *plain, size_t plain_len, char *encrypted, size_t encrypted_len, bool is_binary);
+#endif
+
 void buf_set(char *src, size_t src_len);
 uint8_t buf_read_byte();
 // Big-endian read

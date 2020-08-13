@@ -11,7 +11,8 @@
                 "_GNU_SOURCE",
                 "TEST=\"dummy\"",
                 "MBEDTLS_CONFIG_FILE=<config.h>",
-                "DEBUG=1"
+                "DEBUG=1",
+                "SAVE_MSG=\"path\""
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
