@@ -4,32 +4,21 @@
 
 #include "test.h"
 #include "data_auth.h"
+#define BINARY_SAMPLE_MAX_SIZE 80000
 
-static char *encrypted_messages[] = {
-    "android/1_b3d5dd17d947a3f6.--10a.bin.enc",
-    "android/6_preempt-b3d5dd17d947a3f6.--10b.bin.enc",
-    "android/7_b3d5dd17d947a3f6.--10c.bin.enc",
-    "android/8_b3d5dd17d947a3f6.--10d.bin.enc",
-    "android/9_preempt-b3d5dd17d947a3f6.--10e.bin.enc",
-    NULL};
+static char file[256], output[BINARY_SAMPLE_MAX_SIZE], encrypted[BINARY_SAMPLE_MAX_SIZE],
+    decrypted[BINARY_SAMPLE_MAX_SIZE], re_encrypt[BINARY_SAMPLE_MAX_SIZE];
+static size_t output_size, encrypted_size, decrypted_size, re_encrypt_size;
 
 int test_random()
 {
     char buf[10], *rand1 = malloc(32), *null = calloc(32, 1);
     memset(buf, 0x0, 10);
-    // info("rand: buf");
-    // hexdump(buf, 10);
     ZERO(crypto_random(buf, 10));
-    // info("rand: buf");
-    // hexdump(buf, 10);
     TRUTHY(memcmp(buf, null, 10) != 0);
-
     memset(rand1, 0, 32);
     ZERO(crypto_random(rand1, 32));
-    // info("rand: rand1");
-    // hexdump(rand1, 32);
     TRUTHY(memcmp(rand1, null, 32) != 0);
-
     free(rand1);
     free(null);
     return 0;
@@ -135,22 +124,28 @@ int test_parse_server_keys()
     return 0;
 }
 
-int test_encrypt_decrypt()
+int test_crypto_android()
 {
     int ret = 0, i;
     CFG *cfg = (void *)data_android_cfg;
-    char file[256], output[2248], encrypted[2248], decrypted[2248], re_encrypt[2248];
-    size_t output_size, encrypted_size, decrypted_size, re_encrypt_size;
+
+    char *encrypted_messages_android[] = {
+        "android/1_b3d5dd17d947a3f6.--10a.bin.enc",
+        "android/6_preempt-b3d5dd17d947a3f6.--10b.bin.enc",
+        "android/7_b3d5dd17d947a3f6.--10c.bin.enc",
+        "android/8_b3d5dd17d947a3f6.--10d.bin.enc",
+        "android/9_preempt-b3d5dd17d947a3f6.--10e.bin.enc",
+        NULL};
 
     ZERO(crypto_parse_server_keys(cfg->serverSecret, cfg));
-    for (i = 0; encrypted_messages[i] != NULL; i++)
+    for (i = 0; encrypted_messages_android[i] != NULL; i++)
     {
-        strcpy(file, encrypted_messages[i]);
+        strcpy(file, encrypted_messages_android[i]);
 
         accent(":: %s", file);
-        load_sample(file, encrypted, 2248, &encrypted_size);
+        load_sample(file, encrypted, BINARY_SAMPLE_MAX_SIZE, &encrypted_size);
         *(strrchr(file, '.')) = 0;
-        load_sample(file, decrypted, 2248, &decrypted_size);
+        load_sample(file, decrypted, BINARY_SAMPLE_MAX_SIZE, &decrypted_size);
 
         ret = crypto_decrypt_hmac(encrypted, encrypted_size, output, &output_size);
         ZERO(ret);
@@ -159,12 +154,58 @@ int test_encrypt_decrypt()
         // Encrypt it again
         ZERO(crypto_encrypt_hmac(output, output_size, re_encrypt, &re_encrypt_size));
         TRUTHY(re_encrypt_size == encrypted_size);
-        memset(output, 0, 2248);
+        memset(output, 0, BINARY_SAMPLE_MAX_SIZE);
         ret = crypto_decrypt_hmac(re_encrypt, re_encrypt_size, output, &output_size);
         ZERO(ret);
         TRUTHY(output_size == decrypted_size);
         ZERO(memcmp(decrypted, output, decrypted_size));
     }
+    ok("test_crypto_android OK");
+    return 0;
+}
+
+int test_crypto_iphone()
+{
+    int ret = 0, i;
+    CFG *cfg = (void *)data_iphone_cfg;
+
+    char *encrypted_messages_iphone[] = {
+        "iphone/10_1597297960-252.bin.enc",
+        "iphone/12_1597297960-254.bin.enc",
+        "iphone/15_1597297960-257.bin.enc",
+        "iphone/13_1597297960-255.bin.enc",
+        "iphone/08_preempt-1597297960-250.bin.enc",
+        "iphone/09_1597297960-251.bin.enc",
+        "iphone/14_1597297960-256.bin.enc",
+        "iphone/16_1597297960-258.bin.enc",
+        "iphone/11_1597297960-253.bin.enc",
+        "iphone/07_preempt-1597297960-249.bin.enc",
+        NULL};
+
+    ZERO(crypto_parse_server_keys(cfg->serverSecret, cfg));
+    for (i = 0; encrypted_messages_iphone[i] != NULL; i++)
+    {
+        strcpy(file, encrypted_messages_iphone[i]);
+
+        accent(":: %s", file);
+        load_sample(file, encrypted, BINARY_SAMPLE_MAX_SIZE, &encrypted_size);
+        *(strrchr(file, '.')) = 0;
+        load_sample(file, decrypted, BINARY_SAMPLE_MAX_SIZE, &decrypted_size);
+
+        ret = crypto_decrypt_hmac(encrypted, encrypted_size, output, &output_size);
+        ZERO(ret);
+        ZERO(memcmp(decrypted, output, decrypted_size));
+
+        // Encrypt it again
+        ZERO(crypto_encrypt_hmac(output, output_size, re_encrypt, &re_encrypt_size));
+        TRUTHY(re_encrypt_size == encrypted_size);
+        memset(output, 0, BINARY_SAMPLE_MAX_SIZE);
+        ret = crypto_decrypt_hmac(re_encrypt, re_encrypt_size, output, &output_size);
+        ZERO(ret);
+        TRUTHY(output_size == decrypted_size);
+        ZERO(memcmp(decrypted, output, decrypted_size));
+    }
+    ok("test_crypto_iphone OK");
     return 0;
 }
 
@@ -175,7 +216,8 @@ int test_main()
            test_random() ||
            test_crypto_cfg() ||
            test_parse_server_keys() ||
-           test_encrypt_decrypt();
+           test_crypto_android() ||
+           test_crypto_iphone();
 }
 
 int test_setup()

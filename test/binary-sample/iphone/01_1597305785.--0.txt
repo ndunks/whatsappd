@@ -1,0 +1,1 @@
+{"status":200,"ref":"1@qvGoxm3L5hxsNjMFckLKnxSq+8RcW76NrIUeQDwkj1UUF8uSJERSD+sqPAw92KzO1YkJmyvaFROkGw==","ttl":20000,"update":false,"curr":"2.2033.7","time":1597305785457.0}
