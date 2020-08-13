@@ -27,10 +27,6 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
     CHAT *tail = NULL, *chat = chats;
     jid_num = helper_jid_to_num(jid);
 
-    if( jid_num == 6282335496016 ){
-        err("THIDI");
-    }
-
     while (chat != NULL)
     {
         if (chat->jid_num == jid_num)
@@ -42,6 +38,10 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
     if (chat == NULL)
     {
         chat = calloc(sizeof(CHAT), 1);
+        if( chat == NULL ){
+            err("chats_add_unread: calloc fail!");
+            return NULL;
+        }
         strcpy(chat->jid, jid);
         chat->jid_num = jid_num;
 
@@ -61,7 +61,6 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
 
 void chats_free(CHAT *chat)
 {
-    info("FREE: %p msg %u", chat, chat->msg_count);
     for (int i = 0; i < chat->msg_count; i++)
     {
         if (chat->msg[i] != NULL)
@@ -103,10 +102,9 @@ void chats_add_msg(CHAT *chat, const Message *msg)
     }
     else
     {
-        msg_len = strlen(msg->conversation);
+        msg_len = strlen(msg->conversation) + 1;
         msg_txt = malloc(msg_len);
-        strncpy(msg_txt, msg->conversation, msg_len);
-        msg_txt[msg_len] = 0;
+        strcpy(msg_txt, msg->conversation);
     }
 
     if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)

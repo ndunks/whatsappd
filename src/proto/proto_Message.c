@@ -18,8 +18,8 @@ int proto_parse_Message(Message *dst, char *buf, size_t buf_size)
 	if ((ptr = protos_get(1, scan, 4)) != NULL)
 	{
 		dst->conversation = malloc(ptr->len + 1);
-		dst->conversation[ptr->len] = 0;
 		strncpy(dst->conversation, ptr->value.buf, ptr->len);
+		dst->conversation[ptr->len] = 0;
 	}
 	return 0;
 }
