@@ -55,17 +55,17 @@ run: all
 	./$(BUILD_BIN)
 
 $(BUILD_BIN): $(BIN_DEPS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	@$(CC) -o $@ $^ $(LDFLAGS)
 
 $(OBJECTS) $(MODULES_OBJECTS) : build/%.o : src/%.c
-	$(CC) -c -o $@ $(CFLAGS) $(MODULES_FLAGS) $<
+	@$(CC) -c -o $@ $(CFLAGS) $(MODULES_FLAGS) $<
 
 $(MODULES_LIB): $(MODULES_OBJECTS)
 	$(info building $@)
 ifdef SHARED
-	@$(CC) -shared $^ -o $@
+	$(CC) -shared $^ -o $@
 else
-	@$(AR) cr $@ $?
+	$(AR) cr $@ $?
 endif
 
 modules: $(MODULES_LIB)
