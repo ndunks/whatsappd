@@ -80,7 +80,7 @@ int whatsappd_send_text(const char *number, const char *const text)
     Message msg;
     WebMessageInfo info;
     size_t buf_len, node_size, text_len = strlen(text), sent_size;
-    char *bin_buf, *node_buf, tag[16] = {0};
+    char *bin_buf, *node_buf, tag[80] = {0};
     BINARY_NODE node, child, *childs;
     buf_len = text_len + 512;
 

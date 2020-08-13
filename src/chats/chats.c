@@ -27,6 +27,10 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
     CHAT *tail = NULL, *chat = chats;
     jid_num = helper_jid_to_num(jid);
 
+    if( jid_num == 6282335496016 ){
+        err("THIDI");
+    }
+
     while (chat != NULL)
     {
         if (chat->jid_num == jid_num)
@@ -48,11 +52,35 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
 
         chats_count++;
     }
-    
+
     if (msg != NULL)
         chats_add_msg(chat, msg);
 
     return chat;
+}
+
+void chats_free(CHAT *chat)
+{
+    info("FREE: %p msg %u", chat, chat->msg_count);
+    for (int i = 0; i < chat->msg_count; i++)
+    {
+        if (chat->msg[i] != NULL)
+            free(chat->msg[i]);
+    }
+
+    free(chat);
+    chats_count--;
+}
+
+void chats_clear()
+{
+    CHAT *next;
+    while (chats != NULL)
+    {
+        next = chats->next;
+        chats_free(chats);
+        chats = next;
+    }
 }
 
 void chats_add_msg(CHAT *chat, const Message *msg)

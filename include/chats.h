@@ -21,6 +21,9 @@ typedef struct CHAT
 
 extern size_t chats_count;
 extern CHAT *chats;
+
 CHAT *chats_get(const char *jid);
+void chats_free(CHAT *chat);
+void chats_clear();
 CHAT *chats_add_unread(const char *jid, const Message *msg);
 void chats_add_msg(CHAT *chat, const Message *msg);
