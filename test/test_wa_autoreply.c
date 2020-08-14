@@ -5,19 +5,33 @@
 
 int test_main()
 {
+    uint unread_len = 0;
     CHAT *chat;
 
     chat = chats;
-    do
+    while (chat != NULL)
     {
-        info("UNREAD MESSAGE: %s %s %d %d", chat->jid, chat->name, chat->msg_count, chat->unread_count);
-        for (int i = 0; i < chat->msg_count; i++)
+        if (chat->msg_count || chats->unread_count)
         {
-            info(" %-2d: %s", i, chat->msg[i]);
+            if (chat->msg_count < chat->unread_count)
+                unread_len = chat->msg_count;
+            else
+                unread_len = chat->unread_count;
+        }
+        else
+            unread_len = 0;
+
+        if (unread_len)
+        {
+            info("UNREAD MESSAGE: %s %s %d %d", chat->jid, chat->name, chat->msg_count, chat->unread_count);
+            for (int i = 0; i < unread_len; i++)
+            {
+                info(" %-2d: %s", i, chat->msg[i]);
+            }
         }
 
         chat = chat->next;
-    } while (chat != NULL);
+    };
     return 0;
 }
 
@@ -40,7 +54,7 @@ int test_setup()
     ZERO(session_init(&cfg));
     ZERO(cfg_save(&cfg));
     ZERO(handler_preempt());
-    info("Unread count: %lu", chats_count);
+    info("chats count: %lu", chats_count);
     return 0;
 }
 

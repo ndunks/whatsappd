@@ -323,7 +323,7 @@ int handler_preempt()
     info("handler_preempt_read: %d\n-------------------", preempt_count);
     handler_preempt_post();
 
-    return preempt_count != 2;
+    return preempt_count == 0;
 }
 
 void handler_preempt_post()
