@@ -21,10 +21,11 @@ CHAT *chats_get(const char *jid)
     return NULL;
 }
 
-CHAT *chats_add_unread(const char *jid, const Message *msg)
+CHAT *chats_add_unread(const char *jid, WebMessageInfo *web_msg)
 {
     uint64_t jid_num;
     CHAT *tail = NULL, *chat = chats;
+
     jid_num = helper_jid_to_num(jid);
 
     while (chat != NULL)
@@ -38,7 +39,8 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
     if (chat == NULL)
     {
         chat = calloc(sizeof(CHAT), 1);
-        if( chat == NULL ){
+        if (chat == NULL)
+        {
             err("chats_add_unread: calloc fail!");
             return NULL;
         }
@@ -54,8 +56,8 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
         chats_count++;
     }
 
-    if (msg != NULL)
-        chats_add_msg(chat, msg);
+    if (web_msg != NULL)
+        chats_add_msg(chat, web_msg);
 
     return chat;
 }
@@ -83,16 +85,20 @@ void chats_clear()
     }
 }
 
-void chats_add_msg(CHAT *chat, const Message *msg)
+void chats_add_msg(CHAT *chat, const WebMessageInfo *web_msg)
 {
     int i;
-    char *msg_txt = NULL;
-    size_t msg_len = 0;
+    char *txt = NULL;
+    size_t len = 0;
+    Message *msg = web_msg->message;
 
     if (msg == NULL)
     {
         warn("chats_add_msg: NULL msg");
         return;
+    }
+    if(chat->last_msg_id[0] == 0){
+        strcpy(chat->last_msg_id, web_msg->key->id);
     }
 
     // Keep add it even is null, so the unread count keep match
@@ -103,9 +109,9 @@ void chats_add_msg(CHAT *chat, const Message *msg)
     }
     else
     {
-        msg_len = strlen(msg->conversation) + 1;
-        msg_txt = malloc(msg_len);
-        strcpy(msg_txt, msg->conversation);
+        len = strlen(msg->conversation) + 1;
+        txt = malloc(len);
+        strcpy(txt, msg->conversation);
     }
 
     if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
@@ -118,5 +124,5 @@ void chats_add_msg(CHAT *chat, const Message *msg)
             chat->msg[i] = chat->msg[i + 1];
         }
     }
-    chat->msg[chat->msg_count++] = msg_txt;
+    chat->msg[chat->msg_count++] = txt;
 }

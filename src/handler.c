@@ -36,7 +36,7 @@ static int handle_action_add_before(BINARY_NODE **nodes, int node_count)
             if (chat != NULL && chat->unread_count > 0 &&
                 chat->msg_count < chat->unread_count)
             {
-                chats_add_msg(chat, msg.message);
+                chats_add_msg(chat, &msg);
             }
         }
 
@@ -58,7 +58,7 @@ static int handle_action_add_last(BINARY_NODE **nodes, int node_count)
         proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
 
         if (wid_is_user(msg.key->remoteJid) && !msg.key->fromMe)
-            chats_add_unread(msg.key->remoteJid, msg.message);
+            chats_add_unread(msg.key->remoteJid, &msg);
 
         proto_free_WebMessageInfo(&msg);
     }
