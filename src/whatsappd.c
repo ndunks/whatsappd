@@ -35,6 +35,26 @@ int whatsappd_autoreply_unread()
 
         chat = chat->next;
     };
+    chats_clear();
+    return 0;
+}
+
+int whatsappd_autoreply()
+{
+    char watchdog_tag[] = "?,", watchdog[] = ",";
+
+    while (1)
+    {
+        if (wasocket_read_all(1000) != 0)
+            break;
+        whatsappd_autoreply_unread();
+
+        if (time(NULL) - wasocket_last_sent > 30)
+        {
+            wasocket_send(watchdog, 1, watchdog_tag, WS_OPCODE_TEXT);
+        }
+    };
+
     return 0;
 }
 
@@ -87,7 +107,9 @@ void whatsappd_free()
 int main(int argc, char const *argv[])
 {
     // todo: arg parser for custom config location
-    TRY(whatsappd_init(NULL))
+    TRY(whatsappd_init(NULL));
+
+    whatsappd_autoreply_unread();
 
 CATCH:
     whatsappd_free();

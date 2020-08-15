@@ -12,6 +12,8 @@
 #define EPHEMERAL_EXPIRES (1 << 3)
 #define EPHEMERAL_SKIPOFFLINE (1 << 2)
 
+extern time_t wasocket_last_sent;
+
 void wasocket_setup();
 char *wasocket_short_tag();
 char *wasocket_tag();

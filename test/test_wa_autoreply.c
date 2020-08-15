@@ -1,10 +1,10 @@
 #include "whatsappd.h"
 #include "test.h"
+#include <unistd.h>
 
 int test_main()
 {
-    ZERO(whatsappd_autoreply_unread());
-    return 0;
+    return whatsappd_autoreply();
 }
 
 int test_setup()

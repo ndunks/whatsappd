@@ -14,6 +14,7 @@ static char tag_buf[32] = {0},
             short_tag_fmt[] = "%s.--%lu,";
 static pthread_t wasocket_thread = 0;
 static pthread_mutex_t wasocket_mutex = PTHREAD_MUTEX_INITIALIZER;
+time_t wasocket_last_sent = 0;
 
 void wasocket_setup()
 {
@@ -48,6 +49,7 @@ size_t wasocket_send(char *data, uint len, char *tag, enum WS_OPCODE opcode)
     wss_frame(opcode, tag_len + len, mask);
     wss_write_chunk((uint8_t *)tag, 0, tag_len, &mask);
     wss_write_chunk((uint8_t *)data, tag_len, len + tag_len, &mask);
+    time(&wasocket_last_sent);
 
 #ifdef DEBUG
     warn("SEND: %s (%s) ", tag, opcode == WS_OPCODE_BINARY ? "BIN" : "TXT");
@@ -117,6 +119,14 @@ int wasocket_read(char **data, char **tag, ssize_t *data_size)
         return 1;
 
     *tag = wss.rx;
+    // timeskew
+    if (**tag == '!')
+    {
+        *data_size = 0;
+        *data = NULL;
+        return 0;
+    }
+
     *data = strchr(wss.rx, ',');
     if (*data == NULL)
     {
