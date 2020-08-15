@@ -1,4 +1,42 @@
 #include "whatsappd.h"
+#define WHATSAPPD_TEXT_MAX 1024
+
+static char text_buf[WHATSAPPD_TEXT_MAX] = {0};
+
+int whatsappd_send_info(CHAT *chat)
+{
+    const char *name = chat->name;
+
+    if (name == NULL)
+        name = LANG_DEAR[chat->lang];
+
+    sprintf(text_buf, "%s %s, %s", LANG_HI[chat->lang], name, LANG_INFO[chat->lang]);
+    return wa_send_text(chat->jid, text_buf);
+}
+
+int whatsappd_autoreply_unread()
+{
+    CHAT *chat;
+
+    chat = chats;
+    while (chat != NULL)
+    {
+        // WARN:
+        // chat->unread_count may be greather than chat->msg_count
+        // because old unread message may not sent on preempt.
+        // If you want, you can query_message for that missing message
+        if (chat->unread_count)
+        {
+            if (wa_action_read(chat->jid, chat->last_msg_id, chat->unread_count) != 0)
+                warn("Fail mark read from %s", chat->jid);
+            else
+                whatsappd_send_info(chat);
+        }
+
+        chat = chat->next;
+    };
+    return 0;
+}
 
 /**
  * Login or resume session
@@ -26,9 +64,9 @@ int whatsappd_init(const char *config_path)
     TRY(handler_preempt());
 
 #ifdef DEBUG
-    TRY(wa_presence(1));
+    TRY(wa_action_presence(1));
 #else
-    if (wa_presence(1) != 0)
+    if (wa_action_presence(1) != 0)
         err("Send presence fail.");
 #endif
 

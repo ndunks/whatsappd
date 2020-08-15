@@ -1,37 +1,9 @@
-#include "session.h"
-#include "handler.h"
-
+#include "whatsappd.h"
 #include "test.h"
 
 int test_main()
 {
-    uint unread_len = 0;
-    CHAT *chat;
-
-    chat = chats;
-    while (chat != NULL)
-    {
-        if (chat->msg_count || chats->unread_count)
-        {
-            if (chat->msg_count < chat->unread_count)
-                unread_len = chat->msg_count;
-            else
-                unread_len = chat->unread_count;
-        }
-        else
-            unread_len = 0;
-
-        if (unread_len)
-        {
-            info("UNREAD MESSAGE: %s %s %d %d", chat->jid, chat->name, chat->msg_count, chat->unread_count);
-            for (int i = 0; i < unread_len; i++)
-            {
-                info(" %-2d: %s", i, chat->msg[i]);
-            }
-        }
-
-        chat = chat->next;
-    };
+    ZERO(whatsappd_autoreply_unread());
     return 0;
 }
 
@@ -42,26 +14,13 @@ int test_setup()
     err("This test require working .cfg");
     return TEST_SKIP;
 #endif
-
-    CFG cfg;
-    memset(&cfg, 0, sizeof(CFG));
-
-    ZERO(crypto_init());
-
-    if (cfg_file(NULL) == 1)
-        ZERO(cfg_load(&cfg));
-
-    ZERO(session_init(&cfg));
-    ZERO(cfg_save(&cfg));
-    ZERO(handler_preempt());
-    info("chats count: %lu", chats_count);
+    ZERO(whatsappd_init(NULL));
     return 0;
 }
 
 int test_cleanup()
 {
     accent("CLEANING UP..");
-    session_free();
-    crypto_free();
+    whatsappd_free();
     return 0;
 }

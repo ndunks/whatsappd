@@ -18,7 +18,7 @@
 //         goto AGAIN;
 //     }
 //     info("Checking: %lu", jid_num);
-//     ZERO(wa_presence_check(number));
+//     ZERO(wa_action_presence_check(number));
 //     goto AGAIN;
 //     return 0;
 // }
@@ -28,7 +28,7 @@ int test_once()
     char number[] = "6285726501111";
     WA_PRESENCE_CHECK_RESULT result;
     memset(&result, 0, sizeof(WA_PRESENCE_CHECK_RESULT));
-    ZERO(wa_presence(1));
+    ZERO(wa_action_presence(1));
     wasocket_read_all(500);
     TRUTHY(wa_query_exist(number));
     wasocket_read_all(500);
@@ -36,7 +36,7 @@ int test_once()
 
     wa_query_profile_pic_thumb(number);
 
-    ZERO(wa_presence_check(number, &result));
+    ZERO(wa_action_presence_check(number, &result));
 
     info("type: %s, t: %ld, deny: %d", result.type, result.time, result.deny);
     return 0;
