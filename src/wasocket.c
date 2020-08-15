@@ -201,7 +201,7 @@ char *wasocket_read_reply(char *req_tag)
 size_t wasocket_read_command_reply(const char *type, char *buf, size_t buf_len)
 {
     ssize_t size;
-    char *last_command = NULL, *msg, *tag;
+    char *msg, *tag;
     int ret = 1;
     size_t tag_len, num_len, len;
     len = strlen(type);
