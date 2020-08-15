@@ -9,7 +9,9 @@ char *wa_query_profile_pic_thumb(const char *number)
     len = sprintf(buf, ",[\"query\",\"ProfilePicThumb\",\"%s\"]", jid);
 
     sent_size = wasocket_send_text(buf, len, wasocket_short_tag());
-    CHECK(sent_size == 0);
+    if (sent_size == 0)
+        return NULL;
+
     // todo: get the url
     wasocket_read_all(500);
     return NULL;
