@@ -1,6 +1,6 @@
 #include "wa.h"
 
-int wa_presence(int available)
+int wa_action_presence(int available)
 {
     BINARY_NODE *node, child;
     size_t node_size, sent_size;
@@ -25,7 +25,45 @@ int wa_presence(int available)
     return wa_reply_json_ok(NULL);
 }
 
-int wa_presence_check(const char *number, WA_PRESENCE_CHECK_RESULT *result)
+int wa_action_read(const char *jid, const char *index, uint count)
+{
+    BINARY_NODE *node, child;
+    size_t node_size, sent_size;
+    char jid_sanitized[64] = {0}, count_str[12] = {0}, node_buf[1024] = {0};
+
+    if (index == NULL)
+    {
+        warn("wa_action_read: No index!");
+        return 0;
+    }
+
+    memset(&child, 0, sizeof(BINARY_NODE));
+    sprintf(count_str, "%u", count);
+    wa_sanitize_jid_long(jid_sanitized, jid);
+
+    child.tag = "read";
+    child.attrs[0].key = "jid";
+    child.attrs[0].value = jid_sanitized;
+    child.attrs[1].key = "index";
+    child.attrs[1].value = (char *)index;
+    child.attrs[2].key = "count";
+    child.attrs[2].value = count_str;
+    child.attrs[3].key = "owner";
+    child.attrs[3].value = "false";
+    child.attr_len = 4;
+
+    node = binary_node_action("set", &child);
+    node_size = binary_write(node, node_buf, 1024);
+
+    sent_size = wasocket_send_binary(node_buf, node_size, NULL, BINARY_METRIC_READ, EPHEMERAL_IGNORE | EPHEMERAL_AVAILABLE);
+
+    binary_node_action_free(node);
+
+    CHECK(sent_size == 0);
+    return wa_reply_json_ok(NULL);
+}
+
+int wa_action_presence_check(const char *number, WA_PRESENCE_CHECK_RESULT *result)
 {
     char *val, jid[64], jid_reply[64], buf[256];
     size_t len, sent_size;

@@ -19,6 +19,8 @@ void wa_sanitize_jid_short(char *dst, const char *number);
 int wa_reply_json_ok(char *req_tag);
 char * wa_query_profile_pic_thumb(const char *number);
 bool wa_query_exist(const char *number);
-int wa_presence(int available);
-int wa_presence_check(const char *number, WA_PRESENCE_CHECK_RESULT *result);
+int wa_action_presence(int available);
+int wa_action_presence_check(const char *number, WA_PRESENCE_CHECK_RESULT *result);
+// Mark read messages 
+int wa_action_read(const char *jid, const char *index, uint count);
 int wa_send_text(const char *number, const char *const text);
