@@ -45,5 +45,12 @@ int wa_send_text(const char *number, const char *const text)
     binary_node_action_free(node);
 
     CHECK(sent_size == 0);
-    return wa_reply_json_ok(tag);
+
+    if (wa_reply_json_ok(tag) != 0)
+    {
+        warn("wa_send: fail to %s", number);
+        return 1;
+    }
+
+    return 0;
 }
