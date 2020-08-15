@@ -44,6 +44,7 @@ CHAT *chats_add_unread(const char *jid, const Message *msg)
         }
         strcpy(chat->jid, jid);
         chat->jid_num = jid_num;
+        chat->lang = lang_detect_by_jid(jid);
 
         if (tail != NULL)
             tail->next = chat;

@@ -1,12 +1,14 @@
 #pragma once
 #include "util.h"
 #include "proto.h"
+#include "lang.h"
 
 #define HANDLER_MAX_CHAT_MESSAGE 8
 
 typedef struct CHAT
 {
     // Phone number converted to number for fast searching
+    LANG lang;
     uint64_t jid_num;
     char
         // phone number is 15, with longest host @s.whatsapp.net
