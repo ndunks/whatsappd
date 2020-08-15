@@ -267,6 +267,7 @@ int wasocket_read_all(uint32_t timeout_ms)
     return 0;
 }
 
+
 static void *wasocket_run()
 {
     ssize_t size;

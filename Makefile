@@ -41,7 +41,7 @@ ifdef SHARED
 else
     MODULES_LIB    := build/libmodules.a
 	BIN_DEPS       += $(MODULES_LIB)
-    LDFLAGS        += -l:modules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
+    LDFLAGS        += -l:libmodules.a -l:libmbedtls.a -l:libmbedcrypto.a -l:libmbedx509.a -lpthread
 endif
 
 $(foreach d, $(MKDIRS), $(shell test -d $(d) || mkdir -p $(d)))

@@ -14,9 +14,10 @@ int whatsappd_send_info(CHAT *chat)
     return wa_send_text(chat->jid, text_buf);
 }
 
-int whatsappd_autoreply_unread()
+int whatsappd_reply_unread()
 {
     CHAT *chat;
+    uint replied = 0;
 
     chat = chats;
     while (chat != NULL)
@@ -29,29 +30,56 @@ int whatsappd_autoreply_unread()
         {
             if (wa_action_read(chat->jid, chat->last_msg_id, chat->unread_count) != 0)
                 warn("Fail mark read from %s", chat->jid);
-            else
-                whatsappd_send_info(chat);
+            whatsappd_send_info(chat);
+            replied++;
         }
-
         chat = chat->next;
     };
+
     chats_clear();
+
+    if (replied > 0)
+    {
+        info("Replied %u chats", replied);
+        wa_action_presence(1);
+    }
+
     return 0;
 }
 
 int whatsappd_autoreply()
 {
-    char watchdog_tag[] = "?,", watchdog[] = ",";
+    int ret = 0;
+    ssize_t size;
+    char *msg, *tag, watchdog_tag[] = "?,", watchdog[] = ",";
+    BINARY_NODE *node;
 
-    while (1)
+    if (chats != NULL)
+        whatsappd_reply_unread();
+
+    while (ret >= 0)
     {
-        if (wasocket_read_all(1000) != 0)
-            break;
-        whatsappd_autoreply_unread();
-
         if (time(NULL) - wasocket_last_sent > 30)
-        {
             wasocket_send(watchdog, 1, watchdog_tag, WS_OPCODE_TEXT);
+
+        ret = wss_ssl_check_read(1000);
+        if (ret < 0)
+            return ret;
+
+        if (ret == 0)
+        {
+            whatsappd_reply_unread();
+            continue;
+        }
+
+        if (wasocket_read(&msg, &tag, &size) != 0)
+            return -1;
+
+        if (wss_frame_rx.opcode == WS_OPCODE_BINARY && size > 0)
+        {
+            node = binary_read(msg, size);
+            handler_handle(node);
+            binary_free();
         }
     };
 
@@ -89,7 +117,6 @@ int whatsappd_init(const char *config_path)
     if (wa_action_presence(1) != 0)
         err("Send presence fail.");
 #endif
-
     CATCH_RET = 0;
 
 CATCH:
@@ -108,8 +135,7 @@ int main(int argc, char const *argv[])
 {
     // todo: arg parser for custom config location
     TRY(whatsappd_init(NULL));
-
-    whatsappd_autoreply_unread();
+    return whatsappd_autoreply();
 
 CATCH:
     whatsappd_free();

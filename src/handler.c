@@ -1,6 +1,7 @@
 #include "handler.h"
 
 CONTACT_NAME *names = NULL;
+static WebMessageInfo msg;
 
 static bool wid_is_user(char *jid)
 {
@@ -16,11 +17,26 @@ static bool wid_is_user(char *jid)
     return false;
 }
 
+// handle and add message as unread
+static CHAT *handle_message_unread(BINARY_NODE *node, bool is_latest)
+{
+    CHAT *chat = NULL;
+    proto_parse_WebMessageInfo(&msg, node->child.data, node->child_len);
+    if (wid_is_user(msg.key->remoteJid) && !msg.key->fromMe)
+    {
+        chat = chats_add_unread(msg.key->remoteJid, &msg);
+        if (is_latest && msg.key->id != NULL)
+            strcpy(chat->last_msg_id, msg.key->id);
+    }
+    proto_free_WebMessageInfo(&msg);
+
+    return chat;
+}
+
 static int handle_action_add_before(BINARY_NODE **nodes, int node_count)
 {
     int i;
     BINARY_NODE *child;
-    WebMessageInfo msg;
     CHAT *chat;
 
     for (i = node_count - 1; i >= 0; i--)
@@ -47,21 +63,17 @@ static int handle_action_add_before(BINARY_NODE **nodes, int node_count)
 
 static int handle_action_add_last(BINARY_NODE **nodes, int node_count)
 {
-    int i;
-    BINARY_NODE *child;
-    WebMessageInfo msg;
-
-    for (i = 0; i < node_count; i++)
+    //BINARY_NODE *child;
+    for (int i = 0; i < node_count; i++)
     {
-        child = nodes[i];
-
-        proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
-
-        if (wid_is_user(msg.key->remoteJid) && !msg.key->fromMe)
-            chats_add_unread(msg.key->remoteJid, &msg);
-
-        proto_free_WebMessageInfo(&msg);
+        handle_message_unread(nodes[i], true);
+        // child = nodes[i];
+        // proto_parse_WebMessageInfo(&msg, child->child.data, child->child_len);
+        // if (wid_is_user(msg.key->remoteJid) && !msg.key->fromMe)
+        //     chats_add_unread(msg.key->remoteJid, &msg);
+        // proto_free_WebMessageInfo(&msg);
     }
+
     return 0;
 }
 
@@ -70,6 +82,7 @@ static int handle_action(BINARY_NODE *node)
     BINARY_NODE *child;
     BINARY_ACTION_ADD add = 0;
     HANDLE *handle;
+    CHAT *chat;
     int i;
     char *add_str;
 
@@ -100,6 +113,7 @@ static int handle_action(BINARY_NODE *node)
         return 0;
     }
 
+    // Only handle message!
     add_str = binary_attr(node, "add");
     add = binary_get_action_add(add_str);
 
@@ -112,6 +126,16 @@ static int handle_action(BINARY_NODE *node)
     // so it sent just once!
     case BINARY_ACTION_ADD_LAST:
         return handle_action_add_last(node->child.list, node->child_len);
+
+    case BINARY_ACTION_ADD_RELAY:
+
+        for (i = 0; i < node->child_len; i++)
+        {
+            chat = handle_message_unread(node->child.list[i], true);
+            chat->unread_count++;
+        }
+
+        return 0;
     default:
         warn("handle_action: Ignored %s", add_str);
         break;
@@ -243,11 +267,18 @@ static int handle_chat(BINARY_NODE *node)
     return 0;
 }
 
+// handle and add message as unread
+static int handle_message(BINARY_NODE *node)
+{
+    return handle_message_unread(node, false) == NULL;
+}
+
 HANDLE handler_tag[] = {
     {.tag = "action", .function = handle_action},
     {.tag = "response", .function = handle_response},
     {.tag = "chat", .function = handle_chat},
     {.tag = "user", .function = handle_user},
+    {.tag = "message", .function = handle_message},
     //{.tag = "contacts", .function = handle_contacts},
     {NULL}};
 

@@ -97,8 +97,15 @@ void chats_add_msg(CHAT *chat, const WebMessageInfo *web_msg)
         warn("chats_add_msg: NULL msg");
         return;
     }
-    if(chat->last_msg_id[0] == 0){
+    if (chat->last_msg_id[0] == 0)
+    {
         strcpy(chat->last_msg_id, web_msg->key->id);
+    }
+
+    if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
+    {
+        warn("Too many unread msg in chat, msg truncated.");
+        return;
     }
 
     // Keep add it even is null, so the unread count keep match
@@ -114,15 +121,5 @@ void chats_add_msg(CHAT *chat, const WebMessageInfo *web_msg)
         strcpy(txt, msg->conversation);
     }
 
-    if (chat->msg_count == HANDLER_MAX_CHAT_MESSAGE)
-    {
-        warn("Too many unread msg in chat, msg truncated.");
-        free(chat->msg[0]);
-        chat->msg_count = HANDLER_MAX_CHAT_MESSAGE - 1;
-        for (i = 0; i < HANDLER_MAX_CHAT_MESSAGE - 2; i++)
-        {
-            chat->msg[i] = chat->msg[i + 1];
-        }
-    }
     chat->msg[chat->msg_count++] = txt;
 }
