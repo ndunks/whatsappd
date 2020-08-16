@@ -6,7 +6,7 @@ int test_main()
 {
     char buf[21];
     wa_create_msg_id(buf);
-    info("ID: %s", buf);
+
     TRUTHY(strlen(buf) == 20);
 
     wa_sanitize_jid_long(buf, "6285726767672");
@@ -34,7 +34,6 @@ int test_main()
     ZERO(strcmp(buf, "6285726767672@c.us"));
 
     return 0;
-    return test_functions();
 }
 
 int test_setup()
