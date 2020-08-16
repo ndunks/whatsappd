@@ -13,19 +13,19 @@ int test_real_presence()
     TRUTHY(node != NULL);
     TRUTHY(node->child_len == 1);
     TRUTHY(node->child_type == BINARY_NODE_CHILD_LIST);
-    info("Tag: %s, Attr: %d, child: %d", node->tag, node->attr_len, node->child_len);
 
     for (i = 0; i < node->attr_len; i++)
     {
-        info("  %s: %s", node->attrs[i].key, node->attrs[i].value);
+        TRUTHY(node->attrs[i].key != NULL);
+        TRUTHY(node->attrs[i].value != NULL);
     }
 
     child = node->child.list[0];
-    info("Child Tag: %s, Attr: %d, child: %d", child->tag, child->attr_len, child->child_len);
 
     for (i = 0; i < child->attr_len; i++)
     {
-        info("  %s: %s", child->attrs[i].key, child->attrs[i].value);
+        TRUTHY(child->attrs[i].key != NULL);
+        TRUTHY(child->attrs[i].value != NULL);
     }
 
     binary_free();
@@ -57,28 +57,32 @@ int test_rw()
     binary_alloc_stat();
     node_size = binary_write(node, node_buf, 256);
     binary_alloc_stat();
-    info("node_size: %lu", node_size);
+
     TRUTHY(node_size);
     node2 = binary_read(node_buf, node_size);
     binary_alloc_stat();
     TRUTHY(node2 != NULL);
     TRUTHY(node2->attr_len == node->attr_len);
+    
     for (i = 0; i < node->attr_len; i++)
     {
         ZERO(strcmp(node2->attrs[i].key, node->attrs[i].key));
         ZERO(strcmp(node2->attrs[i].value, node->attrs[i].value));
     }
+
     TRUTHY(node2->child_len == node->child_len);
     TRUTHY(node2->child_type == node->child_type);
     child2 = node2->child.list[0];
 
     TRUTHY(child2 != NULL);
     TRUTHY(child2->attr_len == child.attr_len);
+
     for (i = 0; i < child.attr_len; i++)
     {
         ZERO(strcmp(child2->attrs[i].key, child.attrs[i].key));
         ZERO(strcmp(child2->attrs[i].value, child.attrs[i].value));
     }
+
     TRUTHY(child2->child_len == child.child_len);
     TRUTHY(child2->child_type == child.child_type);
     binary_node_action_free(node);

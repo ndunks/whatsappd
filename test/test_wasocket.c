@@ -10,7 +10,6 @@ int test_tags()
     int counter;
 
     tag = wasocket_short_tag();
-    info("short_tag: %s", tag);
     TRUTHY(strlen(tag) > 0);
     TRUTHY(strlen(tag) <= 8);
 
@@ -25,7 +24,6 @@ int test_tags()
 
     // long tag  1595220140
     tag = wasocket_tag();
-    info("long_tag: %s", tag);
     TRUTHY(strlen(tag) > 0);
     EQUAL(strlen(tag), 15);
     counter = atoi(strrchr(tag, '-') + 1);
@@ -48,7 +46,6 @@ int test_send_init()
     crypto_random(buf, 16);
 
     crypto_base64_encode(client_id, 75, buf, CFG_CLIENT_ID_LEN);
-    info("ClientID: %s", client_id);
 
     len = sprintf(buf, "[\"admin\",\"init\","
                        "[2,2019,6],[\"whatsappd\",\"github.com/ndunks\",\"%s\"],"
@@ -62,11 +59,10 @@ int test_send_init()
     TRUTHY(reply_len == len);
     ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
 
-    accent("** with custom tag: %s", tag);
     sent = wasocket_send_text(buf, len, tag);
     TRUTHY(sent >= len);
     ZERO(wasocket_read(&reply, &reply_tag, &reply_len));
-    info("%ld, tag: %s, data: %s", reply_len, reply_tag, reply);
+
     TRUTHY(reply_len == len);
     ZERO(strncmp(buf, reply, len > reply_len ? len : reply_len));
 

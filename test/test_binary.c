@@ -138,8 +138,8 @@ int test_read_write()
     node.child.data = "ABCD";
 
     len = binary_write(&node, binbuf, 256);
-    hexdump(binbuf, len + 2);
     node2 = binary_read(binbuf, len);
+
     ZERO(strcmp(node.tag, node2->tag));
     TRUTHY(node.attr_len == node2->attr_len);
     TRUTHY(node.child_len == node2->child_len);
@@ -178,15 +178,13 @@ int test_real_message()
         FALSY(node->child.list == NULL);
 
         re_build_size = binary_write(node, re_build, 80000);
-        //info(" rebuild %lu vs %lu", read_size, re_build_size);
+
         TRUTHY(re_build_size >= read_size);
 
         node2 = binary_read(re_build, re_build_size);
         FALSY(node2 == NULL);
         ZERO(strcmp(node->tag, node2->tag));
 
-        // info("ATTRS : %d vs %d", node->attr_len, node2->attr_len);
-        // info("CHILDS: %d vs %d", node->child_len, node2->child_len);
         TRUTHY(node->attr_len == node2->attr_len);
         TRUTHY(node->child_len == node2->child_len);
         for (i = 0; i < node->attr_len; i++)

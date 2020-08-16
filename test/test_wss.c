@@ -28,9 +28,9 @@ int test_write_chunk()
     wss_send();
 
     reply = wss_read(&recv_len);
-    info("chunk_recv: %lu", recv_len);
+
     TRUTHY(recv_len == msg_len);
-    info("REPLY: %s", reply);
+
     ZERO(strcmp(msg, reply));
     ZERO(strncmp(msg, reply, msg_len));
     return 0;
@@ -43,7 +43,7 @@ int test_size_7_bit()
     int msg_len = strlen(msg);
     EQUAL(wss_send_text(msg, msg_len), msg_len);
     reply = wss_read(&recv_len);
-    info("REPLY: %s", reply);
+
     ZERO(strcmp(msg, reply));
     ZERO(strncmp(msg, reply, msg_len));
     return 0;
@@ -56,7 +56,7 @@ int test_send(size_t msg_len, char ch)
     memset(msg, ch, msg_len);
     TRUTHY(wss_send_binary(msg, msg_len) == msg_len);
     reply = wss_read(&recv_len);
-    info("%lu vs %lu", recv_len, msg_len);
+
     TRUTHY(recv_len == msg_len);
     //fwrite(reply, 1, recv_len, stderr);
     ZERO(memcmp(msg, reply, msg_len));

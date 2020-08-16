@@ -71,7 +71,6 @@ int test_config_file()
 int test_random_values()
 {
     TRUTHY(cfg_file("tmp/whatsappd.cfg") >= 0);
-    info("CFGFILE: %s", cfg_file_get());
 
     cfg1->cfg_file_version = 1;
 
@@ -113,7 +112,6 @@ int test_real_values()
         *tokens_browser = DATA_AUTH_TOKENS_BROWSER;
 
     TRUTHY(cfg_file("tmp/whatsappd.cfg") >= 0);
-    info("CFGFILE: %s", cfg_file_get());
 
     memset(cfg1, 0, sizeof(CFG));
     memset(cfg2, 0, sizeof(CFG));
@@ -162,7 +160,6 @@ int test_setup()
 {
     cfg1 = calloc(sizeof(CFG), 1);
     cfg2 = calloc(sizeof(CFG), 1);
-    info("cfg size: %lu", sizeof(CFG));
     return 0;
 }
 

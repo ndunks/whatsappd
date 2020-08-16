@@ -141,7 +141,6 @@ int test_crypto_android()
     {
         strcpy(file, encrypted_messages_android[i]);
 
-        accent(":: %s", file);
         load_sample(file, encrypted, BINARY_SAMPLE_MAX_SIZE, &encrypted_size);
         *(strrchr(file, '.')) = 0;
         load_sample(file, decrypted, BINARY_SAMPLE_MAX_SIZE, &decrypted_size);
@@ -186,7 +185,6 @@ int test_crypto_iphone()
     {
         strcpy(file, encrypted_messages_iphone[i]);
 
-        accent(":: %s", file);
         load_sample(file, encrypted, BINARY_SAMPLE_MAX_SIZE, &encrypted_size);
         *(strrchr(file, '.')) = 0;
         load_sample(file, decrypted, BINARY_SAMPLE_MAX_SIZE, &decrypted_size);

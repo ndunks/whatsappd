@@ -87,7 +87,6 @@ void chats_clear()
 
 void chats_add_msg(CHAT *chat, const WebMessageInfo *web_msg)
 {
-    int i;
     char *txt = NULL;
     size_t len = 0;
     Message *msg = web_msg->message;

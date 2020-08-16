@@ -115,12 +115,12 @@ int test_write()
     buf_idx = 0;
     proto_scan(scan, 5, 5);
     ptr = &scan[0];
-    info("BUF: %s", ptr->value.buf);
+
     TRUTHY(proto.field == ptr->field);
     TRUTHY(proto.len == ptr->len);
     ZERO(strncmp(proto.value.buf, ptr->value.buf, proto.len));
     ptr++;
-    info("BUF: %s", ptr->value.buf);
+
     TRUTHY(proto.field == ptr->field);
     TRUTHY(proto.len == ptr->len);
     ZERO(strncmp(proto.value.buf, ptr->value.buf, proto.len));
@@ -156,7 +156,6 @@ int test_proto()
     TRUTHY(msg.messageTimestamp == 1589871077);
 
     FALSY(msg.key == NULL);
-    info("remoteJid: %s", msg.key->remoteJid);
     ZERO(strcmp(msg.key->remoteJid, "628997026464@s.whatsapp.net"));
     TRUTHY(msg.key->fromMe == true);
     ZERO(strcmp(msg.key->id, "3EB082A541839959E947"));

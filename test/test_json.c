@@ -69,7 +69,6 @@ int test_json_parse_init()
 
     ZERO(json_parse_object(&ptr));
     TRUTHY(json_len == 6);
-    accent("test_json_parse_init: Checking fields");
 
     ZERO(strcmp(json_get("status"), "200"));
     ZERO(strcmp(json_get("ref"), "6\\u0111Ct\"S+A=\"="));
