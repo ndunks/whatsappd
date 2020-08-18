@@ -17,7 +17,7 @@ void *sender_main()
         first_n = NULL;
         total = 0;
         f = open(sender_file, O_RDONLY);
-        info("sender: wait");
+        //info("sender: wait");
         if (f < 0)
         {
             err("sender: Fail OPEN R");
@@ -34,7 +34,7 @@ void *sender_main()
                 goto REPLY;
             }
             recv = read(f, sender_buf + total, SENDER_BUF_MAX - total);
-            err("sender: read: %ld", recv);
+            //err("sender: read: %ld", recv);
             if (first_n == NULL)
                 first_n = strchr(sender_buf + total, '\n');
 
@@ -45,21 +45,26 @@ void *sender_main()
         pthread_mutex_lock(sender.mutex);
         if (first_n == NULL)
         {
-            warn("sender: No line separator");
             // is invalid
+            warn("sender: No line separator");
+            goto REPLY;
+        }
+        if (first_n - sender.to < 4)
+        {
+            warn("sender: Number too short");
             goto REPLY;
         }
         *first_n = 0;
         sender.result = SENDER_RESULT_PENDING;
         sender.txt = first_n + 1;
-        info("sender: %s\n%s", sender.to, sender.txt);
+        //info("sender: %s\n%s", sender.to, sender.txt);
         while (sender.result == SENDER_RESULT_PENDING)
         {
-            info("sender: waiting reply");
+            //info("sender: waiting reply");
             pthread_cond_wait(sender.signal, sender.mutex);
         }
     REPLY:
-        ok("sender: %d", sender.result);
+        //ok("sender: %d", sender.result);
         f = open(sender_file, O_WRONLY);
         if (f < 0)
         {
