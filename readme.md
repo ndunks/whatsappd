@@ -30,7 +30,24 @@ echo "6285726501017 You got message from $USER" > /dev/shm/whatsappd
 # result should be "2" (SENDER_RESULT_OK) on success
 cat /dev/shm/whatsappd
 ```
+### Systemd Service
 
+``` bash
+cat <<EOF > /lib/systemd/system/whatsappd.service
+[Unit]
+Description=The WhatsApp Daemon
+
+[Service]
+User=netizen
+WorkingDirectory=/netizen/
+ExecStart=/netizen/whatsappd
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable whatsappd
+
+```
 ## Refferences
 
 - WhatsApp information from: [sigalor/whatsapp-web-reveng](https://github.com/sigalor/whatsapp-web-reveng)
