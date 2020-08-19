@@ -174,6 +174,15 @@ static int session_login_takeover()
     {
         return session_handle_conn();
     }
+    if (json_has("status"))
+    {
+        len = (int)json_get_number("status");
+        if (len != 200)
+        {
+            err("takeover: status %d", len);
+            return len;
+        }
+    }
 
     if (!json_has("type"))
     {

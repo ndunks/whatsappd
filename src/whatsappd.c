@@ -2,6 +2,7 @@
 #define WHATSAPPD_TEXT_MAX 1024
 
 static char text_buf[WHATSAPPD_TEXT_MAX] = {0};
+int whatsappd_flag = 0;
 
 int whatsappd_send_info(CHAT *chat)
 {
@@ -47,27 +48,46 @@ int whatsappd_reply_unread()
     return 0;
 }
 
+void whatsappd_sender()
+{
+    pthread_mutex_lock(sender.mutex);
+    if (sender.result == SENDER_RESULT_PENDING)
+    {
+        if (wa_send_text(sender.to, sender.txt) == 0)
+            sender.result = SENDER_RESULT_OK;
+        else
+            sender.result = SENDER_RESULT_FAIL;
+
+        pthread_cond_signal(sender.signal);
+    }
+    pthread_mutex_unlock(sender.mutex);
+}
+
 int whatsappd_autoreply()
 {
     int ret = 0;
     ssize_t size;
     char *msg, *tag, watchdog_tag[] = "?,", watchdog[] = ",";
     BINARY_NODE *node;
+    CHECK(sender_start());
 
     if (chats != NULL)
         whatsappd_reply_unread();
 
     while (ret >= 0)
     {
-        if (time(NULL) - wasocket_last_sent > 30)
-            wasocket_send(watchdog, 1, watchdog_tag, WS_OPCODE_TEXT);
-
-        ret = wss_ssl_check_read(1000);
+        if (whatsappd_flag)
+            break;
+        ret = wss_ssl_check_read(800);
         if (ret < 0)
             return ret;
-
+        if (whatsappd_flag)
+            break;
         if (ret == 0)
         {
+            if (time(NULL) - wasocket_last_sent > 30)
+                wasocket_send(watchdog, 1, watchdog_tag, WS_OPCODE_TEXT);
+            whatsappd_sender();
             whatsappd_reply_unread();
             continue;
         }
@@ -110,7 +130,7 @@ int whatsappd_init(const char *config_path)
     TRY(session_init(&cfg));
     cfg_save(&cfg);
     TRY(handler_preempt());
-
+    sender_setup();
 #ifdef DEBUG
     TRY(wa_action_presence(1));
 #else
@@ -125,6 +145,7 @@ CATCH:
 
 void whatsappd_free()
 {
+    whatsappd_flag = 1;
     session_free();
     crypto_free();
 }

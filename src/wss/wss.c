@@ -302,7 +302,7 @@ char *wss_read(size_t *data_len)
             if (recv < 2)
             {
                 warn("   Recv to small < 2");
-                continue;
+                return NULL;
             }
 
         process_frame:

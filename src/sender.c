@@ -41,6 +41,7 @@ void *sender_main()
             total += recv;
         } while (recv > 0);
         close(f);
+        sender_buf[total] = 0;
 
         pthread_mutex_lock(sender.mutex);
         if (first_n == NULL)
