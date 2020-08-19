@@ -6,10 +6,8 @@
 #include <sys/stat.h>
 
 #include "util.h"
-// #define SENDER_TXT_MAX 1024
-// #define SENDER_TO_MAX 32
 
-#define SENDER_BUF_MAX 2048
+#define SENDER_BUF_MAX 10240
 
 typedef enum SENDER_RESULT
 {

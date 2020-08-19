@@ -9,12 +9,12 @@ struct SENDER sender;
 void *sender_main()
 {
     int f;
-    ssize_t recv, total;
-    char *first_n, reply[1];
+    ssize_t recv, total, separator_len;
+    char *separator, reply[1];
     while (1)
     {
         sender_buf[0] = 0;
-        first_n = NULL;
+        separator = NULL;
         total = 0;
         f = open(sender_file, O_RDONLY);
         //info("sender: wait");
@@ -35,29 +35,52 @@ void *sender_main()
             }
             recv = read(f, sender_buf + total, SENDER_BUF_MAX - total);
             //err("sender: read: %ld", recv);
-            if (first_n == NULL)
-                first_n = strchr(sender_buf + total, '\n');
-
+            if (separator == NULL)
+            {
+                for (separator_len = total; separator_len < total + recv; separator_len++)
+                {
+                    // all non numeric will treat as separator
+                    if (sender_buf[separator_len] < '0' || sender_buf[separator_len] > '9')
+                    {
+                        separator = sender_buf + separator_len;
+                        *separator = 0;
+                        break;
+                    }
+                }
+            }
             total += recv;
         } while (recv > 0);
         close(f);
         sender_buf[total] = 0;
 
         pthread_mutex_lock(sender.mutex);
-        if (first_n == NULL)
+        if (separator == NULL)
         {
             // is invalid
             warn("sender: No line separator");
             goto REPLY;
         }
-        if (first_n - sender.to < 4)
+
+        if (separator_len < 4)
         {
             warn("sender: Number too short");
             goto REPLY;
         }
-        *first_n = 0;
+
+        if (separator_len > 24)
+        {
+            warn("sender: Number too long");
+            goto REPLY;
+        }
+
+        if (total == separator_len)
+        {
+            warn("sender: Message too short");
+            goto REPLY;
+        }
+
         sender.result = SENDER_RESULT_PENDING;
-        sender.txt = first_n + 1;
+        sender.txt = separator + 1;
         //info("sender: %s\n%s", sender.to, sender.txt);
         while (sender.result == SENDER_RESULT_PENDING)
         {
