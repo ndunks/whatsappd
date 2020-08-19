@@ -132,7 +132,10 @@ static int handle_action(BINARY_NODE *node)
         for (i = 0; i < node->child_len; i++)
         {
             chat = handle_message_unread(node->child.list[i], true);
-            chat->unread_count++;
+
+            // ignore empty, its may deleted msg
+            if (chat->msg[chat->unread_count] != NULL)
+                chat->unread_count++;
         }
 
         return 0;
