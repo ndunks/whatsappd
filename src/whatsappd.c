@@ -102,7 +102,7 @@ int whatsappd_autoreply()
             binary_free();
         }
     };
-
+    sender_stop();
     return 0;
 }
 

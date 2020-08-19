@@ -1,7 +1,6 @@
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
 
 #include "wasocket.h"
 
@@ -12,8 +11,7 @@ static char tag_buf[32] = {0},
             short_tag_base[5] = {0},
             tag_fmt[] = "%lu.--%lu,",
             short_tag_fmt[] = "%s.--%lu,";
-static pthread_t wasocket_thread = 0;
-static pthread_mutex_t wasocket_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 time_t wasocket_last_sent = 0;
 
 void wasocket_setup()
@@ -265,56 +263,4 @@ int wasocket_read_all(uint32_t timeout_ms)
         }
     } while (ret > 0);
     return 0;
-}
-
-
-static void *wasocket_run()
-{
-    ssize_t size;
-    char *msg, *tag;
-
-    do
-    {
-        if (wasocket_read(&msg, &tag, &size) != 0)
-            break;
-
-        info("Got %ld bytes\n%s", size, tag);
-        if (size < 256)
-        {
-            hexdump(msg, size);
-            warn("-------------------");
-            fwrite(msg, 1, size, stderr);
-            warn("\n-------------------");
-        }
-
-    } while (size > 0);
-
-    warn("wasocket thread exit");
-    return NULL;
-}
-
-int wasocket_start()
-{
-    return pthread_create(&wasocket_thread, NULL, wasocket_run, NULL);
-}
-
-int wasocket_stop()
-{
-    if (wasocket_thread)
-    {
-        pthread_cancel(wasocket_thread);
-        pthread_join(wasocket_thread, NULL);
-        wasocket_thread = 0;
-    }
-    return 0;
-}
-
-int wasocket_lock()
-{
-    return pthread_mutex_lock(&wasocket_mutex);
-}
-
-int wasocket_unlock()
-{
-    return pthread_mutex_unlock(&wasocket_mutex);
 }
